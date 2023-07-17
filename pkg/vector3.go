@@ -1,8 +1,6 @@
 package pkg
 
-import (
-	"math"
-)
+import "math"
 
 type Vec3 struct {
 	X float64
@@ -30,8 +28,12 @@ func (v *Vec3) Divide(arg float64) *Vec3 {
 	return v.Multiply(1 / arg)
 }
 
+func (v *Vec3) Dot(vec *Vec3) float64 {
+	return v.X*vec.X + v.Y*vec.Y + v.Z*vec.Z
+}
+
 func (v *Vec3) Magnitude() float64 {
-	return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z)
+	return math.Sqrt(v.Dot(v))
 }
 
 func (v *Vec3) Direction() *Vec3 {
