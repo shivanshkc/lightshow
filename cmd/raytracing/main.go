@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"raytracing/pkg"
+	"time"
 )
 
 const (
 	aspectRatio = 16.0 / 9.0
-	imageWidth  = 1024.0
+	imageWidth  = 1280
 	imageHeight = imageWidth / aspectRatio
 
 	viewportHeight = 2.0
@@ -20,9 +21,15 @@ var (
 	origin     = pkg.NewVector(0, 0, 0)
 	horizontal = pkg.NewVector(viewportWidth, 0, 0)
 	vertical   = pkg.NewVector(0, viewportHeight, 0)
+
+	sphereCenter = pkg.NewVector(0, 0, -1)
+	sphereRadius = 0.5
 )
 
 func main() {
+	start := time.Now()
+	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
+
 	lowerLeftCorner := origin.
 		Minus(horizontal.Divide(2)).
 		Minus(vertical.Divide(2)).
@@ -42,20 +49,33 @@ func main() {
 
 			rayDirection := lowerLeftCorner.
 				Plus(horizontal.Multiply(x)).
-				Plus(vertical.Multiply(y))
+				Plus(vertical.Multiply(y)).
+				Direction()
 
 			ray := pkg.NewRay(origin, rayDirection)
-			fmt.Println(blueGradientColour(ray).GetPPMRow())
+			fmt.Println(rayColour(ray).GetPPMRow())
 		}
 	}
-
-	debugf("\nDone.\n")
 }
 
-func blueGradientColour(r *pkg.Ray) *pkg.Colour {
+func rayColour(r *pkg.Ray) *pkg.Colour {
+	if distance, hit := r.DistanceToSphere(sphereCenter, sphereRadius); hit {
+		sphereNormal := r.PointAt(distance).Minus(sphereCenter)
+		return pkg.NewColour(
+			getZeroToOne(sphereNormal.X),
+			getZeroToOne(sphereNormal.Y),
+			getZeroToOne(sphereNormal.Z),
+		)
+	}
+
 	unitDirection := r.Direction.Direction()
-	t := 0.5 * (unitDirection.Y + 1)
-	return pkg.NewColour(1, 1, 1).LerpTo(pkg.NewColour(0.5, 0.7, 1.0), t)
+	// Here, unitDirection.Y varies from -1 to 1.
+	zeroToOne := getZeroToOne(unitDirection.Y)
+	return pkg.NewColour(1, 1, 1).LerpTo(pkg.NewColour(0.5, 0.7, 1.0), zeroToOne)
+}
+
+func getZeroToOne(minusOneToOne float64) float64 {
+	return 0.5 * (minusOneToOne + 1)
 }
 
 // debugf can be used to print debugging info.
