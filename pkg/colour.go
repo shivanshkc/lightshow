@@ -16,9 +16,15 @@ func NewColourFromVec3(vec *Vec3) *Colour {
 	return &Colour{R: vec.X, G: vec.Y, B: vec.Z}
 }
 
-func (c *Colour) GetPPMRow() string {
-	return fmt.Sprintf("%d %d %d", int(255.999*c.R),
-		int(255.999*c.G), int(255.999*c.B))
+func (c *Colour) GetPPMRow(samplesPerPixel int) string {
+	scale := 1.0 / float64(samplesPerPixel)
+
+	return fmt.Sprintf(
+		"%d %d %d",
+		int(256*clamp(c.R*scale, 0, 0.9999)),
+		int(256*clamp(c.G*scale, 0, 0.9999)),
+		int(256*clamp(c.B*scale, 0, 0.9999)),
+	)
 }
 
 func (c *Colour) LerpTo(end *Colour, factor float64) *Colour {
@@ -29,4 +35,14 @@ func (c *Colour) LerpTo(end *Colour, factor float64) *Colour {
 		oneMinusFactor*c.G + factor*end.G,
 		oneMinusFactor*c.B + factor*end.B,
 	}
+}
+
+func clamp(value, min, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
 }

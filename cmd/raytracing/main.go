@@ -3,25 +3,26 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"raytracing/pkg"
 	"time"
 )
 
 const (
-	aspectRatio = 16.0 / 9.0
+	aspectRatio    = 16.0 / 9.0
+	viewportHeight = 2.0
+	focalLength    = 1.0
+
 	imageWidth  = 1280
 	imageHeight = imageWidth / aspectRatio
 
-	viewportHeight = 2.0
-	viewportWidth  = aspectRatio * viewportHeight
-	focalLength    = 1.0
+	// For anti-aliasing.
+	samplesPerPixel = 100
 )
 
 var (
-	origin     = pkg.NewVector(0, 0, 0)
-	horizontal = pkg.NewVector(viewportWidth, 0, 0)
-	vertical   = pkg.NewVector(0, viewportHeight, 0)
+	camera = pkg.NewCamera(aspectRatio, viewportHeight, focalLength)
 
 	hittableGroup = pkg.NewHittableGroup([]pkg.Hittable{
 		&pkg.Sphere{Center: pkg.NewVector(0, 0, -1), Radius: 0.5},
@@ -33,30 +34,34 @@ func main() {
 	start := time.Now()
 	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
 
-	lowerLeftCorner := origin.
-		Minus(horizontal.Divide(2)).
-		Minus(vertical.Divide(2)).
-		Minus(pkg.NewVector(0, 0, focalLength))
-
 	fmt.Printf("P3\n")
 	fmt.Printf("%d %d\n", int(imageWidth), int(imageHeight))
 	fmt.Printf("255\n")
+
+	// Create a random number generator.
+	var randSeed int64 = int64(time.Now().Nanosecond())
+	randomGen := rand.New(rand.NewSource(randSeed))
 
 	for j := imageHeight - 1; j >= 0; j-- {
 		// Progress tracker.
 		debugf("\rLines remaining: %d", int(j))
 
-		for i := 0; i < imageWidth; i++ {
-			x := float64(i) / (imageWidth - 1)
-			y := float64(j) / (imageHeight - 1)
+		for i := 0.0; i < imageWidth; i++ {
+			colour := pkg.NewColour(0, 0, 0)
 
-			rayDirection := lowerLeftCorner.
-				Plus(horizontal.Multiply(x)).
-				Plus(vertical.Multiply(y)).
-				Direction()
+			for s := 0; s < samplesPerPixel; s++ {
+				x := (i + randomGen.Float64()) / (imageWidth - 1)
+				y := (j + randomGen.Float64()) / (imageHeight - 1)
 
-			ray := pkg.NewRay(origin, rayDirection)
-			fmt.Println(rayColour(ray, hittableGroup).GetPPMRow())
+				rayCol := rayColour(camera.GetRay(x, y), hittableGroup)
+				colour = pkg.NewColour(
+					colour.R+rayCol.R,
+					colour.G+rayCol.G,
+					colour.B+rayCol.B,
+				)
+			}
+
+			fmt.Println(colour.GetPPMRow(samplesPerPixel))
 		}
 	}
 }
