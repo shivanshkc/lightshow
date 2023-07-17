@@ -12,6 +12,10 @@ func NewColour(r, g, b float64) *Colour {
 	return &Colour{R: r, G: g, B: b}
 }
 
+func NewColourFromVec3(vec *Vec3) *Colour {
+	return &Colour{R: vec.X, G: vec.Y, B: vec.Z}
+}
+
 func (c *Colour) GetPPMRow() string {
 	return fmt.Sprintf("%d %d %d", int(255.999*c.R),
 		int(255.999*c.G), int(255.999*c.B))

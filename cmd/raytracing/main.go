@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"raytracing/pkg"
 	"time"
@@ -22,8 +23,10 @@ var (
 	horizontal = pkg.NewVector(viewportWidth, 0, 0)
 	vertical   = pkg.NewVector(0, viewportHeight, 0)
 
-	sphereCenter = pkg.NewVector(0, 0, -1)
-	sphereRadius = 0.5
+	hittableGroup = pkg.NewHittableGroup([]pkg.Hittable{
+		&pkg.Sphere{Center: pkg.NewVector(0, 0, -1), Radius: 0.5},
+		&pkg.Sphere{Center: pkg.NewVector(0, -100.5, -1), Radius: 100},
+	})
 )
 
 func main() {
@@ -53,22 +56,18 @@ func main() {
 				Direction()
 
 			ray := pkg.NewRay(origin, rayDirection)
-			fmt.Println(rayColour(ray).GetPPMRow())
+			fmt.Println(rayColour(ray, hittableGroup).GetPPMRow())
 		}
 	}
 }
 
-func rayColour(r *pkg.Ray) *pkg.Colour {
-	if distance, hit := r.DistanceToSphere(sphereCenter, sphereRadius); hit {
-		sphereNormal := r.PointAt(distance).Minus(sphereCenter)
-		return pkg.NewColour(
-			getZeroToOne(sphereNormal.X),
-			getZeroToOne(sphereNormal.Y),
-			getZeroToOne(sphereNormal.Z),
-		)
+func rayColour(ray *pkg.Ray, hittable pkg.Hittable) *pkg.Colour {
+	if record, isHit := hittable.IsHit(ray, 0, math.MaxFloat64); isHit {
+		colourVec := record.Normal.Plus(pkg.NewVector(1, 1, 1)).Divide(2)
+		return pkg.NewColourFromVec3(colourVec)
 	}
 
-	unitDirection := r.Direction.Direction()
+	unitDirection := ray.Direction.Direction()
 	// Here, unitDirection.Y varies from -1 to 1.
 	zeroToOne := getZeroToOne(unitDirection.Y)
 	return pkg.NewColour(1, 1, 1).LerpTo(pkg.NewColour(0.5, 0.7, 1.0), zeroToOne)
