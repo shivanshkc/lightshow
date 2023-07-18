@@ -44,6 +44,19 @@ func (v *Vec3) Reflection(normal *Vec3) *Vec3 {
 	return v.Minus(normal.Multiply(v.Dot(normal)).Multiply(2))
 }
 
+func (v *Vec3) Refraction(normal *Vec3, refractionRatio float64) *Vec3 {
+	incidentDir := v.Direction()
+	cosTheta := math.Min(incidentDir.Multiply(-1).Dot(normal), 1)
+
+	refPerpendicular := incidentDir.Plus(normal.Multiply(cosTheta)).
+		Multiply(refractionRatio)
+
+	refParallel := normal.Multiply(
+		-math.Sqrt(math.Abs(1 - refPerpendicular.Dot(refPerpendicular))))
+
+	return refPerpendicular.Plus(refParallel)
+}
+
 func (v *Vec3) IsNearZero() bool {
 	limit := 0.00001
 	return v.X < limit && v.Y < limit && v.Z < limit
