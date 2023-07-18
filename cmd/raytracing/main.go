@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"os"
 	"raytracing/pkg"
 	"time"
@@ -14,11 +13,13 @@ const (
 	viewportHeight = 2.0
 	focalLength    = 1.0
 
-	imageWidth  = 1280
+	imageWidth  = 480
 	imageHeight = imageWidth / aspectRatio
 
 	// For anti-aliasing.
 	samplesPerPixel = 100
+
+	maxDiffusionDepth = 10
 )
 
 var (
@@ -38,22 +39,18 @@ func main() {
 	fmt.Printf("%d %d\n", int(imageWidth), int(imageHeight))
 	fmt.Printf("255\n")
 
-	// Create a random number generator.
-	var randSeed int64 = int64(time.Now().Nanosecond())
-	randomGen := rand.New(rand.NewSource(randSeed))
-
 	for j := imageHeight - 1; j >= 0; j-- {
 		// Progress tracker.
-		debugf("\rLines remaining: %d", int(j))
+		go debugf("\rLines remaining: %d	", int(j))
 
 		for i := 0.0; i < imageWidth; i++ {
 			colour := pkg.NewColour(0, 0, 0)
 
 			for s := 0; s < samplesPerPixel; s++ {
-				x := (i + randomGen.Float64()) / (imageWidth - 1)
-				y := (j + randomGen.Float64()) / (imageHeight - 1)
+				x := (i + pkg.RandomFloat()) / (imageWidth - 1)
+				y := (j + pkg.RandomFloat()) / (imageHeight - 1)
 
-				rayCol := rayColour(camera.GetRay(x, y), hittableGroup)
+				rayCol := rayColour(camera.GetRay(x, y), hittableGroup, maxDiffusionDepth)
 				colour = pkg.NewColour(
 					colour.R+rayCol.R,
 					colour.G+rayCol.G,
@@ -61,15 +58,20 @@ func main() {
 				)
 			}
 
-			fmt.Println(colour.GetPPMRow(samplesPerPixel))
+			go fmt.Println(colour.GetPPMRow(samplesPerPixel))
 		}
 	}
 }
 
-func rayColour(ray *pkg.Ray, hittable pkg.Hittable) *pkg.Colour {
-	if record, isHit := hittable.IsHit(ray, 0, math.MaxFloat64); isHit {
-		colourVec := record.Normal.Plus(pkg.NewVector(1, 1, 1)).Divide(2)
-		return pkg.NewColourFromVec3(colourVec)
+func rayColour(ray *pkg.Ray, hittable pkg.Hittable, depth int) *pkg.Colour {
+	if depth < 1 {
+		return pkg.NewColour(0, 0, 0)
+	}
+
+	if record, isHit := hittable.IsHit(ray, 0.001, math.MaxFloat64); isHit {
+		target := record.Point.Plus(pkg.RandomVectorInHemisphere(record.Normal))
+		col := rayColour(pkg.NewRay(record.Point, target.Minus(record.Point)), hittable, depth-1)
+		return pkg.NewColour(0.5*col.R, 0.5*col.G, 0.5*col.B)
 	}
 
 	unitDirection := ray.Direction.Direction()
