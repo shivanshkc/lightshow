@@ -31,16 +31,23 @@ var (
 		&hittable.Sphere{
 			Center: pkg.NewVector(0, 0, -1),
 			Radius: 0.5,
-			Mat: &material.Lambertian{
-				Attenuation: pkg.NewColour(0.8, 0.8, 0.0),
+			Mat: &material.Dielectric{
+				RefractiveIndex: 2,
 			},
 		},
 		&hittable.Sphere{
-			Center: pkg.NewVector(-1.5, 0, -1),
-			Radius: 0.5,
+			Center: pkg.NewVector(-1, 0, -1),
+			Radius: -0.4,
+			Mat: &material.Lambertian{
+				Attenuation: pkg.NewColour(0.1, 0.2, 0.3),
+			},
+		},
+		&hittable.Sphere{
+			Center: pkg.NewVector(-0.5, -0.25, -0.5),
+			Radius: 0.1,
 			Mat: &material.Metal{
-				Attenuation: pkg.NewColour(0.2, 0.4, 0.6),
-				Fuzz:        0.3,
+				Attenuation: pkg.NewColour(0.2, 0.4, 0.2),
+				Fuzz:        0.2,
 			},
 		},
 		&hittable.Sphere{
@@ -100,7 +107,7 @@ func rayColour(ray *pkg.Ray, hittable hittable.Hittable, depth int) *pkg.Colour 
 
 	if record, isHit := hittable.IsHit(ray, 0.001, math.MaxFloat64); isHit {
 		scattered, attenuation, isScattered :=
-			record.Mat.Scatter(ray, record.Point, record.Normal)
+			record.Mat.Scatter(ray, record.Point, record.Normal, record.IsNormalOutward)
 		if !isScattered {
 			return pkg.NewColour(0, 0, 0)
 		}
