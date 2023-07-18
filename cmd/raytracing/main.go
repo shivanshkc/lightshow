@@ -5,6 +5,8 @@ import (
 	"math"
 	"os"
 	"raytracing/pkg"
+	"raytracing/pkg/hittable"
+	"raytracing/pkg/material"
 	"time"
 )
 
@@ -19,15 +21,43 @@ const (
 	// For anti-aliasing.
 	samplesPerPixel = 100
 
-	maxDiffusionDepth = 10
+	maxDiffusionDepth = 50
 )
 
 var (
 	camera = pkg.NewCamera(aspectRatio, viewportHeight, focalLength)
 
-	hittableGroup = pkg.NewHittableGroup([]pkg.Hittable{
-		&pkg.Sphere{Center: pkg.NewVector(0, 0, -1), Radius: 0.5},
-		&pkg.Sphere{Center: pkg.NewVector(0, -100.5, -1), Radius: 100},
+	hittableGroup = hittable.NewHittableGroup([]hittable.Hittable{
+		&hittable.Sphere{
+			Center: pkg.NewVector(0, 0, -1),
+			Radius: 0.5,
+			Mat: &material.Lambertian{
+				Attenuation: pkg.NewColour(0.8, 0.8, 0.0),
+			},
+		},
+		&hittable.Sphere{
+			Center: pkg.NewVector(-1.5, 0, -1),
+			Radius: 0.5,
+			Mat: &material.Metal{
+				Attenuation: pkg.NewColour(0.2, 0.4, 0.6),
+				Fuzz:        0.3,
+			},
+		},
+		&hittable.Sphere{
+			Center: pkg.NewVector(1.5, 0, -1),
+			Radius: 0.5,
+			Mat: &material.Metal{
+				Attenuation: pkg.NewColour(0.6, 0.4, 0.2),
+				Fuzz:        0.6,
+			},
+		},
+		&hittable.Sphere{
+			Center: pkg.NewVector(0, -100.5, -1),
+			Radius: 100,
+			Mat: &material.Lambertian{
+				Attenuation: pkg.NewColour(0.8, 0.8, 0),
+			},
+		},
 	})
 )
 
@@ -47,8 +77,8 @@ func main() {
 			colour := pkg.NewColour(0, 0, 0)
 
 			for s := 0; s < samplesPerPixel; s++ {
-				x := (i + pkg.RandomFloat()) / (imageWidth - 1)
-				y := (j + pkg.RandomFloat()) / (imageHeight - 1)
+				x := (i + pkg.RandomFloat()) / imageWidth
+				y := (j + pkg.RandomFloat()) / imageHeight
 
 				rayCol := rayColour(camera.GetRay(x, y), hittableGroup, maxDiffusionDepth)
 				colour = pkg.NewColour(
@@ -63,25 +93,30 @@ func main() {
 	}
 }
 
-func rayColour(ray *pkg.Ray, hittable pkg.Hittable, depth int) *pkg.Colour {
+func rayColour(ray *pkg.Ray, hittable hittable.Hittable, depth int) *pkg.Colour {
 	if depth < 1 {
 		return pkg.NewColour(0, 0, 0)
 	}
 
 	if record, isHit := hittable.IsHit(ray, 0.001, math.MaxFloat64); isHit {
-		target := record.Point.Plus(pkg.RandomVectorInHemisphere(record.Normal))
-		col := rayColour(pkg.NewRay(record.Point, target.Minus(record.Point)), hittable, depth-1)
-		return pkg.NewColour(0.5*col.R, 0.5*col.G, 0.5*col.B)
+		scattered, attenuation, isScattered :=
+			record.Mat.Scatter(ray, record.Point, record.Normal)
+		if !isScattered {
+			return pkg.NewColour(0, 0, 0)
+		}
+
+		scatteredRayCol := rayColour(scattered, hittable, depth-1)
+		return pkg.NewColour(
+			scatteredRayCol.R*attenuation.R,
+			scatteredRayCol.G*attenuation.G,
+			scatteredRayCol.B*attenuation.B,
+		)
 	}
 
 	unitDirection := ray.Direction.Direction()
 	// Here, unitDirection.Y varies from -1 to 1.
-	zeroToOne := getZeroToOne(unitDirection.Y)
-	return pkg.NewColour(1, 1, 1).LerpTo(pkg.NewColour(0.5, 0.7, 1.0), zeroToOne)
-}
-
-func getZeroToOne(minusOneToOne float64) float64 {
-	return 0.5 * (minusOneToOne + 1)
+	zeroToOne := 0.5 * (unitDirection.Y + 1)
+	return pkg.NewColour(1, 1, 1).LerpTo(pkg.NewColour(0.5, 0.75, 1.0), zeroToOne)
 }
 
 // debugf can be used to print debugging info.
