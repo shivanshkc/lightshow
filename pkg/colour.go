@@ -1,6 +1,9 @@
 package pkg
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type Colour struct {
 	R float64
@@ -18,12 +21,13 @@ func NewColourFromVec3(vec *Vec3) *Colour {
 
 func (c *Colour) GetPPMRow(samplesPerPixel int) string {
 	scale := 1.0 / float64(samplesPerPixel)
+	r, g, b := math.Sqrt(c.R*scale), math.Sqrt(c.G*scale), math.Sqrt(c.B*scale)
 
 	return fmt.Sprintf(
 		"%d %d %d",
-		int(256*clamp(c.R*scale, 0, 0.9999)),
-		int(256*clamp(c.G*scale, 0, 0.9999)),
-		int(256*clamp(c.B*scale, 0, 0.9999)),
+		int(256*clamp(r, 0, 0.9999)),
+		int(256*clamp(g, 0, 0.9999)),
+		int(256*clamp(b, 0, 0.9999)),
 	)
 }
 
