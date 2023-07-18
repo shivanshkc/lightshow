@@ -39,3 +39,12 @@ func (v *Vec3) Magnitude() float64 {
 func (v *Vec3) Direction() *Vec3 {
 	return v.Divide(v.Magnitude())
 }
+
+func (v *Vec3) Reflection(normal *Vec3) *Vec3 {
+	return v.Minus(normal.Multiply(v.Dot(normal)).Multiply(2))
+}
+
+func (v *Vec3) IsNearZero() bool {
+	limit := 0.00001
+	return v.X < limit && v.Y < limit && v.Z < limit
+}
