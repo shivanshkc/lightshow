@@ -29,38 +29,30 @@ var (
 
 	hittableGroup = hittable.NewHittableGroup([]hittable.Hittable{
 		&hittable.Sphere{
-			Center: pkg.NewVector(0, 0, -1),
+			Center: pkg.NewVector(-1.2, 0, -1),
 			Radius: 0.5,
-			Mat: &material.Dielectric{
-				RefractiveIndex: 2,
-			},
-		},
-		&hittable.Sphere{
-			Center: pkg.NewVector(-1, 0, -1),
-			Radius: -0.4,
 			Mat: &material.Lambertian{
 				Attenuation: pkg.NewColour(0.1, 0.2, 0.3),
 			},
 		},
 		&hittable.Sphere{
-			Center: pkg.NewVector(-0.5, -0.25, -0.5),
-			Radius: 0.1,
-			Mat: &material.Metal{
-				Attenuation: pkg.NewColour(0.2, 0.4, 0.2),
-				Fuzz:        0.2,
+			Center: pkg.NewVector(0, 0, -1),
+			Radius: 0.5,
+			Mat: &material.Dielectric{
+				RefractiveIndex: 2.4,
 			},
 		},
 		&hittable.Sphere{
-			Center: pkg.NewVector(1.5, 0, -1),
+			Center: pkg.NewVector(1.2, 0, -1),
 			Radius: 0.5,
 			Mat: &material.Metal{
 				Attenuation: pkg.NewColour(0.6, 0.4, 0.2),
-				Fuzz:        0.6,
+				Fuzz:        0.5,
 			},
 		},
 		&hittable.Sphere{
-			Center: pkg.NewVector(0, -100.5, -1),
-			Radius: 100,
+			Center: pkg.NewVector(0, -100000.5, -1),
+			Radius: 100000,
 			Mat: &material.Lambertian{
 				Attenuation: pkg.NewColour(0.8, 0.8, 0),
 			},
