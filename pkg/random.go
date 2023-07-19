@@ -13,6 +13,10 @@ func RandomFloat() float64 {
 	return _randomGen.Float64()
 }
 
+func RandomFloatBetween(min, max float64) float64 {
+	return min + (RandomFloat() * (max - min))
+}
+
 func RandomVector() *Vec3 {
 	return NewVector(RandomFloat(), RandomFloat(), RandomFloat())
 }
@@ -32,4 +36,18 @@ func RandomVectorInHemisphere(normal *Vec3) *Vec3 {
 		return inUnitSphere
 	}
 	return inUnitSphere.Multiply(-1)
+}
+
+func RandomVectorInUnitDisk() *Vec3 {
+	for {
+		point := NewVector(
+			RandomFloatBetween(-1, 1),
+			RandomFloatBetween(-1, 1),
+			0,
+		)
+
+		if point.Dot(point) < 1 {
+			return point
+		}
+	}
 }

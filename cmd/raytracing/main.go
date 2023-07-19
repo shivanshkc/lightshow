@@ -11,25 +11,17 @@ import (
 )
 
 const (
-	aspectRatio    = 16.0 / 9.0
-	viewportHeight = 2.0
-	focalLength    = 1.0
+	aspectRatio = 16.0 / 9.0
 
 	imageWidth  = 480
 	imageHeight = imageWidth / aspectRatio
 
+	maxDiffusionDepth = 50
 	// For anti-aliasing.
 	samplesPerPixel = 100
-
-	maxDiffusionDepth = 50
 )
 
 var (
-	camera = pkg.NewCamera(
-		pkg.NewVector(-2, 2, 1), pkg.NewVector(0, 0, -1), pkg.NewVector(0, 1, 0),
-		20.0, aspectRatio,
-	)
-
 	hittableGroup = hittable.NewHittableGroup([]hittable.Hittable{
 		&hittable.Sphere{
 			Center: pkg.NewVector(-1, 0, -1),
@@ -68,6 +60,8 @@ func main() {
 	start := time.Now()
 	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
 
+	camera := createCamera()
+
 	fmt.Printf("P3\n")
 	fmt.Printf("%d %d\n", int(imageWidth), int(imageHeight))
 	fmt.Printf("255\n")
@@ -94,6 +88,16 @@ func main() {
 			go fmt.Println(colour.GetPPMRow(samplesPerPixel))
 		}
 	}
+}
+
+func createCamera() *pkg.Camera {
+	lookFrom, lookAt := pkg.NewVector(-2, 2, 1), pkg.NewVector(0, 0, -1)
+
+	return pkg.NewCamera(
+		lookFrom, lookAt, pkg.NewVector(0, 1, 0),
+		20.0, aspectRatio,
+		0.6, lookFrom.Minus(lookAt).Magnitude(),
+	)
 }
 
 func rayColour(ray *pkg.Ray, hittable hittable.Hittable, depth int) *pkg.Colour {
