@@ -21,6 +21,10 @@ func RandomVector() *Vec3 {
 	return NewVector(RandomFloat(), RandomFloat(), RandomFloat())
 }
 
+func RandomColor() *Colour {
+	return NewColourFromVec3(RandomVector())
+}
+
 func RandomVectorInUnitSphere() *Vec3 {
 	for {
 		point := RandomVector()
