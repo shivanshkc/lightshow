@@ -1,5 +1,7 @@
 package pkg
 
+import "math"
+
 type Camera struct {
 	AspectRatio    float64
 	ViewportHeight float64
@@ -13,23 +15,34 @@ type Camera struct {
 	LowerLeftCorner *Vec3
 }
 
-func NewCamera(aspectRatio, vpHeight, focalLength float64) *Camera {
-	vpWidth := vpHeight * aspectRatio
+func NewCamera(
+	lookFrom, lookAt, up *Vec3,
+	verticalFoV, aspectRatio float64,
+) *Camera {
+	vFovRad := deg2Rad(verticalFoV)
+	heightFactor := math.Tan(vFovRad / 2)
+
+	vpHeight := 2.0 * heightFactor
+	vpWidth := aspectRatio * vpHeight
+
+	cameraW := lookFrom.Minus(lookAt).Direction()
+	cameraU := up.Cross(cameraW).Direction()
+	cameraV := cameraW.Cross(cameraU)
 
 	cam := &Camera{
 		AspectRatio:    aspectRatio,
 		ViewportHeight: vpHeight,
 		ViewportWidth:  vpWidth,
-		FocalLength:    focalLength,
-		Origin:         NewVector(0, 0, 0),
-		Horizontal:     NewVector(vpWidth, 0, 0),
-		Vertical:       NewVector(0, vpHeight, 0),
+		FocalLength:    1.0,
+		Origin:         lookFrom,
+		Horizontal:     cameraU.Multiply(vpWidth),
+		Vertical:       cameraV.Multiply(vpHeight),
 	}
 
 	cam.LowerLeftCorner = cam.Origin.
 		Minus(cam.Horizontal.Divide(2)).
 		Minus(cam.Vertical.Divide(2)).
-		Minus(NewVector(0, 0, cam.FocalLength))
+		Minus(cameraW)
 
 	return cam
 }
@@ -38,7 +51,12 @@ func (c *Camera) GetRay(screenX, screenY float64) *Ray {
 	rayDirection := c.LowerLeftCorner.
 		Plus(c.Horizontal.Multiply(screenX)).
 		Plus(c.Vertical.Multiply(screenY)).
+		Minus(c.Origin).
 		Direction()
 
 	return NewRay(c.Origin, rayDirection)
+}
+
+func deg2Rad(deg float64) float64 {
+	return deg * math.Pi / 180
 }

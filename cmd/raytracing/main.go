@@ -25,31 +25,35 @@ const (
 )
 
 var (
-	camera = pkg.NewCamera(aspectRatio, viewportHeight, focalLength)
+	camera = pkg.NewCamera(
+		pkg.NewVector(-2, 2, 1), pkg.NewVector(0, 0, -1), pkg.NewVector(0, 1, 0),
+		20.0, aspectRatio,
+	)
 
 	hittableGroup = hittable.NewHittableGroup([]hittable.Hittable{
 		&hittable.Sphere{
-			Center: pkg.NewVector(-1.2, 0, -1),
+			Center: pkg.NewVector(-1, 0, -1),
 			Radius: 0.5,
-			Mat: &material.Lambertian{
-				Attenuation: pkg.NewColour(0.1, 0.2, 0.3),
+			Mat: &material.Dielectric{
+				RefractiveIndex: 1.5,
 			},
 		},
 		&hittable.Sphere{
 			Center: pkg.NewVector(0, 0, -1),
 			Radius: 0.5,
-			Mat: &material.Dielectric{
-				RefractiveIndex: 2.4,
+			Mat: &material.Lambertian{
+				Attenuation: pkg.NewColour(0.1, 0.2, 0.5),
 			},
 		},
 		&hittable.Sphere{
-			Center: pkg.NewVector(1.2, 0, -1),
+			Center: pkg.NewVector(1, 0, -1),
 			Radius: 0.5,
 			Mat: &material.Metal{
 				Attenuation: pkg.NewColour(0.6, 0.4, 0.2),
-				Fuzz:        0.5,
+				Fuzz:        0,
 			},
 		},
+		// Ground.
 		&hittable.Sphere{
 			Center: pkg.NewVector(0, -100000.5, -1),
 			Radius: 100000,
