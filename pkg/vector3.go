@@ -32,6 +32,14 @@ func (v *Vec3) Dot(vec *Vec3) float64 {
 	return v.X*vec.X + v.Y*vec.Y + v.Z*vec.Z
 }
 
+func (v *Vec3) Cross(vec *Vec3) *Vec3 {
+	return NewVector(
+		v.Y*vec.Z-v.Z*vec.Y,
+		v.Z*vec.X-v.X*vec.Z,
+		v.X*vec.Y-v.Y*vec.X,
+	)
+}
+
 func (v *Vec3) Magnitude() float64 {
 	return math.Sqrt(v.Dot(v))
 }
