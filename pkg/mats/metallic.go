@@ -13,6 +13,11 @@ type Metallic struct {
 	Fuzz float64
 }
 
+// NewMetallic returns a new Metallic material instance.
+func NewMetallic(attn *utils.Colour, fuzz float64) *Metallic {
+	return &Metallic{Attenuation: attn, Fuzz: fuzz}
+}
+
 func (m *Metallic) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Colour, bool) {
 	// Get the reflection of the ray.
 	reflected := ray.Dir.Reflected(hitInfo.Normal)

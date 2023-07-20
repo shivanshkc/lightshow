@@ -32,11 +32,15 @@ var renderOptions = &renderer.Options{
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   100,
-	ProgressLogger:    func(s string) { debugf("\r%s", s) },
+	ProgressLogger:    func(s string) { debugf("\r%s.", s) },
 }
 
 // world is a ShapeGroup that holds all the shapes to be rendered.
-var world = shapes.NewGroup()
+var world = shapes.NewGroup(
+// shapes.NewSphere(utils.NewVec3(0, 1, 0), 1.0, mats.NewGlass(1.5)),
+// shapes.NewSphere(utils.NewVec3(-4, 1, 0), 1.0, mats.NewMatte(utils.NewColour(0.4, 0.2, 0.1))),
+// shapes.NewSphere(utils.NewVec3(4, 1, 0), 1.0, mats.NewMetallic(utils.NewColour(0.7, 0.6, 0.5), 0)),
+)
 
 func main() {
 	// Log execution time.
