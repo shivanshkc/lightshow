@@ -1,7 +1,7 @@
 package shapes
 
 import (
-	"raytracing/pkg/materials"
+	"raytracing/pkg/mats"
 	"raytracing/pkg/utils"
 )
 
@@ -21,5 +21,5 @@ type Shape interface {
 	// be visible.
 	//
 	// In most cases, the minD argument will be zero.
-	Hit(ray *utils.Ray, minD, maxD float64) (info *materials.RayHit, isHit bool)
+	Hit(ray *utils.Ray, minD, maxD float64) (info *mats.RayHit, isHit bool)
 }

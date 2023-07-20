@@ -1,4 +1,4 @@
-package materials
+package mats
 
 import (
 	"raytracing/pkg/utils"
