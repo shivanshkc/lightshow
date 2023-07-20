@@ -1,4 +1,4 @@
-package util
+package utils
 
 // Ray represents a ray of light.
 type Ray struct {
