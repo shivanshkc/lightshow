@@ -57,7 +57,7 @@ func (r *Renderer) Render(world shape) {
 
 		for i := 0.0; i < r.opts.ImageWidth; i++ {
 			colour := r.renderPixelWithAA(i, j, world)
-			go fmt.Println(colour.ToPPM())
+			fmt.Println(colour.ToPPM())
 		}
 	}
 }
