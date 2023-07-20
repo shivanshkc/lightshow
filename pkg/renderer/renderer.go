@@ -72,8 +72,8 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 		x = (x + pkg.RandomFloat()) / r.opts.ImageWidth
 		y = (y + pkg.RandomFloat()) / r.opts.ImageHeight
 
-		pixelCol := r.renderPixel(x, y)
-		colour = colour.ToVec3().Add(pixelCol.ToVec3()).ToColour()
+		pixelCol := r.renderPixel(x, y, world)
+		colour = colour.Add(pixelCol)
 	}
 
 	return colour
@@ -107,7 +107,7 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 		// This is where nested reflections/refractions of the ray are considered.
 		scatRayColour := r.traceRay(scat, world, diffusionDepth-1)
 		// Add the attenuation to the colour.
-		return scatRayColour.ToVec3().Add(atten.ToVec3()).ToColour()
+		return scatRayColour.Add(atten)
 	}
 
 	// Background.
