@@ -20,8 +20,8 @@ type Camera struct {
 	lensRadius float64
 }
 
-// CameraOptions encapsulates the parameters required to create a camera.
-type CameraOptions struct {
+// Options to create a new camera.
+type Options struct {
 	// LookFrom is the position vector of the camera.
 	LookFrom *utils.Vec3
 	// LookAt is the position vector of the point toward which the camera is pointed.
@@ -40,8 +40,8 @@ type CameraOptions struct {
 	FocusDistance float64
 }
 
-// NewCamera creates a new camera using the given options.
-func NewCamera(opts *CameraOptions) *Camera {
+// New creates a new camera using the given options.
+func New(opts *Options) *Camera {
 	// Calculate camera u, v, w vectors from LookFrom, LookAt and Up.
 	// To understand more, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#positionablecamera/positioningandorientingthecamera
