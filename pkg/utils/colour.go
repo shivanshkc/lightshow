@@ -14,6 +14,11 @@ func NewColour(r, g, b float64) *Colour {
 	return &Colour{r, g, b}
 }
 
+// Add adds the given colour to the colour and returns the result.
+func (c *Colour) Add(arg *Colour) *Colour {
+	return NewColour(c.R+arg.R, c.G+arg.G, c.B+arg.B)
+}
+
 // Lerp stands for Linear Interpolation.
 //
 // It is mainly used for blending two colours smoothly.
@@ -21,6 +26,7 @@ func NewColour(r, g, b float64) *Colour {
 // The formula for linear interpolation is given by:
 // final = (1 - x) * start + x * end
 func (c *Colour) Lerp(end *Colour, x float64) *Colour {
+	// TODO: Is this extensive chaining a performance concern?
 	return c.ToVec3().Lerp(end.ToVec3(), x).ToColour()
 }
 
