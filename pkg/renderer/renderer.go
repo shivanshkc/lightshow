@@ -3,7 +3,6 @@ package renderer
 import (
 	"fmt"
 	"math"
-	"raytracing/pkg"
 	"raytracing/pkg/camera"
 	"raytracing/pkg/shapes"
 	"raytracing/pkg/utils"
@@ -69,8 +68,8 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 	colour := utils.NewColour(0, 0, 0)
 
 	for s := 0; s < r.opts.SamplesPerPixel; s++ {
-		x = (x + pkg.RandomFloat()) / r.opts.ImageWidth
-		y = (y + pkg.RandomFloat()) / r.opts.ImageHeight
+		x = (x + utils.Random.Float()) / r.opts.ImageWidth
+		y = (y + utils.Random.Float()) / r.opts.ImageHeight
 
 		pixelCol := r.renderPixel(x, y, world)
 		colour = colour.Add(pixelCol)
