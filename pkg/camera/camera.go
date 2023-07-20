@@ -1,7 +1,9 @@
-package util
+package camera
 
 import (
 	"math"
+
+	"raytracing/pkg/utils"
 )
 
 // Camera is nothing but the origin of all rays.
@@ -9,10 +11,10 @@ import (
 type Camera struct {
 	// camU, camV and camW are three vectors that together fully
 	// describe the position and orientation of the camera.
-	camU, camV, camW *Vec3
+	camU, camV, camW *utils.Vec3
 
 	// Camera vector required by the CastRay method.
-	origin, horizontal, vertical, lowerLeftCorner *Vec3
+	origin, horizontal, vertical, lowerLeftCorner *utils.Vec3
 
 	// lensRadius allows depth of field effect.
 	lensRadius float64
@@ -21,11 +23,11 @@ type Camera struct {
 // CameraOptions encapsulates the parameters required to create a camera.
 type CameraOptions struct {
 	// LookFrom is the position vector of the camera.
-	LookFrom *Vec3
+	LookFrom *utils.Vec3
 	// LookAt is the position vector of the point toward which the camera is pointed.
-	LookAt *Vec3
+	LookAt *utils.Vec3
 	// Up is the upward direction wrt the camera.
-	Up *Vec3
+	Up *utils.Vec3
 
 	// AspectRatio for the viewport.
 	AspectRatio float64
@@ -72,11 +74,11 @@ func NewCamera(opts *CameraOptions) *Camera {
 
 // CastRay returns a Ray instance that originates at the camera's origin
 // and goes toward the given xy location on the viewport.
-func (c *Camera) CastRay(viewportX, viewportY float64) *Ray {
+func (c *Camera) CastRay(viewportX, viewportY float64) *utils.Ray {
 	// TODO: Understand this math.
 	// Docs are present at-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#defocusblur/generatingsamplerays
-	rd := Random.Vec3InUnitDisk().Mul(c.lensRadius)
+	rd := utils.Random.Vec3InUnitDisk().Mul(c.lensRadius)
 	offset := c.camU.Mul(rd.X).Add(c.camV.Mul(rd.Y))
 
 	// Determine the direction of the ray for the given viewport xy.
@@ -88,7 +90,7 @@ func (c *Camera) CastRay(viewportX, viewportY float64) *Ray {
 		Dir()
 
 	// Create the ray.
-	return NewRay(c.origin.Add(offset), rayDirection)
+	return utils.NewRay(c.origin.Add(offset), rayDirection)
 }
 
 // degreeToRadians converts the given degree value to radians.
