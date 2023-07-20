@@ -35,6 +35,22 @@ func (r *RandomUtil) Vec3() *Vec3 {
 	return NewVec3(r.Float(), r.Float(), r.Float())
 }
 
+// UnitVec3 generates a random unit Vec3.
+func (r *RandomUtil) UnitVec3() *Vec3 {
+	return r.Vec3().Dir()
+}
+
+// Vec3InUnitSphere returns a random Vec3 inside a unit sphere.
+func (r *RandomUtil) Vec3InUnitSphere() *Vec3 {
+	// TODO: Is there a better way than this semi-brute-force?
+	for {
+		point := r.Vec3()
+		if point.DotSelf() < 1 {
+			return point
+		}
+	}
+}
+
 // Vec3InUnitDisk returns a random Vec3 inside a unit disk.
 func (r *RandomUtil) Vec3InUnitDisk() *Vec3 {
 	// TODO: Is there a better way than this semi-brute-force?
