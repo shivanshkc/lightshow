@@ -74,27 +74,9 @@ func (r *Renderer) Render(world shape) {
 	// Await render completion.
 	workerPool.StopAndWait()
 
-	// Encode the PNG.
-	if err := encodePNG(r.opts.OutputFile, img); err != nil {
-		panic(fmt.Errorf("failed to encode png: %w", err))
-	}
-}
-
-func (r *Renderer) RenderPPM(world shape) {
-	// PPM file headers.
-	fmt.Printf("P3\n")
-	fmt.Printf("%d %d\n", int(r.opts.ImageWidth), int(r.opts.ImageHeight))
-	fmt.Printf("255\n")
-
-	// Two nested loops for traversing every pixel on the screen.
-	for j := 0.0; j < r.opts.ImageHeight; j++ {
-		// Progress tracker.
-		go r.opts.ProgressLogger(fmt.Sprintf("Lines remaining: %d", int(j)))
-
-		for i := 0.0; i < r.opts.ImageWidth; i++ {
-			colour := r.renderPixelWithAA(i, r.opts.ImageHeight-j-1, world)
-			fmt.Println(colour.ToPPM())
-		}
+	// Encode the image.
+	if err := encodePPM(img, r.opts.OutputFile); err != nil {
+		panic(fmt.Errorf("failed to encode image: %w", err))
 	}
 }
 
