@@ -1,8 +1,8 @@
 package mats
 
 import (
+	"illuminate/pkg/utils"
 	"math"
-	"raytracing/pkg/utils"
 )
 
 // Glass implements the material interface as a glassy or dielectric surface.

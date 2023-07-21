@@ -1,4 +1,4 @@
-app_name = raytracing
+app_name = illuminate
 
 render: build
 	@echo "+$@"

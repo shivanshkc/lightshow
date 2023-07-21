@@ -2,10 +2,10 @@ package renderer
 
 import (
 	"fmt"
+	"illuminate/pkg/camera"
+	"illuminate/pkg/shapes"
+	"illuminate/pkg/utils"
 	"math"
-	"raytracing/pkg/camera"
-	"raytracing/pkg/shapes"
-	"raytracing/pkg/utils"
 )
 
 // Type alias for shape.

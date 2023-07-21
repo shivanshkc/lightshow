@@ -1,8 +1,8 @@
 package shapes
 
 import (
-	"raytracing/pkg/mats"
-	"raytracing/pkg/utils"
+	"illuminate/pkg/mats"
+	"illuminate/pkg/utils"
 )
 
 // Group represents a group of shapes.
