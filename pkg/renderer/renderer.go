@@ -3,6 +3,7 @@ package renderer
 import (
 	"fmt"
 	"illuminate/pkg/camera"
+	"illuminate/pkg/random"
 	"illuminate/pkg/shapes"
 	"illuminate/pkg/utils"
 	"math"
@@ -69,8 +70,8 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 
 	// Process the configured number of samples for every pixel.
 	for s := 0; s < r.opts.SamplesPerPixel; s++ {
-		u := x + utils.Random.Float()
-		v := y + utils.Random.Float()
+		u := x + random.Float()
+		v := y + random.Float()
 
 		pixelCol := r.renderPixel(u, v, world)
 		colour = colour.Add(pixelCol)

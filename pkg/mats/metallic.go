@@ -1,6 +1,7 @@
 package mats
 
 import (
+	"illuminate/pkg/random"
 	"illuminate/pkg/utils"
 )
 
@@ -24,7 +25,7 @@ func (m *Metallic) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.
 
 	// To understand why we're using a random vector in unit sphere here, go to-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
-	scatteredDir := reflected.Add(utils.Random.Vec3InUnitSphere().Mul(m.Fuzz)).Dir()
+	scatteredDir := reflected.Add(random.Vec3InUnitSphere().Mul(m.Fuzz)).Dir()
 	scattered := utils.NewRay(hitInfo.Point, scatteredDir)
 
 	return scattered, m.Attenuation, scatteredDir.Dot(hitInfo.Normal) > 0

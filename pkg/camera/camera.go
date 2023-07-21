@@ -3,6 +3,7 @@ package camera
 import (
 	"math"
 
+	"illuminate/pkg/random"
 	"illuminate/pkg/utils"
 )
 
@@ -78,7 +79,7 @@ func (c *Camera) CastRay(viewportX, viewportY float64) *utils.Ray {
 	// TODO: Understand this math.
 	// Docs are present at-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#defocusblur/generatingsamplerays
-	rd := utils.Random.Vec3InUnitDisk().Mul(c.lensRadius)
+	rd := random.Vec3InUnitDisk().Mul(c.lensRadius)
 	offset := c.camU.Mul(rd.X).Add(c.camV.Mul(rd.Y))
 
 	// Determine the direction of the ray for the given viewport xy.
