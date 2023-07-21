@@ -68,19 +68,24 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 	colour := utils.NewColour(0, 0, 0)
 
 	for s := 0; s < r.opts.SamplesPerPixel; s++ {
-		x = (x + utils.Random.Float()) / r.opts.ImageWidth
-		y = (y + utils.Random.Float()) / r.opts.ImageHeight
+		u := x + utils.Random.Float()
+		v := y + utils.Random.Float()
 
-		pixelCol := r.renderPixel(x, y, world)
+		pixelCol := r.renderPixel(u, v, world)
 		colour = colour.Add(pixelCol)
 	}
 
-	return colour
+	spp := float64(r.opts.SamplesPerPixel)
+	return colour.ToVec3().Div(spp).ToColour()
 }
 
 // renderPixel is called for every pixel on the screen.
 // Its job is to determine the colour of the given pixel (without anti-aliasing).
 func (r *Renderer) renderPixel(x, y float64, world shape) *utils.Colour {
+	// Bring x and y in the [0, 1) interval.
+	x = x / (r.opts.ImageWidth - 1)
+	y = y / (r.opts.ImageHeight - 1)
+
 	// Create a ray and trace it to determine the final pixel colour.
 	return r.traceRay(r.opts.Camera.CastRay(x, y), world, r.opts.MaxDiffusionDepth)
 }
@@ -106,7 +111,11 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 		// This is where nested reflections/refractions of the ray are considered.
 		scatRayColour := r.traceRay(scat, world, diffusionDepth-1)
 		// Add the attenuation to the colour.
-		return scatRayColour.Add(atten)
+		return utils.NewColour(
+			scatRayColour.R*atten.R,
+			scatRayColour.G*atten.G,
+			scatRayColour.B*atten.B,
+		)
 	}
 
 	// Background.
