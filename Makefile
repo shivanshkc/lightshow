@@ -2,7 +2,7 @@ app_name = illuminate
 
 render: build
 	@echo "+$@"
-	@bin/$(app_name) > dist/image.ppm
+	@bin/$(app_name)
 
 build:
 	@echo "+$@"
