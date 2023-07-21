@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"illuminate/pkg/camera"
 	"illuminate/pkg/mats"
-	"illuminate/pkg/random"
 	"illuminate/pkg/renderer"
 	"illuminate/pkg/shapes"
 	"illuminate/pkg/utils"
@@ -34,6 +33,7 @@ var renderOptions = &renderer.Options{
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   25,
+	OutputFile:        "./dist/image.png",
 	ProgressLogger:    func(s string) { debugf("\r%s.", s) },
 }
 
@@ -52,7 +52,7 @@ var world = shapes.NewGroup(
 	&shapes.Sphere{
 		Center: utils.NewVec3(4, 1, 0),
 		Radius: 1.0,
-		Mat:    mats.NewMetallic(random.Vec3().ToColour(), 0),
+		Mat:    mats.NewMetallic(utils.NewColour(0.1, 0.2, 0.7), 0),
 	},
 )
 
@@ -61,9 +61,8 @@ func main() {
 	start := time.Now()
 	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
 
-	// populateWorld()
 	// Start rendering.
-	renderer.New(renderOptions).Render(world)
+	renderer.New(renderOptions).RenderPNG(world)
 }
 
 // debugf can be used to print debugging info.
