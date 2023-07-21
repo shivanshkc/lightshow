@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"illuminate/pkg/camera"
 	"illuminate/pkg/mats"
+	"illuminate/pkg/random"
 	"illuminate/pkg/renderer"
 	"illuminate/pkg/shapes"
 	"illuminate/pkg/utils"
@@ -47,6 +48,11 @@ var world = shapes.NewGroup(
 		Center: utils.NewVec3(0, 1, 0),
 		Radius: 1.0,
 		Mat:    mats.NewGlass(1.5),
+	},
+	&shapes.Sphere{
+		Center: utils.NewVec3(4, 1, 0),
+		Radius: 1.0,
+		Mat:    mats.NewMetallic(random.Vec3().ToColour(), 0),
 	},
 )
 
