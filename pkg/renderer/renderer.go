@@ -75,7 +75,7 @@ func (r *Renderer) Render(world shape) {
 	workerPool.StopAndWait()
 
 	// Encode the image.
-	if err := encodePPM(img, r.opts.OutputFile); err != nil {
+	if err := encodePNG(img, r.opts.OutputFile); err != nil {
 		panic(fmt.Errorf("failed to encode image: %w", err))
 	}
 }
