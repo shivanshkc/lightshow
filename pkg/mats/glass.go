@@ -1,6 +1,7 @@
 package mats
 
 import (
+	"illuminate/pkg/random"
 	"illuminate/pkg/utils"
 	"math"
 )
@@ -38,7 +39,7 @@ func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Col
 
 	// Determine whether the ray will be reflected or refracted.
 	var scatterDir *utils.Vec3
-	if cannotRefract || schlickApprox(cosine, rir) > utils.Random.Float() {
+	if cannotRefract || schlickApprox(cosine, rir) > random.Float() {
 		scatterDir = ray.Dir.Reflected(hitInfo.Normal)
 	} else {
 		scatterDir = ray.Dir.Refracted(hitInfo.Normal, rir)

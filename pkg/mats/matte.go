@@ -1,6 +1,7 @@
 package mats
 
 import (
+	"illuminate/pkg/random"
 	"illuminate/pkg/utils"
 )
 
@@ -15,7 +16,7 @@ func NewMatte(albedo *utils.Colour) *Matte {
 }
 
 func (m *Matte) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Colour, bool) {
-	scatterDir := hitInfo.Normal.Add(utils.Random.UnitVec3())
+	scatterDir := hitInfo.Normal.Add(random.UnitVec3())
 
 	// Catch degenerate scatter direction.
 	if scatterDir.IsNearZero() {

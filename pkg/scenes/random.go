@@ -1,60 +1,71 @@
 package scenes
 
-import (
-	"illuminate/pkg/mats"
-	"illuminate/pkg/shapes"
-	"illuminate/pkg/utils"
-)
+// func populateWorld() {
+// 	for a := -11; a < 11; a++ {
+// 		for b := -11; b < 11; b++ {
+// 			chooseMat := random.Float()
+// 			center := utils.NewVec3(
+// 				float64(a)+0.9*random.Float(),
+// 				0.2,
+// 				float64(b)*0.9*random.Float(),
+// 			)
 
-// Random generates a randomized shape group (a group of shapes).
-func Random() *shapes.Group {
-	var allShapes []shapes.Shape
-	rnd := utils.Random
+// 			if center.Sub(utils.NewVec3(4, 0.2, 0)).Mag() <= 0.9 {
+// 				continue
+// 			}
 
-	for x := -11.0; x < 11; x++ {
-		for y := -11.0; y < 11; y++ {
-			center := utils.NewVec3(x+0.9*rnd.Float(), 0.2, y*0.9*rnd.Float())
-			if center.Sub(utils.NewVec3(4, 0.2, 0)).Mag() <= 0.9 {
-				continue
-			}
+// 			if chooseMat < 0.33 {
+// 				sphereMat := mats.NewMatte(random.Vec3().ToColour())
+// 				world = append(world, &shapes.Sphere{
+// 					Center: center,
+// 					Radius: 0.2,
+// 					Mat:    sphereMat,
+// 				})
+// 			} else if chooseMat < 0.67 {
+// 				sphereMat := mats.NewMetallic(
+// 					random.Vec3().ToColour(),
+// 					random.FloatBetween(0, 0.5),
+// 				)
+// 				world = append(world, &shapes.Sphere{
+// 					Center: center,
+// 					Radius: 0.2,
+// 					Mat:    sphereMat,
+// 				})
+// 			} else {
+// 				sphereMat := mats.NewGlass(1.5)
+// 				world = append(world, &shapes.Sphere{
+// 					Center: center,
+// 					Radius: 0.2,
+// 					Mat:    sphereMat,
+// 				})
+// 			}
+// 		}
+// 	}
 
-			matDecider := rnd.Float()
-			var shape shapes.Shape
+// 	sphereMat1 := mats.NewGlass(1.5)
+// 	world = append(world, &shapes.Sphere{
+// 		Center: utils.NewVec3(0, 1, 0),
+// 		Radius: 1.0,
+// 		Mat:    sphereMat1,
+// 	})
 
-			if matDecider < 0.33 {
-				shape = &shapes.Sphere{
-					Center: center,
-					Radius: 0.2,
-					Mat:    mats.NewMatte(utils.Random.Vec3().ToColour()),
-				}
-			} else if matDecider < 0.67 {
-				shape = &shapes.Sphere{
-					Center: center,
-					Radius: 0.2,
-					Mat: mats.NewMetallic(
-						utils.Random.Vec3().ToColour(),
-						utils.Random.FloatBetween(0, 0.5),
-					)}
-			} else {
-				shape = &shapes.Sphere{
-					Center: center,
-					Radius: 0.2,
-					Mat:    mats.NewGlass(1.5),
-				}
-			}
+// 	sphereMat2 := mats.NewMatte(utils.NewColour(0.4, 0.2, 0.1))
+// 	world = append(world, &shapes.Sphere{
+// 		Center: utils.NewVec3(-4, 1, 0),
+// 		Radius: 1.0,
+// 		Mat:    sphereMat2,
+// 	})
 
-			allShapes = append(allShapes, shape)
-		}
-	}
+// 	sphereMat3 := mats.NewMetallic(utils.NewColour(0.7, 0.5, 0.3), 0)
+// 	world = append(world, &shapes.Sphere{
+// 		Center: utils.NewVec3(4, 1, 0),
+// 		Radius: 1.0,
+// 		Mat:    sphereMat3,
+// 	})
 
-	allShapes = append(allShapes, Ground)
-	allShapes = append(allShapes, GlassBall)
-
-	MatteBall.Center = utils.NewVec3(-4, 1, 0)
-	allShapes = append(allShapes, MatteBall)
-
-	MetalBall.Center = utils.NewVec3(4, 1, 0)
-	allShapes = append(allShapes, MetalBall)
-
-	return shapes.NewGroup(allShapes...)
-}
+// 	world = append(world, &shapes.Sphere{
+// 		Center: utils.NewVec3(0, -100000, 0),
+// 		Radius: 100000,
+// 		Mat:    mats.NewMatte(utils.NewColour(0.5, 0.5, 0.5)),
+// 	})
+// }
