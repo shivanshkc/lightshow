@@ -1,7 +1,7 @@
 package mats
 
 import (
-	"raytracing/pkg/utils"
+	"illuminate/pkg/utils"
 )
 
 // Material for a shape. It allows for different ray scattering behaviours.

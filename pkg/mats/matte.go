@@ -1,7 +1,7 @@
 package mats
 
 import (
-	"raytracing/pkg/utils"
+	"illuminate/pkg/utils"
 )
 
 // Matte implements the material interface as a matte or Lambertian material.

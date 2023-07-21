@@ -1,9 +1,9 @@
 package shapes
 
 import (
+	"illuminate/pkg/mats"
+	"illuminate/pkg/utils"
 	"math"
-	"raytracing/pkg/mats"
-	"raytracing/pkg/utils"
 )
 
 // Sphere represents the sphere shape. It implements the Shape interface.

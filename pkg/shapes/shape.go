@@ -1,8 +1,8 @@
 package shapes
 
 import (
-	"raytracing/pkg/mats"
-	"raytracing/pkg/utils"
+	"illuminate/pkg/mats"
+	"illuminate/pkg/utils"
 )
 
 // Shape represents any shape that can be hit by a ray.

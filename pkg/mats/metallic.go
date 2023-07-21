@@ -1,7 +1,7 @@
 package mats
 
 import (
-	"raytracing/pkg/utils"
+	"illuminate/pkg/utils"
 )
 
 // Metallic implements the material interface as a metal (a shiny surface).

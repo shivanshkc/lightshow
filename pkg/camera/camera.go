@@ -3,7 +3,7 @@ package camera
 import (
 	"math"
 
-	"raytracing/pkg/utils"
+	"illuminate/pkg/utils"
 )
 
 // Camera is nothing but the origin of all rays.
