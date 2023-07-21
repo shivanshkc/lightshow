@@ -2,18 +2,17 @@ package renderer
 
 import (
 	"fmt"
-	"illuminate/pkg/camera"
-	"illuminate/pkg/random"
-	"illuminate/pkg/shapes"
-	"illuminate/pkg/utils"
 	"image"
 	"image/png"
 	"math"
 	"os"
-)
 
-// Type alias for shape.
-type shape = shapes.Shape
+	"github.com/alitto/pond"
+
+	"github.com/shivanshkc/illuminate/pkg/camera"
+	"github.com/shivanshkc/illuminate/pkg/random"
+	"github.com/shivanshkc/illuminate/pkg/utils"
+)
 
 // Renderer uses raytracing to render images.
 type Renderer struct {
@@ -48,6 +47,44 @@ type Options struct {
 // New returns a new Renderer for the given options.
 func New(opts *Options) *Renderer {
 	return &Renderer{opts: opts}
+}
+
+func (r *Renderer) Render(world shape) {
+	// Create a pool for concurrent processing.
+	pixelCount := int(r.opts.ImageHeight * r.opts.ImageWidth)
+	workerPool := pond.New(2, pixelCount, pond.Strategy(pond.Balanced()))
+
+	// Create a new image.
+	img := image.NewRGBA(image.Rectangle{
+		image.Point{0, 0},
+		image.Point{int(r.opts.ImageWidth), int(r.opts.ImageHeight)},
+	})
+
+	// Two nested loops for traversing every pixel on the screen.
+	for j := 0.0; j < r.opts.ImageHeight; j++ {
+		for i := 0.0; i < r.opts.ImageWidth; i++ {
+			workerPool.Submit(func() {
+				colour := r.renderPixelWithAA(i, r.opts.ImageHeight-j-1, world)
+				img.Set(int(i), int(j), colour.ToStd())
+			})
+		}
+	}
+
+	// Await render completion.
+	workerPool.StopAndWait()
+
+	// Open the output image file.
+	imageFile, err := os.OpenFile(r.opts.OutputFile, os.O_CREATE|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		panic(fmt.Errorf("failed to open image file: %w", err))
+	}
+	// Close the file upon completion.
+	defer func() { _ = imageFile.Close() }()
+
+	// Encode the image data.
+	if err := png.Encode(imageFile, img); err != nil {
+		panic(fmt.Errorf("failed to encode image: %w", err))
+	}
 }
 
 func (r *Renderer) RenderPNG(world shape) {

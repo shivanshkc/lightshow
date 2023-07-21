@@ -1,8 +1,8 @@
 package mats
 
 import (
-	"illuminate/pkg/random"
-	"illuminate/pkg/utils"
+	"github.com/shivanshkc/illuminate/pkg/random"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // Metallic implements the material interface as a metal (a shiny surface).

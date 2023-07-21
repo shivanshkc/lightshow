@@ -1,10 +1,10 @@
 package random
 
 import (
-	"illuminate/pkg/utils"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
-// Vec3 generates a random Vec3 whose all components lie between [0, 1)
+// Vec3 generates a random Vec3 whose all components lie between [0, 1).
 func Vec3() *utils.Vec3 {
 	return utils.NewVec3(Float(), Float(), Float())
 }

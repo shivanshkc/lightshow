@@ -25,7 +25,7 @@ func (c *Colour) Add(arg *Colour) *Colour {
 // It is mainly used for blending two colours smoothly.
 //
 // The formula for linear interpolation is given by:
-// final = (1 - x) * start + x * end
+// final = (1 - x) * start + x * end.
 func (c *Colour) Lerp(end *Colour, x float64) *Colour {
 	// TODO: Is this extensive chaining a performance concern?
 	return c.ToVec3().Lerp(end.ToVec3(), x).ToColour()
@@ -48,7 +48,7 @@ func (c *Colour) ToStd() color.Color {
 }
 
 // ToPPM converts the colour to a row of the PPM image format.
-// The format of the row is nothing but "<0-255> <0-255> <0-255>"
+// The format of the row is nothing but "<0-255> <0-255> <0-255>".
 func (c *Colour) ToPPM() string {
 	return fmt.Sprintf(
 		"%d %d %d",

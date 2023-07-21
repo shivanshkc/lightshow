@@ -3,8 +3,8 @@ package camera
 import (
 	"math"
 
-	"illuminate/pkg/random"
-	"illuminate/pkg/utils"
+	"github.com/shivanshkc/illuminate/pkg/random"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // Camera is nothing but the origin of all rays.
