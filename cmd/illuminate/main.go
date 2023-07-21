@@ -34,7 +34,7 @@ var renderOptions = &renderer.Options{
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   25,
-	OutputFile:        "./dist/image.png",
+	OutputFile:        "./dist/image.ppm",
 	ProgressLogger:    func(s string) { debugf("\r%s.", s) },
 }
 
