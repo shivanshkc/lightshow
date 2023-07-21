@@ -1,9 +1,10 @@
 package shapes
 
 import (
-	"illuminate/pkg/mats"
-	"illuminate/pkg/utils"
 	"math"
+
+	"github.com/shivanshkc/illuminate/pkg/mats"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // Sphere represents the sphere shape. It implements the Shape interface.

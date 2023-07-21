@@ -1,8 +1,8 @@
 package shapes
 
 import (
-	"illuminate/pkg/mats"
-	"illuminate/pkg/utils"
+	"github.com/shivanshkc/illuminate/pkg/mats"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // Group represents a group of shapes.

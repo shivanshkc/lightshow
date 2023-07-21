@@ -116,7 +116,7 @@ func (v *Vec3) Refracted(normal *Vec3, rir float64) *Vec3 {
 // Lerp stands for Linear Interpolation.
 //
 // The formula for linear interpolation is given by:
-// final = (1 - x) * start + x * end
+// final = (1 - x) * start + x * end.
 func (v *Vec3) Lerp(end *Vec3, x float64) *Vec3 {
 	return v.Mul(1 - x).Add(end.Mul(x))
 }

@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"illuminate/pkg/camera"
-	"illuminate/pkg/mats"
-	"illuminate/pkg/renderer"
-	"illuminate/pkg/shapes"
-	"illuminate/pkg/utils"
 	"os"
 	"time"
+
+	"github.com/shivanshkc/illuminate/pkg/camera"
+	"github.com/shivanshkc/illuminate/pkg/mats"
+	"github.com/shivanshkc/illuminate/pkg/renderer"
+	"github.com/shivanshkc/illuminate/pkg/shapes"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // aspectRatio of the rendered image.
@@ -62,7 +63,7 @@ func main() {
 	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
 
 	// Start rendering.
-	renderer.New(renderOptions).RenderPNG(world)
+	renderer.New(renderOptions).Render(world)
 }
 
 // debugf can be used to print debugging info.

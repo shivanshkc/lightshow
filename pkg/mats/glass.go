@@ -1,9 +1,10 @@
 package mats
 
 import (
-	"illuminate/pkg/random"
-	"illuminate/pkg/utils"
 	"math"
+
+	"github.com/shivanshkc/illuminate/pkg/random"
+	"github.com/shivanshkc/illuminate/pkg/utils"
 )
 
 // Glass implements the material interface as a glassy or dielectric surface.
