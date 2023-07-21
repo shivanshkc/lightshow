@@ -41,9 +41,9 @@ func (c *Colour) ToVec3() *Vec3 {
 func (c *Colour) ToPPM() string {
 	return fmt.Sprintf(
 		"%d %d %d",
-		int(255*clamp(c.R, 0, 0.9999)),
-		int(255*clamp(c.G, 0, 0.9999)),
-		int(255*clamp(c.B, 0, 0.9999)),
+		int(256*clamp(c.R, 0, 0.9999)),
+		int(256*clamp(c.G, 0, 0.9999)),
+		int(256*clamp(c.B, 0, 0.9999)),
 	)
 }
 

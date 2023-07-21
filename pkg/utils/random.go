@@ -35,7 +35,17 @@ func (r *RandomUtil) Vec3() *Vec3 {
 	return NewVec3(r.Float(), r.Float(), r.Float())
 }
 
-// UnitVec3 generates a random unit Vec3.
+// Vec3Between generates a random Vec3 whose all components lie between
+// the given min and max range.
+func (r *RandomUtil) Vec3Between(min, max float64) *Vec3 {
+	return NewVec3(
+		r.FloatBetween(min, max),
+		r.FloatBetween(min, max),
+		r.FloatBetween(min, max),
+	)
+}
+
+// UnitVec3 returns a random unit Vec3.
 func (r *RandomUtil) UnitVec3() *Vec3 {
 	return r.Vec3().Dir()
 }
@@ -44,7 +54,7 @@ func (r *RandomUtil) UnitVec3() *Vec3 {
 func (r *RandomUtil) Vec3InUnitSphere() *Vec3 {
 	// TODO: Is there a better way than this semi-brute-force?
 	for {
-		point := r.Vec3()
+		point := r.Vec3Between(-1, 1)
 		if point.DotSelf() < 1 {
 			return point
 		}

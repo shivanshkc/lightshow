@@ -67,6 +67,7 @@ func (r *Renderer) Render(world shape) {
 func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 	colour := utils.NewColour(0, 0, 0)
 
+	// Process the configured number of samples for every pixel.
 	for s := 0; s < r.opts.SamplesPerPixel; s++ {
 		u := x + utils.Random.Float()
 		v := y + utils.Random.Float()
@@ -75,8 +76,13 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 		colour = colour.Add(pixelCol)
 	}
 
+	// Take the average of the colour and do gamma correction.
 	spp := float64(r.opts.SamplesPerPixel)
-	return colour.ToVec3().Div(spp).ToColour()
+	return utils.NewColour(
+		math.Sqrt(colour.R/spp),
+		math.Sqrt(colour.G/spp),
+		math.Sqrt(colour.B/spp),
+	)
 }
 
 // renderPixel is called for every pixel on the screen.
@@ -99,7 +105,7 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 	}
 
 	// Hit the world. B-)
-	if hitInfo, isHit := world.Hit(ray, 0.01, math.MaxFloat64); isHit {
+	if hitInfo, isHit := world.Hit(ray, 0.001, math.MaxFloat64); isHit {
 		// Scatter the ray using the material of the shape.
 		scat, atten, isScat := hitInfo.Mat.Scatter(ray, hitInfo)
 		// Return black if the ray got absorbed.

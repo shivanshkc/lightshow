@@ -81,7 +81,7 @@ func (v *Vec3) ToColour() *Colour {
 // To understand the formula, go to -
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/mirroredlightreflection
 func (v *Vec3) Reflected(normal *Vec3) *Vec3 {
-	return v.Sub(normal.Mul(v.Dot(normal))).Mul(2)
+	return v.Sub(normal.Mul(v.Dot(normal) * 2))
 }
 
 // Refracted calculates and returns the refraction of this vector
