@@ -20,7 +20,7 @@ func NewMetallic(attn *utils.Colour, fuzz float64) *Metallic {
 
 func (m *Metallic) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Colour, bool) {
 	// Get the reflection of the ray.
-	reflected := ray.Dir.Reflected(hitInfo.Normal)
+	reflected := ray.Dir.Reflected(hitInfo.Normal).Dir()
 
 	// To understand why we're using a random vector in unit sphere here, go to-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#metal/fuzzyreflection
