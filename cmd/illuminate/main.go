@@ -29,8 +29,8 @@ var cameraOptions = &camera.Options{
 // renderOptions holds all the renderer configs.
 var renderOptions = &renderer.Options{
 	Camera:            camera.New(cameraOptions),
-	ImageWidth:        800,
-	ImageHeight:       800 / aspectRatio,
+	ImageWidth:        1280,
+	ImageHeight:       1280 / aspectRatio,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   25,
