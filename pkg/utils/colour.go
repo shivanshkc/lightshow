@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"image/color"
 )
 
 // Colour is an RGB colour.
@@ -34,6 +35,16 @@ func (c *Colour) Lerp(end *Colour, x float64) *Colour {
 // the r, g, b values to x, y, z values respectively.
 func (c *Colour) ToVec3() *Vec3 {
 	return NewVec3(c.R, c.G, c.B)
+}
+
+// ToStd provides the standard library colour instance for this colour.
+func (c *Colour) ToStd() color.Color {
+	return color.RGBA{
+		uint8(256 * clamp(c.R, 0, 0.9999)),
+		uint8(256 * clamp(c.G, 0, 0.9999)),
+		uint8(256 * clamp(c.B, 0, 0.9999)),
+		255,
+	}
 }
 
 // ToPPM converts the colour to a row of the PPM image format.
