@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"illuminate/pkg/camera"
+	"illuminate/pkg/mats"
 	"illuminate/pkg/renderer"
-	"illuminate/pkg/scenes"
 	"illuminate/pkg/shapes"
 	"illuminate/pkg/utils"
 	"os"
@@ -37,7 +37,18 @@ var renderOptions = &renderer.Options{
 }
 
 // world is a ShapeGroup that holds all the shapes to be rendered.
-var world = shapes.NewGroup(scenes.GlassBall, scenes.Ground)
+var world = shapes.NewGroup(
+	&shapes.Sphere{
+		Center: utils.NewVec3(0, -100000, 0),
+		Radius: 100000,
+		Mat:    mats.NewMatte(utils.NewColour(0.5, 0.5, 5)),
+	},
+	&shapes.Sphere{
+		Center: utils.NewVec3(0, 1, 0),
+		Radius: 1.0,
+		Mat:    mats.NewGlass(1.5),
+	},
+)
 
 func main() {
 	// Log execution time.
