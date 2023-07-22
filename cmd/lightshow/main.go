@@ -120,6 +120,7 @@ outer:
 		matChooser := random.Float()
 		var mat mats.Material
 
+		//nolint:gocritic // Switch statement not possible.
 		if matChooser < 0.667 {
 			mat = mats.NewMatte(random.Vec3().ToColour())
 		} else if matChooser < 0.9 {
