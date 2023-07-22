@@ -38,8 +38,6 @@ type Options struct {
 
 	// OutputFile is the path to the output file.
 	OutputFile string
-	// ProgressLogger logs the progress of the rendering.
-	ProgressLogger func(string)
 }
 
 // New returns a new Renderer for the given options.
@@ -47,10 +45,10 @@ func New(opts *Options) *Renderer {
 	return &Renderer{opts: opts}
 }
 
-func (r *Renderer) Render(world shape) {
+func (r *Renderer) Render(world shape) error {
 	// Create a pool for concurrent processing.
-	pixelCount := int(r.opts.ImageHeight * r.opts.ImageWidth)
-	workerPool := pond.New(375, pixelCount, pond.Strategy(pond.Lazy()))
+	pixelCount := r.opts.ImageHeight * r.opts.ImageWidth
+	workerPool := pond.New(375, int(pixelCount), pond.Strategy(pond.Lazy()))
 
 	// Create a new image.
 	img := image.NewRGBA(image.Rectangle{
@@ -62,11 +60,16 @@ func (r *Renderer) Render(world shape) {
 	for j := 0.0; j < r.opts.ImageHeight; j++ {
 		for i := 0.0; i < r.opts.ImageWidth; i++ {
 			// Copy loop variables for safety in goroutines.
-			ii, jj := i, j
+			ii, jj, jImg := i, j, r.opts.ImageHeight-j-1
 			// Schedule the task.
 			workerPool.Submit(func() {
-				colour := r.renderPixelWithAA(ii, r.opts.ImageHeight-jj-1, world)
+				// Here, we have to use "jImg" instead of "j" because
+				// Go's image package treats top-left as the origin,
+				// instead of bottom-left.
+				colour := r.renderPixelWithAA(ii, jImg, world)
 				img.Set(int(ii), int(jj), colour.ToStd())
+
+				// TODO: Log progress without performance impact.
 			})
 		}
 	}
@@ -75,9 +78,11 @@ func (r *Renderer) Render(world shape) {
 	workerPool.StopAndWait()
 
 	// Encode the image.
-	if err := encodePNG(img, r.opts.OutputFile); err != nil {
-		panic(fmt.Errorf("failed to encode image: %w", err))
+	if err := encodeImage(img, r.opts.OutputFile); err != nil {
+		return fmt.Errorf("failed to encode image: %w", err)
 	}
+
+	return nil
 }
 
 // renderPixelWithAA is called for every pixel on the screen.

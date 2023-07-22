@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/shivanshkc/illuminate/pkg/camera"
@@ -35,7 +34,6 @@ var renderOptions = &renderer.Options{
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   25,
 	OutputFile:        "./dist/image.png",
-	ProgressLogger:    func(s string) { debugf("\r%s.", s) },
 }
 
 // world is a ShapeGroup that holds all the shapes to be rendered.
@@ -60,13 +58,10 @@ var world = shapes.NewGroup(
 func main() {
 	// Log execution time.
 	start := time.Now()
-	defer func() { debugf("\nDone. Time taken: %+v\n", time.Since(start)) }()
+	defer func() { fmt.Printf("\nTime taken: %+v\n", time.Since(start)) }()
 
 	// Start rendering.
-	renderer.New(renderOptions).Render(world)
-}
-
-// debugf can be used to print debugging info.
-func debugf(format string, a ...any) {
-	fmt.Fprintf(os.Stderr, format, a...)
+	if err := renderer.New(renderOptions).Render(world); err != nil {
+		panic(fmt.Errorf("failed to render: %w", err))
+	}
 }
