@@ -15,7 +15,7 @@ import (
 // aspectRatio of the rendered image.
 const (
 	aspectRatio = 16.0 / 9.0
-	imageHeight = 400
+	imageHeight = 720
 )
 
 // cameraOptions holds all the camera configs.
@@ -47,7 +47,7 @@ var world = shapes.NewGroup(
 	&shapes.Sphere{
 		Center: utils.NewVec3(0, -100000, 0),
 		Radius: 100000,
-		Mat:    mats.NewMatte(utils.NewColour(0.1, 0.15, 0.25)),
+		Mat:    mats.NewMatte(utils.NewColour(0.5, 0.5, 1)),
 	},
 	// Middle glass sphere.
 	&shapes.Sphere{
@@ -104,11 +104,13 @@ outer:
 
 		// Make sure the generated sphere doesn't intersect with existing ones.
 		for _, shape := range world.Shapes {
+			// If the shape is not a sphere, we continue.
 			sphere, ok := shape.(*shapes.Sphere)
 			if !ok {
 				continue outer
 			}
 
+			// If the shape is intersecting, we continue.
 			if sphere.Center.Sub(center).Mag() < sphere.Radius+radius {
 				continue outer
 			}
@@ -121,7 +123,7 @@ outer:
 		if matChooser < 0.667 {
 			mat = mats.NewMatte(random.Vec3().ToColour())
 		} else if matChooser < 0.9 {
-			mat = mats.NewMetallic(random.Vec3().ToColour(), 0)
+			mat = mats.NewMetallic(random.Vec3().ToColour(), random.FloatBetween(0, 0.5))
 		} else {
 			mat = mats.NewGlass(1.5)
 		}
