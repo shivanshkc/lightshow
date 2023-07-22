@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shivanshkc/illuminate/pkg/camera"
-	"github.com/shivanshkc/illuminate/pkg/mats"
-	"github.com/shivanshkc/illuminate/pkg/random"
-	"github.com/shivanshkc/illuminate/pkg/renderer"
-	"github.com/shivanshkc/illuminate/pkg/shapes"
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/camera"
+	"github.com/shivanshkc/lightshow/pkg/mats"
+	"github.com/shivanshkc/lightshow/pkg/random"
+	"github.com/shivanshkc/lightshow/pkg/renderer"
+	"github.com/shivanshkc/lightshow/pkg/shapes"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // aspectRatio of the rendered image.

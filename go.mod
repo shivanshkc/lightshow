@@ -1,4 +1,4 @@
-module github.com/shivanshkc/illuminate
+module github.com/shivanshkc/lightshow
 
 go 1.20
 

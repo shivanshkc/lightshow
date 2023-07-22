@@ -1,7 +1,7 @@
 package mats
 
 import (
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Material for a shape. It allows for different ray scattering behaviours.

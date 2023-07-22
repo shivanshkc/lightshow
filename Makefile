@@ -1,6 +1,6 @@
 SHELL=/usr/bin/env bash
 
-app_name = illuminate
+app_name = lightshow
 
 # Renders the image.
 render: tidy build

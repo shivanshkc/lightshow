@@ -1,7 +1,7 @@
 package random
 
 import (
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Vec3 generates a random Vec3 whose all components lie between [0, 1).

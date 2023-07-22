@@ -1,8 +1,8 @@
 package mats
 
 import (
-	"github.com/shivanshkc/illuminate/pkg/random"
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/random"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Matte implements the material interface as a matte or Lambertian material.

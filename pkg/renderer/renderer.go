@@ -7,9 +7,9 @@ import (
 
 	"github.com/alitto/pond"
 
-	"github.com/shivanshkc/illuminate/pkg/camera"
-	"github.com/shivanshkc/illuminate/pkg/random"
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/camera"
+	"github.com/shivanshkc/lightshow/pkg/random"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Renderer uses raytracing to render images.
