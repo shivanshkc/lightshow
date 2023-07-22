@@ -48,7 +48,7 @@ func New(opts *Options) *Renderer {
 func (r *Renderer) Render(world shape) error {
 	// Create a pool for concurrent processing.
 	pixelCount := r.opts.ImageHeight * r.opts.ImageWidth
-	workerPool := pond.New(375, int(pixelCount), pond.Strategy(pond.Lazy()))
+	workerPool := pond.New(400, int(pixelCount), pond.Strategy(pond.Lazy()))
 
 	// Create a new image.
 	img := image.NewRGBA(image.Rectangle{
