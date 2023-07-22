@@ -30,6 +30,7 @@ type RayHit struct {
 	// IsRayOutside tells whether the ray hit occurs inside or outside the shape.
 	// This is calculated using the dot product of the ray direction and the normal.
 	// For more details, visit-
+	//nolint:lll
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#surfacenormalsandmultipleobjects/frontfacesversusbackfaces
 	IsRayOutside bool
 

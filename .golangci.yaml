@@ -29,10 +29,12 @@ linters:
     - deadcode
     - exhaustivestruct
     - exhaustruct
+    - forbidigo
     - gochecknoglobals
     - godox
     - goerr113
     - golint
+    - gomnd
     - ifshort
     - interfacer
     - ireturn
@@ -45,4 +47,5 @@ linters:
     - testpackage
     - paralleltest
     - varcheck
+    - varnamelen
     - wsl

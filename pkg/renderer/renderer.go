@@ -114,8 +114,8 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 // Its job is to determine the colour of the given pixel (without anti-aliasing).
 func (r *Renderer) renderPixel(x, y float64, world shape) *utils.Colour {
 	// Bring x and y in the [0, 1) interval.
-	x = x / (r.opts.ImageWidth - 1)
-	y = y / (r.opts.ImageHeight - 1)
+	x /= (r.opts.ImageWidth - 1)
+	y /= (r.opts.ImageHeight - 1)
 
 	// Create a ray and trace it to determine the final pixel colour.
 	return r.traceRay(r.opts.Camera.CastRay(x, y), world, r.opts.MaxDiffusionDepth)
