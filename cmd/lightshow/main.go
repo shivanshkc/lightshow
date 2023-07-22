@@ -15,7 +15,7 @@ import (
 // aspectRatio of the rendered image.
 const (
 	aspectRatio = 16.0 / 9.0
-	imageHeight = 720
+	imageHeight = 400
 )
 
 // cameraOptions holds all the camera configs.
@@ -43,35 +43,42 @@ var renderOptions = &renderer.Options{
 
 // world is a ShapeGroup that holds all the shapes to be rendered.
 var world = shapes.NewGroup(
+	// Ground.
 	&shapes.Sphere{
 		Center: utils.NewVec3(0, -100000, 0),
 		Radius: 100000,
-		Mat:    mats.NewMatte(utils.NewColour(0.5, 0.5, 0.5)),
+		Mat:    mats.NewMatte(utils.NewColour(0.1, 0.15, 0.25)),
 	},
+	// Middle glass sphere.
 	&shapes.Sphere{
 		Center: utils.NewVec3(0, 1, 0),
 		Radius: 1.0,
 		Mat:    mats.NewGlass(1.5),
 	},
+	// Front metallic sphere.
 	&shapes.Sphere{
 		Center: utils.NewVec3(4, 1, 0),
 		Radius: 1.0,
-		Mat:    mats.NewMetallic(random.Vec3().ToColour(), 0),
+		Mat:    mats.NewMetallic(utils.NewColour(0.7, 0.6, 0.5), 0),
 	},
+	// Back matte sphere.
 	&shapes.Sphere{
 		Center: utils.NewVec3(-4, 1, 0),
 		Radius: 1.0,
-		Mat:    mats.NewMatte(random.Vec3().ToColour()),
+		Mat:    mats.NewMatte(utils.NewColour(0.4, 0.2, 0.1)),
 	},
 )
 
 func main() {
 	// Log execution time.
 	start := time.Now()
-	defer func() { fmt.Printf("\nTime taken: %+v\n", time.Since(start)) }()
+	defer func() { fmt.Printf("Time taken: %+v\n", time.Since(start)) }()
 
 	// Populate the world with random spheres.
 	randomize()
+
+	fmt.Println("Rendering...")
+	defer fmt.Println("Done.")
 
 	// Start rendering.
 	if err := renderer.New(renderOptions).Render(world); err != nil {
@@ -79,5 +86,48 @@ func main() {
 	}
 }
 
-// randomize adds random spheres to the world.
-func randomize() {}
+// randomize adds random spheres to the world for a cool render.
+//
+// It is configured to work best with the default camera options.
+func randomize() {
+	fmt.Println("Spawning...")
+	defer fmt.Println("Done.")
+
+outer:
+	// Loop to spawn spheres.
+	for i := 0; i < 500; {
+		// Properties of the sphere to be spawned.
+		radius := 0.2
+		center := utils.NewVec3(
+			random.FloatBetween(-11, 11), radius,
+			random.FloatBetween(-11, 11))
+
+		// Make sure the generated sphere doesn't intersect with existing ones.
+		for _, shape := range world.Shapes {
+			sphere, ok := shape.(*shapes.Sphere)
+			if !ok {
+				continue outer
+			}
+
+			if sphere.Center.Sub(center).Mag() < sphere.Radius+radius {
+				continue outer
+			}
+		}
+
+		// Choose a material randomly.
+		matChooser := random.Float()
+		var mat mats.Material
+
+		if matChooser < 0.667 {
+			mat = mats.NewMatte(random.Vec3().ToColour())
+		} else if matChooser < 0.9 {
+			mat = mats.NewMetallic(random.Vec3().ToColour(), 0)
+		} else {
+			mat = mats.NewGlass(1.5)
+		}
+
+		// Add to the world.
+		world.Shapes = append(world.Shapes, shapes.NewSphere(center, radius, mat))
+		i++
+	}
+}
