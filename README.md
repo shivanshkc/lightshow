@@ -4,9 +4,19 @@ Lightshow is a raytracer written purely in Go.
 
 ![Render](https://github.com/shivanshkc/lightshow/blob/main/showcase/image.jpg)
 
-## How to use
+## Quickstart
 
-Our objective is to call the `Render` method on the `Renderer` type which is defined in `pkg/renderer/renderer.go`.
+To render a scene using the default settings, go ahead and execute:
+
+```bash
+make
+```
+
+You will need to have Go installed for this to work.
+
+## Details
+
+The rendering process is triggered by calling the `Render` method, which is available on the `Renderer` type. You can find the `Renderer` struct in the `pkg/renderer` package.
 
 The call would look something like this:
 
@@ -20,7 +30,7 @@ if err := renderer.New(renderOptions).Render(world); err != nil {
 }
 ```
 
-Now, we need to define the `renderOptions` and `world` values.  
+Now, let's focus on the `renderOptions` and `world` values.
 
 ### RenderOptions
 
@@ -30,7 +40,7 @@ Quickstart value:
 const (
 	// aspectRatio of the rendered image.
 	aspectRatio = 16.0 / 9.0
-	imageHeight = 1080
+	imageHeight = 720
 )
 
 var cameraOptions = &camera.Options{
@@ -49,7 +59,7 @@ var renderOptions = &renderer.Options{
 	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
-	SamplesPerPixel:   500,
+	SamplesPerPixel:   50,
 	MaxWorkers:        400,
 	OutputFile:        "./dist/image.jpg",
 }
@@ -95,3 +105,7 @@ var world = shapes.NewGroup(
 ```
 
 With these values defined, the `Render` method can now be called. It will take some time to render based on the number of shapes and other graphical properties.
+
+## References
+
+- [_Ray Tracing in One Weekend_](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
