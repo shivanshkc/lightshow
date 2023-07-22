@@ -11,12 +11,12 @@ import (
 // Its implementation of the Shape interface returns the closest point-of-hit out of
 // all the shapes for the given ray.
 type Group struct {
-	shapes []Shape
+	Shapes []Shape
 }
 
 // NewGroup creates a new Group instance.
 func NewGroup(shapes ...Shape) *Group {
-	return &Group{shapes: shapes}
+	return &Group{Shapes: shapes}
 }
 
 // Hit returns the closest point-of-hit out of all the shapes for the given ray.
@@ -29,7 +29,7 @@ func (g *Group) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	var closestRayHit *mats.RayHit
 
 	// Loop over all shapes to determine the closest hit.
-	for _, shape := range g.shapes {
+	for _, shape := range g.Shapes {
 		// Notice the usage of "closestSoFar" here. It leads to lots of calculation savings.
 		info, isHit := shape.Hit(ray, minD, closestSoFar)
 		if !isHit {

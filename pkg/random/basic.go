@@ -4,17 +4,24 @@ import (
 	"time"
 )
 
-// Float uses the Xoshiro256StarStar algorithm for generating
-// high-quality pseudo-random numbers within the [0, 1) interval.
+// Float generates a random float in the [0, 1) interval.
+//
+// It does not use Go's standard random number generator
+// because of its poor concurrent performance.
 func Float() float64 {
 	seed := uint64(time.Now().Nanosecond())
-	result := rotl64(splitmix64(seed)*5, 7) * 9
-	return float64(result) / (1 << 64)
+	return xoshiro256StarStar(seed)
 }
 
 // FloatBetween generates a random float between the given min and max range.
 func FloatBetween(min, max float64) float64 {
 	return min + (Float() * (max - min))
+}
+
+// xoshiro256StarStar is a high-quality pseudo-random number generator (PRNG) algorithm.
+func xoshiro256StarStar(seed uint64) float64 {
+	result := rotl64(splitmix64(seed)*5, 7) * 9
+	return float64(result) / (1 << 64)
 }
 
 // rotl64 is a helper function for the Xoshiro256StarStar algorithm.
