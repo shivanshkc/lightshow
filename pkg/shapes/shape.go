@@ -1,8 +1,8 @@
 package shapes
 
 import (
-	"github.com/shivanshkc/illuminate/pkg/mats"
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/mats"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Shape represents any shape that can be hit by a ray.

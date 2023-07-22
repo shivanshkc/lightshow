@@ -3,8 +3,8 @@ package shapes
 import (
 	"math"
 
-	"github.com/shivanshkc/illuminate/pkg/mats"
-	"github.com/shivanshkc/illuminate/pkg/utils"
+	"github.com/shivanshkc/lightshow/pkg/mats"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // Sphere represents the sphere shape. It implements the Shape interface.

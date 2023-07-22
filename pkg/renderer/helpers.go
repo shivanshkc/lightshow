@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/shivanshkc/illuminate/pkg/shapes"
+	"github.com/shivanshkc/lightshow/pkg/shapes"
 )
 
 // Type alias for shape.
