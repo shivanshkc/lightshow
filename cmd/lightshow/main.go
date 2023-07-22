@@ -12,8 +12,8 @@ import (
 	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
-// aspectRatio of the rendered image.
 const (
+	// aspectRatio of the rendered image.
 	aspectRatio = 16.0 / 9.0
 	imageHeight = 720
 )
