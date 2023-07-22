@@ -2,6 +2,8 @@
 
 Lightshow is a raytracer written purely in Go.
 
+![Render](https://github.com/shivanshkc/lightshow/blob/main/showcase/image.jpg)
+
 ## How to use
 
 Our objective is to call the `Render` method on the `Renderer` type which is defined in `pkg/renderer/renderer.go`.
