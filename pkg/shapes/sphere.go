@@ -31,6 +31,7 @@ func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 
 	// These are the coefficients of the quadractic equation.
 	// To understand the "bHalf" logic, visit-
+	//nolint:lll
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#surfacenormalsandmultipleobjects/simplifyingtheray-sphereintersectioncode
 	a := ray.Dir.DotSelf()
 	bHalf := oc.Dot(ray.Dir)
@@ -67,6 +68,7 @@ func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// Calculate the normal and whether is it on the same side as the Ray.
 	rayHit.Normal = rayHit.Point.Sub(s.Center).Dir()
 	// To understand this math, visit-
+	//nolint:lll
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#surfacenormalsandmultipleobjects/frontfacesversusbackfaces
 	rayHit.IsRayOutside = ray.Dir.Dot(rayHit.Normal) < 0
 	if !rayHit.IsRayOutside {

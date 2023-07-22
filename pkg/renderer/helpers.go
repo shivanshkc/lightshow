@@ -69,14 +69,24 @@ func encodePPM(img image.Image, file io.Writer) error {
 
 	// Header of the PPM file.
 	header := fmt.Sprintf("P3\n%d %d\n255\n", width, height)
-	file.Write([]byte(header))
+	if _, err := file.Write([]byte(header)); err != nil {
+		return fmt.Errorf("error in file.Write call: %w", err)
+	}
 
 	// Loop over each pixel.
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			col := img.At(x, y).(color.RGBA)
+			// Convert the pixel colour to RGBA.
+			col, asserted := img.At(x, y).(color.RGBA)
+			if !asserted {
+				return fmt.Errorf("image contains invalid pixel value")
+			}
+
+			// Write the PPM line.
 			line := fmt.Sprintf("%d %d %d\n", col.R, col.G, col.B)
-			file.Write([]byte(line))
+			if _, err := file.Write([]byte(line)); err != nil {
+				return fmt.Errorf("error in file.Write call: %w", err)
+			}
 		}
 	}
 

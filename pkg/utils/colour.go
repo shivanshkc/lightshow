@@ -59,6 +59,8 @@ func (c *Colour) ToPPM() string {
 }
 
 // clamp the given value between min and max.
+//
+//nolint:unparam
 func clamp(value, min, max float64) float64 {
 	if value < min {
 		return min
