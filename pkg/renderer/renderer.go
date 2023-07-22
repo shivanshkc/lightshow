@@ -31,10 +31,12 @@ type Options struct {
 	// MaxDiffusionDepth is the maximum number of times that a ray is allowed to
 	// diffuse (reflect or refract) before it is considered "dead".
 	//
-	// In simpler words, it produces the "infinity mirror"
+	// In simpler words, it produces the "infinity mirror".
 	MaxDiffusionDepth int
 	// SamplesPerPixel for anti-aliasing.
 	SamplesPerPixel int
+	// MaxWorkers is the max number of goroutines to be spawned for rendering.
+	MaxWorkers int
 
 	// OutputFile is the path to the output file.
 	OutputFile string
@@ -48,7 +50,7 @@ func New(opts *Options) *Renderer {
 func (r *Renderer) Render(world shape) error {
 	// Create a pool for concurrent processing.
 	pixelCount := r.opts.ImageHeight * r.opts.ImageWidth
-	workerPool := pond.New(400, int(pixelCount), pond.Strategy(pond.Lazy()))
+	workerPool := pond.New(r.opts.MaxWorkers, int(pixelCount), pond.Strategy(pond.Lazy()))
 
 	// Create a new image.
 	img := image.NewRGBA(image.Rectangle{

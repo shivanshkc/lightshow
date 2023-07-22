@@ -13,7 +13,10 @@ import (
 )
 
 // aspectRatio of the rendered image.
-var aspectRatio = 16.0 / 9.0
+const (
+	aspectRatio = 16.0 / 9.0
+	imageHeight = 720
+)
 
 // cameraOptions holds all the camera configs.
 var cameraOptions = &camera.Options{
@@ -29,11 +32,12 @@ var cameraOptions = &camera.Options{
 // renderOptions holds all the renderer configs.
 var renderOptions = &renderer.Options{
 	Camera:            camera.New(cameraOptions),
-	ImageWidth:        1280,
-	ImageHeight:       1280 / aspectRatio,
+	ImageWidth:        imageHeight * aspectRatio,
+	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
-	SamplesPerPixel:   25,
+	SamplesPerPixel:   50,
+	MaxWorkers:        400,
 	OutputFile:        "./dist/image.jpg",
 }
 
