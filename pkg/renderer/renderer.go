@@ -22,8 +22,8 @@ type Options struct {
 	// Camera acts as the source for all rays.
 	Camera *camera.Camera
 
-	ImageWidth  float64
-	ImageHeight float64
+	ImageWidth  int
+	ImageHeight int
 
 	// SkyColour is the colour of the sky (or background).
 	SkyColour *utils.Colour
@@ -50,17 +50,17 @@ func New(opts *Options) *Renderer {
 func (r *Renderer) Render(world shape) error {
 	// Create a pool for concurrent processing.
 	pixelCount := r.opts.ImageHeight * r.opts.ImageWidth
-	workerPool := pond.New(r.opts.MaxWorkers, int(pixelCount), pond.Strategy(pond.Lazy()))
+	workerPool := pond.New(r.opts.MaxWorkers, pixelCount, pond.Strategy(pond.Lazy()))
 
 	// Create a new image.
 	img := image.NewRGBA(image.Rectangle{
-		image.Point{0, 0},
-		image.Point{int(r.opts.ImageWidth), int(r.opts.ImageHeight)},
+		Min: image.Point{},
+		Max: image.Point{X: r.opts.ImageWidth, Y: r.opts.ImageHeight},
 	})
 
 	// Two nested loops for traversing every pixel on the screen.
-	for j := 0.0; j < r.opts.ImageHeight; j++ {
-		for i := 0.0; i < r.opts.ImageWidth; i++ {
+	for j := 0; j < r.opts.ImageHeight; j++ {
+		for i := 0; i < r.opts.ImageWidth; i++ {
 			// Copy loop variables for safety in goroutines.
 			ii, jj, jImg := i, j, r.opts.ImageHeight-j-1
 			// Schedule the task.
@@ -68,8 +68,8 @@ func (r *Renderer) Render(world shape) error {
 				// Here, we have to use "jImg" instead of "j" because
 				// Go's image package treats top-left as the origin,
 				// instead of bottom-left.
-				colour := r.renderPixelWithAA(ii, jImg, world)
-				img.Set(int(ii), int(jj), colour.ToStd())
+				colour := r.renderPixelWithAA(float64(ii), float64(jImg), world)
+				img.Set(ii, jj, colour.ToStd())
 
 				// TODO: Log progress without performance impact.
 			})
@@ -114,8 +114,8 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 // Its job is to determine the colour of the given pixel (without anti-aliasing).
 func (r *Renderer) renderPixel(x, y float64, world shape) *utils.Colour {
 	// Bring x and y in the [0, 1) interval.
-	x /= (r.opts.ImageWidth - 1)
-	y /= (r.opts.ImageHeight - 1)
+	x /= float64(r.opts.ImageWidth - 1)
+	y /= float64(r.opts.ImageHeight - 1)
 
 	// Create a ray and trace it to determine the final pixel colour.
 	return r.traceRay(r.opts.Camera.CastRay(x, y), world, r.opts.MaxDiffusionDepth)

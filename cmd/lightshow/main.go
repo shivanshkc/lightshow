@@ -41,7 +41,7 @@ var renderOptions = &renderer.Options{
 	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
-	SamplesPerPixel:   50,
+	SamplesPerPixel:   10,
 	MaxWorkers:        400,
 	OutputFile:        "./dist/image.jpg",
 }
@@ -78,7 +78,7 @@ func main() {
 	// Profiling.
 	go pprof()
 	// Populate the world with random spheres.
-	randomize()
+	//randomize()
 
 	// Log execution time.
 	start := time.Now()
