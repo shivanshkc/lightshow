@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/shivanshkc/lightshow/pkg/camera"
@@ -10,6 +13,8 @@ import (
 	"github.com/shivanshkc/lightshow/pkg/renderer"
 	"github.com/shivanshkc/lightshow/pkg/shapes"
 	"github.com/shivanshkc/lightshow/pkg/utils"
+
+	_ "net/http/pprof" //nolint:gosec // It's not an HTTP application.
 )
 
 const (
@@ -70,12 +75,14 @@ var world = shapes.NewGroup(
 )
 
 func main() {
+	// Profiling.
+	go pprof()
+	// Populate the world with random spheres.
+	randomize()
+
 	// Log execution time.
 	start := time.Now()
 	defer func() { fmt.Printf("Time taken: %+v\n", time.Since(start)) }()
-
-	// Populate the world with random spheres.
-	randomize()
 
 	fmt.Println("Rendering...")
 	defer fmt.Println("Done.")
@@ -83,6 +90,19 @@ func main() {
 	// Start rendering.
 	if err := renderer.New(renderOptions).Render(world); err != nil {
 		panic(fmt.Errorf("failed to render: %w", err))
+	}
+}
+
+// pprof enables profiling and sets up an HTTP server for pprof endpoints.
+func pprof() {
+	// Enable block profiling.
+	runtime.SetBlockProfileRate(1)
+	// Enable mutex profiling.
+	runtime.SetMutexProfileFraction(1)
+
+	//nolint:gosec // No need for timeouts.
+	if err := http.ListenAndServe(":6060", nil); errors.Is(err, http.ErrServerClosed) {
+		panic(fmt.Errorf("error in ListenAndServe for pprof: %w", err))
 	}
 }
 
