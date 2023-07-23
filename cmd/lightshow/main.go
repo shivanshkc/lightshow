@@ -17,10 +17,10 @@ import (
 	_ "net/http/pprof" //nolint:gosec // It's not an HTTP application.
 )
 
-const (
+var (
 	// aspectRatio of the rendered image.
 	aspectRatio = 16.0 / 9.0
-	imageHeight = 720
+	imageHeight = 400
 )
 
 // cameraOptions holds all the camera configs.
@@ -37,7 +37,7 @@ var cameraOptions = &camera.Options{
 // renderOptions holds all the renderer configs.
 var renderOptions = &renderer.Options{
 	Camera:            camera.New(cameraOptions),
-	ImageWidth:        imageHeight * aspectRatio,
+	ImageWidth:        int(float64(imageHeight) * aspectRatio),
 	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
@@ -78,7 +78,7 @@ func main() {
 	// Profiling.
 	go pprof()
 	// Populate the world with random spheres.
-	//randomize()
+	// randomize()
 
 	// Log execution time.
 	start := time.Now()
