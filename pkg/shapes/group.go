@@ -43,3 +43,21 @@ func (g *Group) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 
 	return closestRayHit, hitAnything
 }
+
+func (g *Group) BoundingBox() *AABB {
+	// If no shapes, panic.
+	if len(g.Shapes) == 0 {
+		panic("cannot generate the bounding box of an empty Group")
+	}
+
+	// Bounding box to start with.
+	boundingBox := g.Shapes[0].BoundingBox()
+
+	// Start loop from 1 as the first element is already dealt with.
+	// This loop combines the bounding boxes of all shapes.
+	for i := 1; i < len(g.Shapes); i++ {
+		boundingBox = boundingBox.BoundingBoxWith(g.Shapes[i].BoundingBox())
+	}
+
+	return boundingBox
+}

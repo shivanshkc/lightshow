@@ -75,6 +75,11 @@ func (v *Vec3) ToColour() *Colour {
 	return NewColour(v.X, v.Y, v.Z)
 }
 
+// ToArr converts the vector to an array of the form [x, y, z].
+func (v *Vec3) ToArr() [3]float64 {
+	return [3]float64{v.X, v.Y, v.Z}
+}
+
 // Reflected calculates and returns the reflection of this vector
 // for the given normal.
 //
