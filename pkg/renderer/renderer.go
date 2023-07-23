@@ -54,7 +54,7 @@ func (r *Renderer) Render(world shape) error {
 
 	// Create a new image.
 	img := image.NewRGBA(image.Rectangle{
-		Min: image.Point{},
+		Min: image.Point{}, // x: 0, y: 0
 		Max: image.Point{X: r.opts.ImageWidth, Y: r.opts.ImageHeight},
 	})
 
