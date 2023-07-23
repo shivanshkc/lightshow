@@ -1,9 +1,9 @@
 package shapes
 
 import (
-	"github.com/shivanshkc/lightshow/pkg/mats"
-	"github.com/shivanshkc/lightshow/pkg/utils"
 	"math"
+
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 // AABB stands for Axis-aligned bounding box.
@@ -24,9 +24,11 @@ func NewAABB(min, max *utils.Vec3) *AABB {
 // Hit method for the AABB type does not care about the RayHit record. It only tells whether there was a hit or not.
 // That's because AABB is not an actual object to be rendered, just a logical entity.
 //
+// It is intentional that it doesn't implement the Shape interface, because that would lead to nil *RayHit records.
+//
 // TODO: See if the optimisation described in the link below increases the performance of this method.
 // https://raytracing.github.io/books/RayTracingTheNextWeek.html#boundingvolumehierarchies/anoptimizedaabbhitmethod
-func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
+func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
 	// Convert vectors to arrays for easy operation.
 	aMin, aMax, rOrg, rDir := a.Min.ToArr(), a.Max.ToArr(), ray.Origin.ToArr(), ray.Dir.ToArr()
 
@@ -45,12 +47,12 @@ func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 
 		// If intersections don't overlap, ray doesn't hit the box.
 		if tMax <= tMin {
-			return nil, false
+			return false
 		}
 	}
 
 	// Ray hits the box.
-	return nil, true
+	return true
 }
 
 // BoundingBox of an AABB is itself.

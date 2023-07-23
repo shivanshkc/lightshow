@@ -13,9 +13,14 @@ func Float() float64 {
 	return xoshiro256StarStar(seed)
 }
 
-// FloatBetween generates a random float between the given min and max range.
+// FloatBetween generates a random float in the [min, max) interval.
 func FloatBetween(min, max float64) float64 {
 	return min + (Float() * (max - min))
+}
+
+// IntBetween generates a random int in the [min, max] interval.
+func IntBetween(min, max int) int {
+	return int(FloatBetween(float64(min), float64(max+1)))
 }
 
 // xoshiro256StarStar is a high-quality pseudo-random number generator (PRNG) algorithm.
