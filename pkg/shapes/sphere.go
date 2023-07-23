@@ -78,6 +78,13 @@ func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	return rayHit, true
 }
 
+func (s *Sphere) BoundingBox() *AABB {
+	return &AABB{
+		Min: s.Center.Sub(utils.NewVec3(s.Radius, s.Radius, s.Radius)),
+		Max: s.Center.Add(utils.NewVec3(s.Radius, s.Radius, s.Radius)),
+	}
+}
+
 // isWithin checks if the given value is within min and max, both exclusive.
 func isWithin(value, min, max float64) bool {
 	return value > min && value < max

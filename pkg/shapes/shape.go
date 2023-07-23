@@ -22,4 +22,13 @@ type Shape interface {
 	//
 	// In most cases, the minD argument will be zero.
 	Hit(ray *utils.Ray, minD, maxD float64) (info *mats.RayHit, isHit bool)
+
+	// BoundingBox returns the bounding box for the shape.
+	//
+	// If this method is called on a Group type that does not have any shapes, it will panic.
+	//
+	// Bounding boxes are a great way to optimise raytracing.
+	// Read more about them here:
+	// https://raytracing.github.io/books/RayTracingTheNextWeek.html#boundingvolumehierarchies
+	BoundingBox() *AABB
 }
