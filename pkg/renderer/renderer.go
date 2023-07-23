@@ -58,6 +58,10 @@ func (r *Renderer) Render(world shape) error {
 		Max: image.Point{X: r.opts.ImageWidth, Y: r.opts.ImageHeight},
 	})
 
+	// Progress report.
+	percentChan := make(chan float64, pixelCount)
+	go progressBarChan(percentChan)
+
 	// Two nested loops for traversing every pixel on the screen.
 	for j := 0; j < r.opts.ImageHeight; j++ {
 		for i := 0; i < r.opts.ImageWidth; i++ {
@@ -65,19 +69,23 @@ func (r *Renderer) Render(world shape) error {
 			ii, jj, jImg := i, j, r.opts.ImageHeight-j-1
 			// Schedule the task.
 			workerPool.Submit(func() {
+				// Type conversions.
+				iiF, jjF, jImgF := float64(ii), float64(jj), float64(jImg)
 				// Here, we have to use "jImg" instead of "j" because
 				// Go's image package treats top-left as the origin,
 				// instead of bottom-left.
-				colour := r.renderPixelWithAA(float64(ii), float64(jImg), world)
+				colour := r.renderPixelWithAA(iiF, jImgF, world)
 				img.Set(ii, jj, colour.ToStd())
 
-				// TODO: Log progress without performance impact.
+				// Report progress.
+				percentChan <- iiF * jjF * 100 / float64(pixelCount)
 			})
 		}
 	}
 
 	// Await render completion.
 	workerPool.StopAndWait()
+	close(percentChan)
 
 	// Encode the image.
 	if err := encodeImage(img, r.opts.OutputFile); err != nil {

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/shivanshkc/lightshow/pkg/shapes"
 )
@@ -91,4 +92,38 @@ func encodePPM(img image.Image, file io.Writer) error {
 	}
 
 	return nil
+}
+
+// progressBarChan accepts a channel to show the progress bar.
+func progressBarChan(percentChan <-chan float64) {
+	var max float64
+	// Looping over percentChan to show progress.
+	for percent := range percentChan {
+		// Since the progress report is concurrent, we could receive older values later.
+		// So, only the values greater than the last will be considered.
+		if percent < max {
+			continue
+		}
+		// Draw the progress bar.
+		max = percent
+		progressBar(max)
+	}
+}
+
+// progressBar shows the given progress in a bar.
+func progressBar(percent float64) {
+	// A 100 characters log progress bar will be too much.
+	// So, we'll use 50 character and adjust the percent value accordingly.
+	progressBarWidth := 50.0
+	adjustedProgress := progressBarWidth * percent / 100.0
+
+	// Forming the bar. It would look something like: [========>        ]
+	bars := "[" +
+		strings.Repeat("=", int(adjustedProgress)) +
+		">" +
+		strings.Repeat(" ", int(progressBarWidth-adjustedProgress)) +
+		"]"
+
+	// Print with clear screen.
+	fmt.Printf("\r%s %.2f%%", bars, percent)
 }
