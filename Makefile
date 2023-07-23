@@ -1,6 +1,7 @@
 SHELL=/usr/bin/env bash
 
 app_name = lightshow
+pprof_addr = http://localhost:6060
 
 # Renders the image.
 render: tidy build
@@ -26,3 +27,24 @@ tidy:
 lint:
 	@echo "+$@"
 	@golangci-lint run ./...
+
+# Shows the goroutine block profiling data.
+blockprof:
+	@echo "+$@"
+	@mkdir pprof || true
+	@curl $(pprof_addr)/debug/pprof/block > pprof/block.prof && \
+		go tool pprof --text bin/$(app_name) pprof/block.prof
+
+# Shows the mutex usage data.
+mutexprof:
+	@echo "+$@"
+	@mkdir pprof || true
+	@curl $(pprof_addr)/debug/pprof/mutex > pprof/mutex.prof && \
+		go tool pprof --text bin/$(app_name) pprof/mutex.prof
+
+# Shows the heap allocation data.
+heapprof:
+	@echo "+$@"
+	@mkdir pprof || true
+	@curl $(pprof_addr)/debug/pprof/heap > pprof/heap.prof && \
+		go tool pprof --text bin/$(app_name) pprof/heap.prof
