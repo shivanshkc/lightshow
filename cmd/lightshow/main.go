@@ -82,10 +82,7 @@ func main() {
 
 	// Log execution time.
 	start := time.Now()
-	defer func() { fmt.Printf("Time taken: %+v\n", time.Since(start)) }()
-
-	fmt.Println("Rendering...")
-	defer fmt.Println("Done.")
+	defer func() { fmt.Printf("\nTime taken: %+v\n", time.Since(start)) }()
 
 	// Start rendering.
 	if err := renderer.New(renderOptions).Render(world); err != nil {
