@@ -1,7 +1,7 @@
 package random
 
 import (
-	"time"
+	"hash/maphash"
 )
 
 // Float generates a random float in the [0, 1) interval.
@@ -9,7 +9,9 @@ import (
 // It does not use Go's standard random number generator
 // because of its poor concurrent performance.
 func Float() float64 {
-	seed := uint64(time.Now().Nanosecond())
+	// TODO: This seed generator is much faster than time.Now().
+	// Finding an even faster seed generator will directly improve the rendering speed.
+	seed := new(maphash.Hash).Sum64()
 	return xoshiro256StarStar(seed)
 }
 
