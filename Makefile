@@ -48,3 +48,10 @@ heapprof:
 	@mkdir pprof || true
 	@curl $(pprof_addr)/debug/pprof/heap > pprof/heap.prof && \
 		go tool pprof --text bin/$(app_name) pprof/heap.prof
+
+# Shows execution time per function.
+prof:
+	@echo "+$@"
+	@mkdir pprof || true
+	@curl $(pprof_addr)/debug/pprof/profile?seconds=30 > pprof/profile.prof && \
+		go tool pprof --text bin/$(app_name) pprof/profile.prof
