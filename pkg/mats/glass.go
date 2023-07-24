@@ -19,7 +19,7 @@ func NewGlass(ri float64) *Glass {
 	return &Glass{RefractiveIndex: ri}
 }
 
-func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Colour, bool) {
+func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, utils.Colour, bool) {
 	// This method uses the physics of Total Internal Reflection and Schlick's approximation.
 	// To know more, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#dielectrics/refraction

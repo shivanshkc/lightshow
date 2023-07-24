@@ -26,7 +26,7 @@ type Options struct {
 	ImageHeight int
 
 	// SkyColour is the colour of the sky (or background).
-	SkyColour *utils.Colour
+	SkyColour utils.Colour
 
 	// MaxDiffusionDepth is the maximum number of times that a ray is allowed to
 	// diffuse (reflect or refract) before it is considered "dead".
@@ -97,7 +97,7 @@ func (r *Renderer) Render(world shape) error {
 
 // renderPixelWithAA is called for every pixel on the screen.
 // Its job is to determine the colour of the given pixel with anti-aliasing.
-func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
+func (r *Renderer) renderPixelWithAA(x, y float64, world shape) utils.Colour {
 	colour := utils.NewColour(0, 0, 0)
 
 	// Process the configured number of samples for every pixel.
@@ -112,15 +112,15 @@ func (r *Renderer) renderPixelWithAA(x, y float64, world shape) *utils.Colour {
 	// Take the average of the colour and do gamma correction.
 	spp := float64(r.opts.SamplesPerPixel)
 	return utils.NewColour(
-		math.Sqrt(colour.R/spp),
-		math.Sqrt(colour.G/spp),
-		math.Sqrt(colour.B/spp),
+		math.Sqrt(colour.D[0]/spp),
+		math.Sqrt(colour.D[1]/spp),
+		math.Sqrt(colour.D[2]/spp),
 	)
 }
 
 // renderPixel is called for every pixel on the screen.
 // Its job is to determine the colour of the given pixel (without anti-aliasing).
-func (r *Renderer) renderPixel(x, y float64, world shape) *utils.Colour {
+func (r *Renderer) renderPixel(x, y float64, world shape) utils.Colour {
 	// Bring x and y in the [0, 1) interval.
 	x /= float64(r.opts.ImageWidth - 1)
 	y /= float64(r.opts.ImageHeight - 1)
@@ -130,7 +130,7 @@ func (r *Renderer) renderPixel(x, y float64, world shape) *utils.Colour {
 }
 
 // traceRay traces the provided ray upto the given diffusion depth and returns its final colour.
-func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *utils.Colour {
+func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) utils.Colour {
 	// If diffusion depth is reached, the ray is considered dead.
 	// So, the colour is black.
 	if diffusionDepth < 1 {
@@ -140,7 +140,7 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 	// Hit the world. B-)
 	if hitInfo, isHit := world.Hit(ray, 0.001, math.MaxFloat64); isHit {
 		// Scatter the ray using the material of the shape.
-		scat, atten, isScat := hitInfo.Mat.Scatter(ray, hitInfo)
+		scat, attn, isScat := hitInfo.Mat.Scatter(ray, hitInfo)
 		// Return black if the ray got absorbed.
 		if !isScat {
 			return utils.NewColour(0, 0, 0)
@@ -150,11 +150,7 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 		// This is where nested reflections/refractions of the ray are considered.
 		scatRayColour := r.traceRay(scat, world, diffusionDepth-1)
 		// Add the attenuation to the colour.
-		return utils.NewColour(
-			scatRayColour.R*atten.R,
-			scatRayColour.G*atten.G,
-			scatRayColour.B*atten.B,
-		)
+		return scatRayColour.Attenuate(attn)
 	}
 
 	// Background.
