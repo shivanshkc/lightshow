@@ -19,7 +19,7 @@ func NewMetallic(attn utils.Colour, fuzz float64) *Metallic {
 	return &Metallic{Attenuation: attn, Fuzz: fuzz}
 }
 
-func (m *Metallic) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, utils.Colour, bool) {
+func (m *Metallic) Scatter(ray utils.Ray, hitInfo *RayHit) (utils.Ray, utils.Colour, bool) {
 	// Get the reflection of the ray.
 	reflected := ray.Dir.Reflected(hitInfo.Normal).Dir()
 

@@ -75,7 +75,7 @@ func New(opts *Options) *Camera {
 
 // CastRay returns a Ray instance that originates at the camera's origin
 // and goes toward the given xy location on the viewport.
-func (c *Camera) CastRay(viewportX, viewportY float64) *utils.Ray {
+func (c *Camera) CastRay(viewportX, viewportY float64) utils.Ray {
 	// TODO: Understand this math.
 	// Docs are present at-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#defocusblur/generatingsamplerays

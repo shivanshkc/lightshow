@@ -21,7 +21,7 @@ type Shape interface {
 	// be visible.
 	//
 	// In most cases, the minD argument will be zero.
-	Hit(ray *utils.Ray, minD, maxD float64) (info *mats.RayHit, isHit bool)
+	Hit(ray utils.Ray, minD, maxD float64) (info *mats.RayHit, isHit bool)
 
 	// BoundingBox returns the bounding box for the shape.
 	//

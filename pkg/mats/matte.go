@@ -15,7 +15,7 @@ func NewMatte(albedo utils.Colour) *Matte {
 	return &Matte{albedo: albedo}
 }
 
-func (m *Matte) Scatter(_ *utils.Ray, hitInfo *RayHit) (*utils.Ray, utils.Colour, bool) {
+func (m *Matte) Scatter(_ utils.Ray, hitInfo *RayHit) (utils.Ray, utils.Colour, bool) {
 	scatterDir := hitInfo.Normal.Add(random.UnitVec3())
 
 	// Catch degenerate scatter direction.

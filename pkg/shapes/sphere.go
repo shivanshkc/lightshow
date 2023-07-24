@@ -23,7 +23,7 @@ func NewSphere(center utils.Vec3, radius float64, mat mats.Material) *Sphere {
 	return &Sphere{Center: center, Radius: radius, Mat: mat}
 }
 
-func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
+func (s *Sphere) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// To understand the math, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
 

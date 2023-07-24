@@ -28,7 +28,9 @@ func NewAABB(min, max utils.Vec3) *AABB {
 //
 // To understand the exact math of this method, visit-
 // https://raytracing.github.io/books/RayTracingTheNextWeek.html#boundingvolumehierarchies/anoptimizedaabbhitmethod
-func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
+//
+//nolint:funlen,cyclop // This function is very critical for BVH performance, hence readability is sacrificed for speed.
+func (a *AABB) Hit(ray utils.Ray, minD, maxD float64) bool {
 	// Declare all vars beforehand. This helps with performance.
 	var invD, t0, t1, tMin, tMax float64
 

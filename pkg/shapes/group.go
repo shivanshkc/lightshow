@@ -20,7 +20,7 @@ func NewGroup(shapes ...Shape) *Group {
 }
 
 // Hit returns the closest point-of-hit out of all the shapes for the given ray.
-func (g *Group) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
+func (g *Group) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// hitAnything will be true if at least a single shape is hit.
 	hitAnything := false
 	// This will keep track of the closest point-of-hit so far.

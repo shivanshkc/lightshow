@@ -2,6 +2,9 @@
 bin
 dist
 
+# Experiments
+cmd/experiment
+
 # Profiling
 pprof
 

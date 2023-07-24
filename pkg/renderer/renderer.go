@@ -130,7 +130,7 @@ func (r *Renderer) renderPixel(x, y float64, world shape) utils.Colour {
 }
 
 // traceRay traces the provided ray upto the given diffusion depth and returns its final colour.
-func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) utils.Colour {
+func (r *Renderer) traceRay(ray utils.Ray, world shape, diffusionDepth int) utils.Colour {
 	// If diffusion depth is reached, the ray is considered dead.
 	// So, the colour is black.
 	if diffusionDepth < 1 {
