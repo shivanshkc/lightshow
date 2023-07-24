@@ -39,7 +39,7 @@ func (c Colour) Lerp(end Colour, x float64) Colour {
 // ToVec3 converts this Colour to a Vec3 type by mapping
 // the r, g, b values to x, y, z values respectively.
 func (c Colour) ToVec3() Vec3 {
-	return Vec3{c.D}
+	return Vec3(c)
 }
 
 // ToStd provides the standard library colour instance for this colour.

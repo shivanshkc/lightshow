@@ -6,12 +6,12 @@ type Ray struct {
 }
 
 // NewRay returns a new ray instance.
-func NewRay(origin, dir Vec3) *Ray {
-	return &Ray{Origin: origin, Dir: dir.Dir()}
+func NewRay(origin, dir Vec3) Ray {
+	return Ray{Origin: origin, Dir: dir.Dir()}
 }
 
 // Point returns a point on the ray that is given distance
 // away from the ray's origin.
-func (r *Ray) Point(distance float64) Vec3 {
+func (r Ray) Point(distance float64) Vec3 {
 	return r.Origin.Add(r.Dir.Mul(distance))
 }

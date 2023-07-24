@@ -47,7 +47,7 @@ func NewBVHNode(shapes ...Shape) *BVHNode {
 
 // Hit method for a BVH node checks if the given ray hits the node's own box, if not, it returns right away.
 // Otherwise, it returns the closest hit out of the left and right boxes.
-func (b *BVHNode) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
+func (b *BVHNode) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// If this box is not hit, it is guaranteed that left and right boxes won't be hit either, so we return.
 	if !b.Box.Hit(ray, minD, maxD) {
 		return nil, false
