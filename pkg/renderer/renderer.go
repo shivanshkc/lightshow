@@ -140,7 +140,7 @@ func (r *Renderer) traceRay(ray utils.Ray, world shape, diffusionDepth int) util
 	// Hit the world. B-)
 	if hitInfo, isHit := world.Hit(ray, 0.001, math.MaxFloat64); isHit {
 		// Scatter the ray using the material of the shape.
-		scat, attn, isScat := hitInfo.Mat.Scatter(ray, hitInfo)
+		scat, attn, isScat := hitInfo.Mat.Scatter(ray, *hitInfo)
 		// Return black if the ray got absorbed.
 		if !isScat {
 			return utils.NewColour(0, 0, 0)

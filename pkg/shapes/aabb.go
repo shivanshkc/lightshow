@@ -24,7 +24,7 @@ func NewAABB(min, max utils.Vec3) *AABB {
 // Hit method for the AABB type does not care about the RayHit record. It only tells whether there was a hit or not.
 // That's because AABB is not an actual object to be rendered, just a logical entity.
 //
-// It is intentional that it doesn't implement the Shape interface, because that would lead to nil *RayHit records.
+// It is intentional that it doesn't implement the Shape interface, because that would lead to nil RayHit records.
 //
 // To understand the exact math of this method, visit-
 // https://raytracing.github.io/books/RayTracingTheNextWeek.html#boundingvolumehierarchies/anoptimizedaabbhitmethod
