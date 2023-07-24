@@ -63,7 +63,7 @@ func (b *BVHNode) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	}
 
 	// See if the right box is hit.
-	recordRight, isHitRight := b.Left.Hit(ray, minD, maxD)
+	recordRight, isHitRight := b.Right.Hit(ray, minD, maxD)
 	// If the right box is hit, it is definitely a better hit than the left box.
 	// This is because we used the distance of the left-hit as the maxD param here.
 	if isHitRight {
