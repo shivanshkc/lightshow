@@ -26,29 +26,79 @@ func NewAABB(min, max *utils.Vec3) *AABB {
 //
 // It is intentional that it doesn't implement the Shape interface, because that would lead to nil *RayHit records.
 //
-// TODO: See if the optimisation described in the link below increases the performance of this method.
+// To understand the exact math of this method, visit-
 // https://raytracing.github.io/books/RayTracingTheNextWeek.html#boundingvolumehierarchies/anoptimizedaabbhitmethod
 func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
-	// Convert vectors to arrays for easy operation.
-	aMin, aMax, rOrg, rDir := a.Min.ToArr(), a.Max.ToArr(), ray.Origin.ToArr(), ray.Dir.ToArr()
+	// Declare all vars beforehand. This helps with performance.
+	var invD, t0, t1, tMin, tMax float64
 
-	for i := 0; i < 3; i++ {
-		// Calculate intersection points.
-		q1 := (aMin[i] - rOrg[i]) / rDir[i]
-		q2 := (aMax[i] - rOrg[i]) / rDir[i]
+	// CHECK INTERSECTION WITH X-AXIS ==================================================================================
+	invD = 1.0 / ray.Dir.X
+	t0 = (a.Min.X - ray.Origin.X) * invD
+	t1 = (a.Max.X - ray.Origin.X) * invD
 
-		// Get closest and farthest intersections.
-		t0 := math.Min(q1, q2)
-		t1 := math.Max(q1, q2)
+	if invD < 0 {
+		t0, t1 = t1, t0
+	}
 
-		// Keep the intersection inside the given tolerances (minD, maxD).
-		tMin := math.Max(t0, minD)
-		tMax := math.Min(t1, maxD)
+	// Keep the intersection inside the given tolerances (minD, maxD).
+	tMin, tMax = minD, maxD
+	if t0 > minD {
+		tMin = t0
+	}
+	if t1 < maxD {
+		tMax = t1
+	}
 
-		// If intersections don't overlap, ray doesn't hit the box.
-		if tMax <= tMin {
-			return false
-		}
+	// If intersections don't overlap, ray doesn't hit the box.
+	if tMax <= tMin {
+		return false
+	}
+
+	// CHECK INTERSECTION WITH Y-AXIS ==================================================================================
+	invD = 1.0 / ray.Dir.Y
+	t0 = (a.Min.Y - ray.Origin.Y) * invD
+	t1 = (a.Max.Y - ray.Origin.Y) * invD
+
+	if invD < 0 {
+		t0, t1 = t1, t0
+	}
+
+	// Keep the intersection inside the given tolerances (minD, maxD).
+	tMin, tMax = minD, maxD
+	if t0 > minD {
+		tMin = t0
+	}
+	if t1 < maxD {
+		tMax = t1
+	}
+
+	// If intersections don't overlap, ray doesn't hit the box.
+	if tMax <= tMin {
+		return false
+	}
+
+	// CHECK INTERSECTION WITH Z-AXIS ==================================================================================
+	invD = 1.0 / ray.Dir.Z
+	t0 = (a.Min.Z - ray.Origin.Z) * invD
+	t1 = (a.Max.Z - ray.Origin.Z) * invD
+
+	if invD < 0 {
+		t0, t1 = t1, t0
+	}
+
+	// Keep the intersection inside the given tolerances (minD, maxD).
+	tMin, tMax = minD, maxD
+	if t0 > minD {
+		tMin = t0
+	}
+	if t1 < maxD {
+		tMax = t1
+	}
+
+	// If intersections don't overlap, ray doesn't hit the box.
+	if tMax <= tMin {
+		return false
 	}
 
 	// Ray hits the box.
