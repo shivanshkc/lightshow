@@ -13,11 +13,11 @@ type AABB struct {
 	// Min and Max hold 6 numbers in total. Every number represents an equation for a plane.
 	// Like x = c is an equation for a plane (c is a constant).
 	// So, these 6 numbers form 6 planes to create a box.
-	Min, Max *utils.Vec3
+	Min, Max utils.Vec3
 }
 
 // NewAABB returns a new AABB instance.
-func NewAABB(min, max *utils.Vec3) *AABB {
+func NewAABB(min, max utils.Vec3) *AABB {
 	return &AABB{Min: min, Max: max}
 }
 
@@ -33,9 +33,9 @@ func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
 	var invD, t0, t1, tMin, tMax float64
 
 	// CHECK INTERSECTION WITH X-AXIS ==================================================================================
-	invD = 1.0 / ray.Dir.X
-	t0 = (a.Min.X - ray.Origin.X) * invD
-	t1 = (a.Max.X - ray.Origin.X) * invD
+	invD = 1.0 / ray.Dir.D[0]
+	t0 = (a.Min.D[0] - ray.Origin.D[0]) * invD
+	t1 = (a.Max.D[0] - ray.Origin.D[0]) * invD
 
 	if invD < 0 {
 		t0, t1 = t1, t0
@@ -56,9 +56,9 @@ func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
 	}
 
 	// CHECK INTERSECTION WITH Y-AXIS ==================================================================================
-	invD = 1.0 / ray.Dir.Y
-	t0 = (a.Min.Y - ray.Origin.Y) * invD
-	t1 = (a.Max.Y - ray.Origin.Y) * invD
+	invD = 1.0 / ray.Dir.D[1]
+	t0 = (a.Min.D[1] - ray.Origin.D[1]) * invD
+	t1 = (a.Max.D[1] - ray.Origin.D[1]) * invD
 
 	if invD < 0 {
 		t0, t1 = t1, t0
@@ -79,9 +79,9 @@ func (a *AABB) Hit(ray *utils.Ray, minD, maxD float64) bool {
 	}
 
 	// CHECK INTERSECTION WITH Z-AXIS ==================================================================================
-	invD = 1.0 / ray.Dir.Z
-	t0 = (a.Min.Z - ray.Origin.Z) * invD
-	t1 = (a.Max.Z - ray.Origin.Z) * invD
+	invD = 1.0 / ray.Dir.D[2]
+	t0 = (a.Min.D[2] - ray.Origin.D[2]) * invD
+	t1 = (a.Max.D[2] - ray.Origin.D[2]) * invD
 
 	if invD < 0 {
 		t0, t1 = t1, t0
@@ -114,16 +114,16 @@ func (a *AABB) BoundingBox() *AABB {
 func (a *AABB) BoundingBoxWith(other *AABB) *AABB {
 	// The minimum bounds of both the boxes.
 	min := utils.NewVec3(
-		math.Min(a.Min.X, other.Min.X),
-		math.Min(a.Min.Y, other.Min.Y),
-		math.Min(a.Min.Z, other.Min.Z),
+		math.Min(a.Min.D[0], other.Min.D[0]),
+		math.Min(a.Min.D[1], other.Min.D[1]),
+		math.Min(a.Min.D[2], other.Min.D[2]),
 	)
 
 	// The maximum bounds of the both the boxes.
 	max := utils.NewVec3(
-		math.Max(a.Max.X, other.Max.X),
-		math.Max(a.Max.Y, other.Max.Y),
-		math.Max(a.Max.Z, other.Max.Z),
+		math.Max(a.Max.D[0], other.Max.D[0]),
+		math.Max(a.Max.D[1], other.Max.D[1]),
+		math.Max(a.Max.D[2], other.Max.D[2]),
 	)
 
 	// A box that contains both.

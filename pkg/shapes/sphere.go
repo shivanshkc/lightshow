@@ -10,7 +10,7 @@ import (
 // Sphere represents the sphere shape. It implements the Shape interface.
 type Sphere struct {
 	// Center is the position vector for the center of the sphere.
-	Center *utils.Vec3
+	Center utils.Vec3
 	// Radius of the sphere.
 	Radius float64
 
@@ -19,7 +19,7 @@ type Sphere struct {
 }
 
 // NewSphere returns a new sphere.
-func NewSphere(center *utils.Vec3, radius float64, mat mats.Material) *Sphere {
+func NewSphere(center utils.Vec3, radius float64, mat mats.Material) *Sphere {
 	return &Sphere{Center: center, Radius: radius, Mat: mat}
 }
 

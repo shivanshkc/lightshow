@@ -39,7 +39,7 @@ func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Col
 	cannotRefract := rir*sine > 1
 
 	// Determine whether the ray will be reflected or refracted.
-	var scatterDir *utils.Vec3
+	var scatterDir utils.Vec3
 	if cannotRefract || schlickApprox(cosine, rir) > random.Float() {
 		scatterDir = ray.Dir.Reflected(hitInfo.Normal)
 	} else {

@@ -12,10 +12,10 @@ import (
 type Camera struct {
 	// camU, camV and camW are three vectors that together fully
 	// describe the position and orientation of the camera.
-	camU, camV, camW *utils.Vec3
+	camU, camV, camW utils.Vec3
 
 	// Camera vector required by the CastRay method.
-	origin, horizontal, vertical, lowerLeftCorner *utils.Vec3
+	origin, horizontal, vertical, lowerLeftCorner utils.Vec3
 
 	// lensRadius allows depth of field effect.
 	lensRadius float64
@@ -24,11 +24,11 @@ type Camera struct {
 // Options to create a new camera.
 type Options struct {
 	// LookFrom is the position vector of the camera.
-	LookFrom *utils.Vec3
+	LookFrom utils.Vec3
 	// LookAt is the position vector of the point toward which the camera is pointed.
-	LookAt *utils.Vec3
+	LookAt utils.Vec3
 	// Up is the upward direction wrt the camera.
-	Up *utils.Vec3
+	Up utils.Vec3
 
 	// AspectRatio for the viewport.
 	AspectRatio float64
@@ -80,7 +80,7 @@ func (c *Camera) CastRay(viewportX, viewportY float64) *utils.Ray {
 	// Docs are present at-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#defocusblur/generatingsamplerays
 	rd := random.Vec3InUnitDisk().Mul(c.lensRadius)
-	offset := c.camU.Mul(rd.X).Add(c.camV.Mul(rd.Y))
+	offset := c.camU.Mul(rd.D[0]).Add(c.camV.Mul(rd.D[1]))
 
 	// Determine the direction of the ray for the given viewport xy.
 	rayDirection := c.lowerLeftCorner.

@@ -33,7 +33,7 @@ func (c *Colour) Lerp(end *Colour, x float64) *Colour {
 
 // ToVec3 converts this Colour to a Vec3 type by mapping
 // the r, g, b values to x, y, z values respectively.
-func (c *Colour) ToVec3() *Vec3 {
+func (c *Colour) ToVec3() Vec3 {
 	return NewVec3(c.R, c.G, c.B)
 }
 
