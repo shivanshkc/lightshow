@@ -14,7 +14,7 @@ type Material interface {
 	// material and a flag that tells whether the ray was scattered at all.
 	// If a ray is not scattered, the material at that point should appear black.
 	Scatter(ray *utils.Ray, hitInfo *RayHit,
-	) (scattered *utils.Ray, attenuation *utils.Colour, isScattered bool)
+	) (scattered *utils.Ray, attenuation utils.Colour, isScattered bool)
 }
 
 // RayHit encapsulates the information regarding a ray hit.

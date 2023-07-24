@@ -72,8 +72,8 @@ func (v Vec3) Dir() Vec3 {
 
 // ToColour converts this vector to a Colour type by mapping
 // the x, y, z values to r, g, b values respectively.
-func (v Vec3) ToColour() *Colour {
-	return NewColour(v.D[0], v.D[1], v.D[2])
+func (v Vec3) ToColour() Colour {
+	return Colour{v.D}
 }
 
 // Reflected calculates and returns the reflection of this vector
