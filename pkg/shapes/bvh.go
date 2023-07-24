@@ -24,9 +24,7 @@ func NewBVHNode(shapes ...Shape) *BVHNode {
 	// 0 means x, 1 means y and 2 means z.
 	axis := random.IntBetween(0, 2)
 	comparator := func(i, j int) bool {
-		iBoundingBoxMinArr := shapes[i].BoundingBox().Min.ToArr()
-		jBoundingBoxMinArr := shapes[j].BoundingBox().Min.ToArr()
-		return iBoundingBoxMinArr[axis] < jBoundingBoxMinArr[axis]
+		return shapes[i].BoundingBox().Min.D[axis] < shapes[j].BoundingBox().Min.D[axis]
 	}
 
 	switch len(shapes) {

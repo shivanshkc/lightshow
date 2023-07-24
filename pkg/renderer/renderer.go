@@ -159,7 +159,7 @@ func (r *Renderer) traceRay(ray *utils.Ray, world shape, diffusionDepth int) *ut
 
 	// Background.
 	// The {0.5 + (x + 1)} formula converts the [-1, 1] interval to [0, 1]
-	bgColourIntensity := 0.5 * (ray.Dir.Y + 1)
+	bgColourIntensity := 0.5 * (ray.Dir.D[1] + 1)
 	// Background colour using a gradient.
 	return utils.NewColour(1, 1, 1).Lerp(r.opts.SkyColour, bgColourIntensity)
 }

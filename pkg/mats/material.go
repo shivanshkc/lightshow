@@ -21,12 +21,12 @@ type Material interface {
 // TODO: Is this the correct package for this struct?
 type RayHit struct {
 	// Point is the position vector of the point-of-hit.
-	Point *utils.Vec3
+	Point utils.Vec3
 	// Distance of the point-of-hit from the ray origin.
 	Distance float64
 
 	// Normal vector to the surface at the point-of-hit.
-	Normal *utils.Vec3
+	Normal utils.Vec3
 	// IsRayOutside tells whether the ray hit occurs inside or outside the shape.
 	// This is calculated using the dot product of the ray direction and the normal.
 	// For more details, visit-
