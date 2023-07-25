@@ -9,8 +9,8 @@ import (
 // It does not use Go's standard random number generator
 // because of its poor concurrent performance.
 func Float() float64 {
-	// TODO: This seed generator is much faster than time.Now().
-	// Finding an even faster seed generator will directly improve the rendering speed.
+	// This seed generator is much faster than time.Now().
+	// TODO: Find an even faster seed generator.
 	seed := new(maphash.Hash).Sum64()
 	return xoshiro256StarStar(seed)
 }
