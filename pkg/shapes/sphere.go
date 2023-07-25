@@ -45,13 +45,13 @@ func (s *Sphere) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	}
 
 	// To save calculations.
-	sqrtDiscrim := math.Sqrt(discriminant)
+	sqrtDisc := math.Sqrt(discriminant)
 
 	// The smaller root of the equation.
-	closerRoot := (-bHalf - sqrtDiscrim) / a
+	closerRoot := (-bHalf - sqrtDisc) / a
 	if !isWithin(closerRoot, minD, maxD) {
 		// The bigger root of the equation.
-		closerRoot = (-bHalf + sqrtDiscrim) / a
+		closerRoot = (-bHalf + sqrtDisc) / a
 		if !isWithin(closerRoot, minD, maxD) {
 			// Both hits are out of visual range.
 			return nil, false
