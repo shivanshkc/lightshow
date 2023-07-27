@@ -1,1 +1,9 @@
-/target
+# IDE metadata
+.vscode
+
+# Render output
+dist
+
+# Compilation output
+bin
+target
