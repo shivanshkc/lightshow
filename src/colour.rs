@@ -1,40 +1,38 @@
 /// Colour is an RGB colour.
 pub struct Colour {
-    components: [f64; 3],
+    comp: [f32; 3],
 }
 
 impl Colour {
     /// Constructor.
-    pub fn new(r: f64, g: f64, b: f64) -> Self {
-        Colour { components: [r, g, b] }
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        Colour { comp: [r, g, b] }
     }
 
-    /// to_ppm converts the colour to a PPM row.
-    pub fn to_ppm(&self) -> String {
-        format!(
-            "{} {} {}",
-            // Multiply all colour components to bring them to 0-255 range.
-            (self.r() * 255.99) as i64,
-            (self.g() * 255.99) as i64,
-            (self.b() * 255.99) as i64
-        )
+    /// to_255 converts the colour from a [0, 1] to a [0, 255] representation.
+    pub fn to_255(&self) -> (u8, u8, u8) {
+        return (
+            (self.r() * 255.99) as u8,
+            (self.g() * 255.99) as u8,
+            (self.b() * 255.99) as u8,
+        );
     }
 
     /// r component of the colour.
     #[inline]
-    pub fn r(&self) -> f64 {
-        self.components[0]
+    pub fn r(&self) -> f32 {
+        self.comp[0]
     }
 
     /// g component of the colour.
     #[inline]
-    pub fn g(&self) -> f64 {
-        self.components[1]
+    pub fn g(&self) -> f32 {
+        self.comp[1]
     }
 
     /// b component of the colour.
     #[inline]
-    pub fn b(&self) -> f64 {
-        self.components[2]
+    pub fn b(&self) -> f32 {
+        self.comp[2]
     }
 }

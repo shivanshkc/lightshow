@@ -1,14 +1,15 @@
-mod vec3;
 mod colour;
 mod render;
+mod vec3;
 
-use render::{Renderer, Options};
+use render::{Options, Renderer};
 
 fn main() {
-    let opts = Options{
+    let opts = Options {
         image_height: 720,
         image_width: 1280,
+        output_file: "./dist/image.ppm",
     };
-    
-    Renderer::new(opts).render();
+
+    Renderer::new(opts).render().unwrap();
 }
