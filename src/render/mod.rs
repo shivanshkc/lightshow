@@ -13,14 +13,19 @@ pub struct Renderer<'a> {
 
 /// Options to create a new renderer.
 pub struct Options<'a> {
+    /// camera acts as the source of light rays.
     pub camera: Camera,
 
+    // Image dimensions.
     pub image_width: u32,
     pub image_height: u32,
 
+    /// samples_per_pixel for anti-aliasing.
     pub samples_per_pixel: u32,
+    // max_diff_depth for nested reflections, refractions and diffusion.
     pub max_diff_depth: u32,
 
+    // output_file is the path to the output file.
     pub output_file: &'a str,
 }
 
