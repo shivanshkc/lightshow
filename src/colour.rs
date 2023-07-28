@@ -36,3 +36,30 @@ impl Colour {
         self.comp[2]
     }
 }
+
+/// Operator overload for addition.
+impl std::ops::Add<Colour> for Colour {
+    type Output = Colour;
+
+    fn add(self, arg: Colour) -> Colour {
+        Colour::new(self.r() + arg.r(), self.g() + arg.g(), self.b() + arg.b())
+    }
+}
+
+/// Operator overload for multiplication.
+impl std::ops::Mul<f32> for Colour {
+    type Output = Colour;
+
+    fn mul(self, arg: f32) -> Colour {
+        Colour::new(self.r() * arg, self.g() * arg, self.b() * arg)
+    }
+}
+
+/// Operator overload for division.
+impl std::ops::Div<f32> for Colour {
+    type Output = Colour;
+
+    fn div(self, arg: f32) -> Colour {
+        Colour::new(self.r() / arg, self.g() / arg, self.b() / arg)
+    }
+}

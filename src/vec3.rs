@@ -6,27 +6,32 @@ pub struct Vec3 {
 
 impl Vec3 {
     /// Constructor.
-    fn new(x: f32, y: f32, z: f32) -> Self {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
         Vec3 { comp: [x, y, z] }
     }
 
     /// mag returns the magnitude/length of the vector.
-    fn mag(&self) -> f32 {
+    pub fn mag(&self) -> f32 {
         (self.x() * self.x() + self.y() * self.y() + self.z() * self.z()).sqrt()
     }
 
-    // Normalize the vector to have a magnitude of 1
-    fn dir(&self) -> Vec3 {
+    /// dir returns the corresponding unit vector.
+    pub fn dir(&self) -> Vec3 {
         *self / self.mag()
     }
 
-    // Dot product with another vector
-    fn dot(&self, other: &Vec3) -> f32 {
+    /// dot product with another vector.
+    pub fn dot(&self, other: &Vec3) -> f32 {
         self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
     }
 
-    // Cross product with another vector
-    fn cross(&self, other: &Vec3) -> Vec3 {
+    /// dot_self returns dot product with itself.
+    pub fn dot_self(&self) -> f32 {
+        self.dot(self)
+    }
+
+    /// cross product with another vector.
+    pub fn cross(&self, other: &Vec3) -> Vec3 {
         Vec3::new(
             self.y() * other.z() - self.z() * other.y(),
             self.z() * other.x() - self.x() * other.z(),
@@ -34,19 +39,21 @@ impl Vec3 {
         )
     }
 
-    // Helper methods for component access
+    /// x component of the vector.
     #[inline]
-    fn x(&self) -> f32 {
+    pub fn x(&self) -> f32 {
         self.comp[0]
     }
 
+    /// y component of the vector.
     #[inline]
-    fn y(&self) -> f32 {
+    pub fn y(&self) -> f32 {
         self.comp[1]
     }
 
+    /// z component of the vector.
     #[inline]
-    fn z(&self) -> f32 {
+    pub fn z(&self) -> f32 {
         self.comp[2]
     }
 }
