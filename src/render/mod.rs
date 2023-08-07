@@ -62,13 +62,11 @@ impl<'a> Renderer<'a> {
     /// render_pixel_aa renders the given pixel with anti-aliasing.
     fn render_pixel_aa(&self, i: f32, j: f32, rng: &mut ThreadRng) -> Colour {
         let mut colour = Colour::new(0.0, 0.0, 0.0);
-
         // Process the configured number of samples for every pixel.
         for _ in 0..self.opts.samples_per_pixel {
             let (u, v) = (i + rng.gen::<f32>(), j + rng.gen::<f32>());
             colour = colour + self.render_pixel(u, v, rng);
         }
-
         // Take the average of the colour and do gamma correction.
         colour = colour / self.opts.samples_per_pixel as f32;
         Colour::new(colour.r().sqrt(), colour.g().sqrt(), colour.b().sqrt())
