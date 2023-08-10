@@ -1,5 +1,7 @@
 mod camera;
 mod colour;
+mod materials;
+mod objects;
 mod random;
 mod ray;
 mod render;
