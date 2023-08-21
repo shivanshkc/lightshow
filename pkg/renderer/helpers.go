@@ -94,19 +94,23 @@ func encodePPM(img image.Image, file io.Writer) error {
 	return nil
 }
 
-// progressBarChan accepts a channel to show the progress bar.
-func progressBarChan(percentChan <-chan float64) {
-	var max float64
+// progressBarFromChannel accepts a channel to show the progress bar.
+func progressBarFromChannel(pixelDoneChan <-chan struct{}, size int) {
+	var donePixelCount int
+	var lastPercent float64
+
 	// Looping over percentChan to show progress.
-	for percent := range percentChan {
-		// Since the progress report is concurrent, we could receive older values later.
-		// So, only the values greater than the last will be considered.
-		if percent < max {
+	for range pixelDoneChan {
+		donePixelCount++
+		currentPercent := float64(donePixelCount) * 100 / float64(size)
+		// Show progress in increments of 1 only, and not for every pixel.
+		// This helps with performance.
+		if currentPercent-lastPercent < 1 {
 			continue
 		}
-		// Draw the progress bar.
-		max = percent
-		progressBar(max)
+
+		progressBar(currentPercent)
+		lastPercent = currentPercent
 	}
 }
 
@@ -125,5 +129,5 @@ func progressBar(percent float64) {
 		"]"
 
 	// Print with clear screen.
-	fmt.Printf("\r%s %.2f%%", bars, percent)
+	fmt.Printf("\r%s %.0f%%", bars, percent)
 }
