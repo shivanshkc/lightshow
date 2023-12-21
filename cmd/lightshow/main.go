@@ -41,7 +41,7 @@ var renderOptions = &renderer.Options{
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   100,
-	MaxWorkers:        400,
+	MaxWorkers:        runtime.NumCPU() * 40,
 	OutputFile:        "./dist/image.jpg",
 }
 
