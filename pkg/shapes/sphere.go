@@ -26,7 +26,6 @@ func NewSphere(center utils.Vec3, radius float64, mat mats.Material) *Sphere {
 func (s *Sphere) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// To understand the math, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
-
 	oc := ray.Origin.Sub(s.Center)
 
 	// These are the coefficients of the quadractic equation.
