@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -119,7 +120,7 @@ func progressBar(percent float64) {
 	// A 100 characters log progress bar will be too much.
 	// So, we'll use 50 character and adjust the percent value accordingly.
 	progressBarWidth := 50.0
-	adjustedProgress := progressBarWidth * percent / 100.0
+	adjustedProgress := math.Ceil(progressBarWidth * percent / 100.0)
 
 	// Forming the bar. It would look something like: [========>        ]
 	bars := "[" +
