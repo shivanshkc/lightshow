@@ -5,7 +5,7 @@ app_name = lightshow
 # Renders the image.
 render: build
 	@echo "+$@"
-	@bin/$(app_name)
+	@bin/$(app_name) > out/image.ppm
 
 # Builds the program.
 build:
