@@ -55,12 +55,6 @@ Ray camera_cast_ray(Camera cam, vec2 uv) {
 
 // ################################################################################################
 
-// Sphere represents the primitive sphere geometry.
-struct Sphere {
-    vec3 center;
-    float radius;
-};
-
 // HitInfo holds the information about a ray hit.
 struct HitInfo {
     // Flag to see if hit occurred.
@@ -86,6 +80,12 @@ HitInfo hit_info_set_normal(HitInfo info, Ray r, vec3 outward_normal) {
     info.normal = info.is_normal_outward ? outward_normal : -outward_normal;
     return info;
 }
+
+// Sphere represents the primitive sphere geometry.
+struct Sphere {
+    vec3 center;
+    float radius;
+};
 
 // is_within checks if the the given value lies within the given range.
 bool is_within(float value, vec2 range) {
@@ -136,9 +136,8 @@ Sphere spheres[] = Sphere[](
     Sphere(vec3(0, -1000.5, -1), 1000)
 );
 
-// determine_ray_color determines the color of the given ray.
-// This is where the actual ray tracing begins.
-vec3 determine_ray_color(Ray r) {
+// get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
+HitInfo get_closest_hit(Ray r, Sphere spheres[2]) {
     float closest_so_far = infinity;
     HitInfo closest_hi;     // Keeps track of the closest hit's info.
     bool hit_anything;      // Keeps track of whether somethin is hit.
@@ -159,9 +158,21 @@ vec3 determine_ray_color(Ray r) {
         }
     }
 
+    // If nothing is hit, return empty hit info.
+    if (!hit_anything) {
+        return new_empty_hit_info();
+    }
+
+    return closest_hi;
+}
+
+// determine_ray_color determines the color of the given ray.
+// This is where the actual ray tracing begins.
+vec3 determine_ray_color(Ray r) {
+    HitInfo info = get_closest_hit(r, spheres);
     // If an object is hit, render it.
-    if (hit_anything) {
-        return 0.5 * (closest_hi.normal + 1);
+    if (info.is_hit) {
+        return 0.5 * (info.normal + 1);
     }
 
     // Render background.
