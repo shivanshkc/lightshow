@@ -63,11 +63,29 @@ struct Sphere {
 
 // HitInfo holds the information about a ray hit.
 struct HitInfo {
+    // Flag to see if hit occurred.
     bool is_hit;
+
+    // Info about point of hit.
     float dist;
     vec3 point;
+
+    // Info about the hit point normal.
     vec3 normal;
+    bool is_normal_outward;
 };
+
+// new_empty_hit_info returns an empty instance of the HitInfo.
+HitInfo new_empty_hit_info() {
+    return HitInfo(false, 0, vec3(0), vec3(0), false);
+}
+
+// hit_info_set_normal sets the normal information in an HitInfo object and returns it.
+HitInfo hit_info_set_normal(HitInfo info, Ray r, vec3 outward_normal) {
+    info.is_normal_outward = dot(r.dir, outward_normal) < 0;
+    info.normal = info.is_normal_outward ? outward_normal : -outward_normal;
+    return info;
+}
 
 // is_within checks if the the given value lies within the given range.
 bool is_within(float value, vec2 range) {
@@ -86,7 +104,7 @@ HitInfo sphere_hit(Sphere s, Ray r, vec2 range) {
     // Discriminant will tell if a hit occurs or not.
     float discriminant = b*b - 4*a*c;
     if (discriminant < 0) {
-        return HitInfo(false, 0, vec3(0), vec3(0));
+        return new_empty_hit_info();
     }
 
     // Get the closest root that's within the range.
@@ -95,7 +113,7 @@ HitInfo sphere_hit(Sphere s, Ray r, vec2 range) {
     if (!is_within(root, range)) {
         root = (-b + disc_sqrt) / (2 * a);
         if (!is_within(root, range)) {
-            return HitInfo(false, 0, vec3(0), vec3(0));
+            return new_empty_hit_info();
         }
     }
 
@@ -104,7 +122,9 @@ HitInfo sphere_hit(Sphere s, Ray r, vec2 range) {
     info.is_hit = true;
     info.dist = root;
     info.point = ray_point_at(r, root);
-    info.normal = (info.point - s.center) / s.radius;
+
+    vec3 outward_normal = (info.point - s.center) / s.radius;
+    info = hit_info_set_normal(info, r, outward_normal);
     return info;
 }
 
