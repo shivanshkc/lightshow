@@ -5,23 +5,28 @@ out vec4 color;
 // Screen resolution, required for ray tracing calculations.
 uniform vec2 resolution;
 
+// ################################################################################################
+
 // ray that will be traced.
-struct ray {
+struct Ray {
     vec3 origin, dir;
 };
 
 // ray_point_at returns the point the ray will reach after travelling the given distance.
-vec3 ray_point_at(ray r, float d) {
+vec3 ray_point_at(Ray r, float d) {
     return r.origin + r.dir * d;
 }
 
+// ################################################################################################
+
 // camera is an abstraction that allows different viewing configurations.
-struct camera {
+struct Camera {
     vec3 origin, lower_left, horizontal, vertical;
 };
 
 // new_camera is a constructor function for camera.
-camera new_camera() {
+Camera new_camera() {
+    float focal_length = 1;
     float aspect_ratio = (resolution.x / resolution.y);
     // I still don't understand why exactly we need this "viewport".
     float vp_height = 2;
@@ -29,26 +34,55 @@ camera new_camera() {
 
     // Calculate camera parameters.
     vec3 origin = vec3(0, 0, 0);
-    vec3 horizontal = vec3(4, 0, 0);
-    vec3 vertical = vec3(0, 4 / aspect_ratio, 0);
-    vec3 lower_left = vec3(-2, -1, -1);
+    vec3 horizontal = vec3(vp_width, 0, 0);
+    vec3 vertical = vec3(0, vp_height, 0);
+    vec3 lower_left = origin - vec3(0, 0, focal_length) - horizontal/2 - vertical/2;
     
     // Instantiate the camera.
-    return camera(origin, lower_left, horizontal, vertical);
+    return Camera(origin, lower_left, horizontal, vertical);
 }
 
 // camera_cast_ray casts a new ray using the given camera and pixel coordinate.
-ray camera_cast_ray(camera cam, vec2 uv) {
+Ray camera_cast_ray(Camera cam, vec2 uv) {
     vec3 ray_dir = cam.lower_left +
         uv.x * cam.horizontal +
         uv.y * cam.vertical - cam.origin;
 
-    return ray(cam.origin, normalize(ray_dir));
+    return Ray(cam.origin, normalize(ray_dir));
 }
+
+// ################################################################################################
+
+// Sphere represents the primitive sphere geometry.
+struct Sphere {
+    vec3 center;
+    float radius;
+};
+
+// sphere_hit is the intersection function for the Sphere type.
+bool sphere_hit(Sphere s, Ray r) {
+    vec3 o2c = r.origin - s.center;
+
+    // Components of the quadratic equation.
+    float a = dot(r.dir, r.dir);
+    float b = 2 * dot(o2c, r.dir);
+    float c = dot(o2c, o2c) - s.radius * s.radius;
+
+    return b*b - 4*a*c >= 0;
+}
+
+// ################################################################################################
 
 // determine_ray_color determines the color of the given ray.
 // This is where the actual ray tracing begins.
-vec3 determine_ray_color(ray r) {
+vec3 determine_ray_color(Ray r) {
+    // Check if an object is hit.
+    Sphere s = Sphere(vec3(0, 0, -1), 0.5);
+    if (sphere_hit(s, r)) {
+        return vec3(1, 0, 0);
+    }
+
+    // Render background.
     vec3 unit_dir = normalize(r.dir);
     float t = 0.5 * (unit_dir.y + 1.0);
     return (1.0 - t) * vec3(1.0) + t * vec3(0.5, 0.7, 1.0);
@@ -59,10 +93,12 @@ void main() {
     vec2 uv = gl_FragCoord.xy / resolution;
 
     // Create ray.
-    ray r = camera_cast_ray(new_camera(), uv);
+    Ray ray = camera_cast_ray(new_camera(), uv);
     // Determine the color by tracing the ray.
-    vec3 col = determine_ray_color(r);
+    vec3 col = determine_ray_color(ray);
 
     // Assign color.
     color = vec4(col, 1);
 }
+
+// ################################################################################################
