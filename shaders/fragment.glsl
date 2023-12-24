@@ -5,6 +5,8 @@ out vec4 color;
 // Screen resolution, required for ray tracing calculations.
 uniform vec2 resolution;
 
+const float infinity = 1./0.;
+
 // ################################################################################################
 
 // ray that will be traced.
@@ -63,10 +65,17 @@ struct Sphere {
 struct HitInfo {
     bool is_hit;
     float dist;
+    vec3 point;
+    vec3 normal;
 };
 
+// is_within checks if the the given value lies within the given range.
+bool is_within(float value, vec2 range) {
+    return value > range[0] && value < range[1];
+}
+
 // sphere_hit is the intersection function for the Sphere type.
-HitInfo sphere_hit(Sphere s, Ray r) {
+HitInfo sphere_hit(Sphere s, Ray r, vec2 range) {
     vec3 o2c = r.origin - s.center;
 
     // Components of the quadratic equation.
@@ -77,25 +86,62 @@ HitInfo sphere_hit(Sphere s, Ray r) {
     // Discriminant will tell if a hit occurs or not.
     float discriminant = b*b - 4*a*c;
     if (discriminant < 0) {
-        return HitInfo(false, 0);
+        return HitInfo(false, 0, vec3(0), vec3(0));
     }
 
-    // Calculate distance from the hitpoint.
-    float dist = (-b - sqrt(discriminant)) / (2 * a);
-    return HitInfo(true, dist);
+    // Get the closest root that's within the range.
+    float disc_sqrt = sqrt(discriminant);
+    float root = (-b - disc_sqrt) / (2 * a);
+    if (!is_within(root, range)) {
+        root = (-b + disc_sqrt) / (2 * a);
+        if (!is_within(root, range)) {
+            return HitInfo(false, 0, vec3(0), vec3(0));
+        }
+    }
+
+    // Prepare and return the hit info.
+    HitInfo info;
+    info.is_hit = true;
+    info.dist = root;
+    info.point = ray_point_at(r, root);
+    info.normal = (info.point - s.center) / s.radius;
+    return info;
 }
 
 // ################################################################################################
 
+// List of all spheres.
+Sphere spheres[] = Sphere[](
+    Sphere(vec3(0, 0, -1), 0.5),
+    Sphere(vec3(0, -1000.5, -1), 1000)
+);
+
 // determine_ray_color determines the color of the given ray.
 // This is where the actual ray tracing begins.
 vec3 determine_ray_color(Ray r) {
-    // Check if an object is hit.
-    Sphere s = Sphere(vec3(0, 0, -1), 0.5);
-    HitInfo info = sphere_hit(s, r);
-    if (info.is_hit) {
-        vec3 normal = normalize(ray_point_at(r, info.dist) - s.center);
-        return 0.5 * (normal + 1);
+    float closest_so_far = infinity;
+    HitInfo closest_hi;     // Keeps track of the closest hit's info.
+    bool hit_anything;      // Keeps track of whether somethin is hit.
+
+    // Get the closest hit object.
+    for (int i = 0; i < spheres.length(); i++) {
+        // Check hit.
+        HitInfo info = sphere_hit(spheres[i], r, vec2(0, closest_so_far));
+        if (!info.is_hit) {
+            continue;
+        }
+
+        hit_anything = true;
+        // Collect the closest sphere.
+        if (closest_so_far > info.dist) {
+            closest_so_far = info.dist;
+            closest_hi = info;
+        }
+    }
+
+    // If an object is hit, render it.
+    if (hit_anything) {
+        return 0.5 * (closest_hi.normal + 1);
     }
 
     // Render background.
