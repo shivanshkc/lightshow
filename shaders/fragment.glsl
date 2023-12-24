@@ -59,8 +59,14 @@ struct Sphere {
     float radius;
 };
 
+// HitInfo holds the information about a ray hit.
+struct HitInfo {
+    bool is_hit;
+    float dist;
+};
+
 // sphere_hit is the intersection function for the Sphere type.
-bool sphere_hit(Sphere s, Ray r) {
+HitInfo sphere_hit(Sphere s, Ray r) {
     vec3 o2c = r.origin - s.center;
 
     // Components of the quadratic equation.
@@ -68,7 +74,15 @@ bool sphere_hit(Sphere s, Ray r) {
     float b = 2 * dot(o2c, r.dir);
     float c = dot(o2c, o2c) - s.radius * s.radius;
 
-    return b*b - 4*a*c >= 0;
+    // Discriminant will tell if a hit occurs or not.
+    float discriminant = b*b - 4*a*c;
+    if (discriminant < 0) {
+        return HitInfo(false, 0);
+    }
+
+    // Calculate distance from the hitpoint.
+    float dist = (-b - sqrt(discriminant)) / (2 * a);
+    return HitInfo(true, dist);
 }
 
 // ################################################################################################
@@ -78,8 +92,10 @@ bool sphere_hit(Sphere s, Ray r) {
 vec3 determine_ray_color(Ray r) {
     // Check if an object is hit.
     Sphere s = Sphere(vec3(0, 0, -1), 0.5);
-    if (sphere_hit(s, r)) {
-        return vec3(1, 0, 0);
+    HitInfo info = sphere_hit(s, r);
+    if (info.is_hit) {
+        vec3 normal = normalize(ray_point_at(r, info.dist) - s.center);
+        return 0.5 * (normal + 1);
     }
 
     // Render background.
