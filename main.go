@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"runtime"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -71,6 +72,8 @@ func main() {
 
 	// Render loop.
 	for !window.ShouldClose() {
+		showFPS()
+
 		// Clear screen upon every frame.
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -149,4 +152,16 @@ func setupVertices(program uint32) []float32 {
 	gl.VertexAttribPointer(positionAttrib, 2, gl.FLOAT, false, 0, nil)
 
 	return vertices
+}
+
+// lastTime is required to calculated FPS.
+var lastTime float64
+
+// showFPS prints the FPS to the standard output.
+// It should be called inside the window.ShouldClose loop.
+func showFPS() {
+	currentTime := glfw.GetTime()
+	deltaTime := currentTime - lastTime
+	lastTime = currentTime
+	fmt.Printf("\rFPS: %v ###", math.Ceil(1.0/deltaTime))
 }
