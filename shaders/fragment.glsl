@@ -137,7 +137,7 @@ Sphere spheres[] = Sphere[](
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
-HitInfo get_closest_hit(Ray r, Sphere spheres[2]) {
+HitInfo get_closest_hit(Ray r) {
     float closest_so_far = infinity;
     HitInfo closest_hi;     // Keeps track of the closest hit's info.
     bool hit_anything;      // Keeps track of whether somethin is hit.
@@ -169,7 +169,7 @@ HitInfo get_closest_hit(Ray r, Sphere spheres[2]) {
 // determine_ray_color determines the color of the given ray.
 // This is where the actual ray tracing begins.
 vec3 determine_ray_color(Ray r) {
-    HitInfo info = get_closest_hit(r, spheres);
+    HitInfo info = get_closest_hit(r);
     // If an object is hit, render it.
     if (info.is_hit) {
         return 0.5 * (info.normal + 1);
