@@ -65,9 +65,9 @@ func main() {
 	// Setup the vertices data.
 	vertices := setupVertices(program)
 
-	// Set up uniform variable for screen size
-	screenSizeUniform := gl.GetUniformLocation(program, gl.Str("screenSize\x00"))
-	gl.Uniform2f(screenSizeUniform, float32(width), float32(height))
+	// Set up uniform variable for screen resolution.
+	resolutionUni := gl.GetUniformLocation(program, gl.Str("resolution\x00"))
+	gl.Uniform2f(resolutionUni, float32(width), float32(height))
 
 	// Render loop.
 	for !window.ShouldClose() {
