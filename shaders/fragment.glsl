@@ -8,53 +8,56 @@ uniform vec2 resolution;
 const float infinity = 1./0.;
 
 // ################################################################################################
+// This random number implementation is taken from:
+// https://github.com/sp4ghet/raytracing_in_one_weekend/blob/master/ch08_diffuse.frag
 
-// Xoshiro256** random number generator
-// Based on the implementation by David Blackman and Sebastiano Vigna
+// Constants required to ray-tracing.
+#define PI 3.1415926535897932385
+#define TAU 2. * PI
+#define PHI 1.61803398874989484820459
 
-// State variables
-uvec4 state;
+// rand_seed is the seed for generating random numbers.
+float rand_seed = 0.25;
 
-void seedXoshiro256(uint seed) {
-    state = uvec4(seed, seed + 0x9e3779b9, seed + 0x9e3779b9, seed + 0x9e3779b9);
+// randf returns a random float in [0, 1)
+// st should always be the gl_FragCoord.xy value.
+float randf(vec2 st) {
+    return fract(tan(distance(st*PHI, st)*rand_seed)*st.x);
 }
 
-// Xoshiro256** PRNG function to generate a random float in the range [0, 1)
-float randf() {
-    uvec4 result = state * uvec4(0x9e3779b9, 0x9e3779b9, 0x9e3779b9, 0x9e3779b9);
-    uvec4 t = state << uvec4(9, 11, 8, 9);
-
-    state ^= t;
-    state ^= state >> uvec4(11, 11, 11, 11);
-    state ^= state << uvec4(5, 5, 5, 5);
-
-    return float(result.x ^ result.y ^ result.z ^ result.w) / float(0xFFFFFFFFu);
+// randv2 returns a random vec2.
+vec2 randv2() {
+    return vec2(
+        randf(vec2(rand_seed-1.23, (rand_seed+3.1)* 3.2)),
+        randf(vec2(rand_seed+12.678, rand_seed - 5.8324))
+    );
 }
 
-// vec2 seed = vec2(0);
-
-// float randf() {
-//     seed = vec2(
-//         fract(tan(dot(seed.xy, vec2(12.9898, 78.233))) * 43758.5453123),
-//         fract(tan(dot(seed.xy, vec2(13.9898, 79.233))) * 43759.5453123)
-//     );
-//     return seed.x;
-// }
-
+// randv3 returns a random vec3.
 vec3 randv3() {
-    return vec3(randf(), randf(), randf());
+    return vec3(
+        randf(vec2(rand_seed-0.678, rand_seed-0.123)),
+        randf(vec2(rand_seed-0.3, rand_seed+0.56)),
+        randf(vec2(rand_seed+0.1234, rand_seed-0.523))
+    );
 }
 
+// randv3_in_unit_sphere returns a random vec3 in a unit sphere.
 vec3 randv3_in_unit_sphere() {
-    while (true) {
-        vec3 p = 2 * randv3() - 1;
-        if (dot(p, p) < 1)
-            return p;
-    }
+    vec2 tp = randv2();
+    float theta = tp.x * TAU;
+    float phi = tp.y * TAU;
+    vec3 p = vec3(sin(theta) * cos(phi), sin(theta)*sin(phi), cos(theta));
+    return normalize(p);
 }
 
-vec3 randv3_unit() {
-    return normalize(randv3_in_unit_sphere());
+// randv3_unit returns a random vec3 of magnitude 1.
+vec3 randv3_unit(){
+    vec2 rand = randv2();
+    float a = rand.x * TAU;
+    float z = (2. * rand.y) - 1.;
+    float r = sqrt(1. - z*z);
+    return vec3(r*cos(a), r*sin(a), z);
 }
 
 // ################################################################################################
@@ -195,7 +198,7 @@ HitInfo get_closest_hit(Ray r) {
     // Get the closest hit object.
     for (int i = 0; i < spheres.length(); i++) {
         // Check hit.
-        HitInfo info = sphere_hit(spheres[i], r, vec2(0, closest_so_far));
+        HitInfo info = sphere_hit(spheres[i], r, vec2(0.01, closest_so_far));
         if (!info.is_hit) {
             continue;
         }
@@ -221,7 +224,7 @@ vec3 get_bg_color(Ray r) {
 vec3 get_ray_color(Ray r) {
     vec3 attenuation = vec3(1.0, 1.0, 1.0);
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 30; ++i) {
         // HitInfo info = sphere_hit(spheres[1], r, vec2(0, infinity));
         HitInfo info = get_closest_hit(r);
         if (!info.is_hit) {
@@ -241,8 +244,8 @@ vec3 get_ray_color(Ray r) {
 void main() {
     // Pixel coordinates.
     vec2 uv = gl_FragCoord.xy / resolution;
-    // seed = uv;
-    seedXoshiro256(uint(length(uv)));
+    // Initialize the seed.
+    rand_seed = randf(gl_FragCoord.xy);
 
     // Create ray.
     Ray ray = camera_cast_ray(new_camera(), uv);
