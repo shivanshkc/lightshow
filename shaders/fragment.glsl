@@ -5,7 +5,9 @@ out vec4 color;
 // Screen resolution, required for ray tracing calculations.
 uniform vec2 resolution;
 
-const float infinity = 1./0.;
+// Configurations.
+#define INFINITY 1./0.
+#define BOUNCE_LIMIT 10
 
 // ################################################################################################
 // This random number implementation is taken from:
@@ -191,7 +193,7 @@ Sphere spheres[] = Sphere[](
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
 HitInfo get_closest_hit(Ray r) {
-    float closest_so_far = infinity;
+    float closest_so_far = INFINITY;
     HitInfo closest_hi = new_empty_hit_info();
     bool hit_anything = false;
 
@@ -224,8 +226,7 @@ vec3 get_bg_color(Ray r) {
 vec3 get_ray_color(Ray r) {
     vec3 attenuation = vec3(1.0, 1.0, 1.0);
 
-    for (int i = 0; i < 30; ++i) {
-        // HitInfo info = sphere_hit(spheres[1], r, vec2(0, infinity));
+    for (int i = 0; i < BOUNCE_LIMIT; ++i) {
         HitInfo info = get_closest_hit(r);
         if (!info.is_hit) {
             // Background color if no hit.r.dir
