@@ -9,6 +9,56 @@ const float infinity = 1./0.;
 
 // ################################################################################################
 
+// Xoshiro256** random number generator
+// Based on the implementation by David Blackman and Sebastiano Vigna
+
+// State variables
+uvec4 state;
+
+void seedXoshiro256(uint seed) {
+    state = uvec4(seed, seed + 0x9e3779b9, seed + 0x9e3779b9, seed + 0x9e3779b9);
+}
+
+// Xoshiro256** PRNG function to generate a random float in the range [0, 1)
+float randf() {
+    uvec4 result = state * uvec4(0x9e3779b9, 0x9e3779b9, 0x9e3779b9, 0x9e3779b9);
+    uvec4 t = state << uvec4(9, 11, 8, 9);
+
+    state ^= t;
+    state ^= state >> uvec4(11, 11, 11, 11);
+    state ^= state << uvec4(5, 5, 5, 5);
+
+    return float(result.x ^ result.y ^ result.z ^ result.w) / float(0xFFFFFFFFu);
+}
+
+// vec2 seed = vec2(0);
+
+// float randf() {
+//     seed = vec2(
+//         fract(tan(dot(seed.xy, vec2(12.9898, 78.233))) * 43758.5453123),
+//         fract(tan(dot(seed.xy, vec2(13.9898, 79.233))) * 43759.5453123)
+//     );
+//     return seed.x;
+// }
+
+vec3 randv3() {
+    return vec3(randf(), randf(), randf());
+}
+
+vec3 randv3_in_unit_sphere() {
+    while (true) {
+        vec3 p = 2 * randv3() - 1;
+        if (dot(p, p) < 1)
+            return p;
+    }
+}
+
+vec3 randv3_unit() {
+    return normalize(randv3_in_unit_sphere());
+}
+
+// ################################################################################################
+
 // ray that will be traced.
 struct Ray {
     vec3 origin, dir;
@@ -139,8 +189,8 @@ Sphere spheres[] = Sphere[](
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
 HitInfo get_closest_hit(Ray r) {
     float closest_so_far = infinity;
-    HitInfo closest_hi;     // Keeps track of the closest hit's info.
-    bool hit_anything;      // Keeps track of whether somethin is hit.
+    HitInfo closest_hi = new_empty_hit_info();
+    bool hit_anything = false;
 
     // Get the closest hit object.
     for (int i = 0; i < spheres.length(); i++) {
@@ -152,46 +202,56 @@ HitInfo get_closest_hit(Ray r) {
 
         hit_anything = true;
         // Collect the closest sphere.
-        if (closest_so_far > info.dist) {
-            closest_so_far = info.dist;
-            closest_hi = info;
-        }
-    }
-
-    // If nothing is hit, return empty hit info.
-    if (!hit_anything) {
-        return new_empty_hit_info();
+        closest_so_far = info.dist;
+        closest_hi = info;
     }
 
     return closest_hi;
 }
 
-// determine_ray_color determines the color of the given ray.
-// This is where the actual ray tracing begins.
-vec3 determine_ray_color(Ray r) {
-    HitInfo info = get_closest_hit(r);
-    // If an object is hit, render it.
-    if (info.is_hit) {
-        return 0.5 * (info.normal + 1);
-    }
-
-    // Render background.
+// get_bg_color returns the background color for the given ray.
+vec3 get_bg_color(Ray r) {
     vec3 unit_dir = normalize(r.dir);
     float t = 0.5 * (unit_dir.y + 1.0);
     return (1.0 - t) * vec3(1.0) + t * vec3(0.5, 0.7, 1.0);
 }
 
+// get_ray_color determines the color of the given ray.
+// This is where the actual ray tracing begins.
+vec3 get_ray_color(Ray r) {
+    vec3 attenuation = vec3(1.0, 1.0, 1.0);
+
+    for (int i = 0; i < 3; ++i) {
+        // HitInfo info = sphere_hit(spheres[1], r, vec2(0, infinity));
+        HitInfo info = get_closest_hit(r);
+        if (!info.is_hit) {
+            // Background color if no hit.r.dir
+            return get_bg_color(r) * attenuation;
+        }
+
+        vec3 target = info.normal + randv3_unit();
+        r = Ray(info.point, target);
+        attenuation *= 0.5;
+    }
+
+    // If the maximum depth is reached, return black
+    return vec3(0.0, 0.0, 0.0);
+}
+
 void main() {
     // Pixel coordinates.
     vec2 uv = gl_FragCoord.xy / resolution;
+    // seed = uv;
+    seedXoshiro256(uint(length(uv)));
 
     // Create ray.
     Ray ray = camera_cast_ray(new_camera(), uv);
     // Determine the color by tracing the ray.
-    vec3 col = determine_ray_color(ray);
+    vec3 col = get_ray_color(ray);
 
     // Assign color.
     color = vec4(col, 1);
+    // color = vec4(randv3_unit(), 1);
 }
 
 // ################################################################################################
