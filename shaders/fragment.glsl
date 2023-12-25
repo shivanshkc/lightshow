@@ -235,7 +235,7 @@ vec3 get_ray_color(Ray r) {
 
         vec3 target = info.normal + randv3_unit();
         r = Ray(info.point, normalize(target));
-        attenuation *= 0.5;
+        attenuation *= 0.25;
     }
 
     // If the maximum depth is reached, return black
