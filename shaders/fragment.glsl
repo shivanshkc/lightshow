@@ -234,7 +234,7 @@ vec3 get_ray_color(Ray r) {
         }
 
         vec3 target = info.normal + randv3_unit();
-        r = Ray(info.point, target);
+        r = Ray(info.point, normalize(target));
         attenuation *= 0.5;
     }
 
@@ -252,6 +252,8 @@ void main() {
     Ray ray = camera_cast_ray(new_camera(), uv);
     // Determine the color by tracing the ray.
     vec3 col = get_ray_color(ray);
+    // Gamma correction.
+    col = sqrt(col);
 
     // Assign color.
     color = vec4(col, 1);
