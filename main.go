@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -73,6 +74,10 @@ func main() {
 	// Render loop.
 	for !window.ShouldClose() {
 		showFPS()
+
+		// Set up uniform variable for screen resolution.
+		timeUni := gl.GetUniformLocation(program, gl.Str("time\x00"))
+		gl.Uniform1ui(timeUni, uint32(time.Now().UnixMilli()))
 
 		// Clear screen upon every frame.
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)

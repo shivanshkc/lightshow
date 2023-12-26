@@ -4,19 +4,20 @@
 out vec4 color;
 // Screen resolution, required for ray tracing calculations.
 uniform vec2 resolution;
+uniform uint time;
 
 // Configurations.
 #define INFINITY 1./0.
 #define BOUNCE_LIMIT 10
 
-// ################################################################################################
-// This random number implementation is taken from:
-// https://github.com/sp4ghet/raytracing_in_one_weekend/blob/master/ch08_diffuse.frag
-
 // Constants required to ray-tracing.
 #define PI 3.1415926535897932385
 #define TAU 2. * PI
 #define PHI 1.61803398874989484820459
+
+// ################################################################################################
+// This random number implementation is taken from:
+// https://github.com/sp4ghet/raytracing_in_one_weekend/blob/master/ch08_diffuse.frag
 
 // rand_seed is the seed for generating random numbers.
 float rand_seed = 0.25;
