@@ -10,65 +10,46 @@ uniform uint time;
 #define INFINITY 1./0.
 #define BOUNCE_LIMIT 10
 
-// Constants required to ray-tracing.
-#define PI 3.1415926535897932385
-#define TAU 2. * PI
-#define PHI 1.61803398874989484820459
-
 // ################################################################################################
-// This random number implementation is taken from:
-// https://github.com/sp4ghet/raytracing_in_one_weekend/blob/master/ch08_diffuse.frag
+// This random number implementation is taken from Sebastian Lague's Ray Tracing repository.
 
 // rand_seed is the seed for generating random numbers.
-float rand_seed = 0.25;
+uint rand_seed = 0;
 
-// randf returns a random float in [0, 1)
-// st should always be the gl_FragCoord.xy value.
-float randf(vec2 st) {
-    rand_seed = fract(rand_seed * 2);
-    return fract(tan(distance(st*PHI, st)*rand_seed)*st.x);
+// rand returns a random uint in the range 0 to 2^32.
+uint rand() {
+    rand_seed = rand_seed * 747796405 + 28913364;
+    uint result = ((rand_seed >> ((rand_seed >> 28) + 4)) ^ rand_seed) * 277803737;
+    result = (result >> 22) ^ result;
+    return result;
+}
+
+// randf returns a random float in [0, 1).
+float randf() {
+    return rand() / 4294967295.0; // 2^32 - 1
 }
 
 // randv2 returns a random vec2.
 vec2 randv2() {
-    return vec2(
-        randf(vec2(rand_seed-1.23, (rand_seed+3.1)* 3.2)),
-        randf(vec2(rand_seed+12.678, rand_seed - 5.8324))
-    );
+    return vec2(randf(), randf());
 }
 
 // randv3 returns a random vec3.
 vec3 randv3() {
-    return vec3(
-        randf(vec2(rand_seed-0.678, rand_seed-0.123)),
-        randf(vec2(rand_seed-0.3, rand_seed+0.56)),
-        randf(vec2(rand_seed+0.1234, rand_seed-0.523))
-    );
+    return vec3(randf(), randf(), randf());
 }
 
 // randv3_in_unit_sphere returns a random vec3 in a unit sphere.
 vec3 randv3_in_unit_sphere() {
-    // while (true) {
-    //     vec3 p = randv3();
-    //     if (dot(p, p) < 1) return p;
-    // }
-
-    vec2 tp = randv2();
-    float theta = tp.x * TAU;
-    float phi = tp.y * TAU;
-    vec3 p = vec3(sin(theta) * cos(phi), sin(theta)*sin(phi), cos(theta));
-    return normalize(p);
+    while (true) {
+        vec3 p = randv3();
+        if (dot(p, p) < 1) return p;
+    }
 }
 
 // randv3_unit returns a random vec3 of magnitude 1.
 vec3 randv3_unit(){
-    // return normalize(randv3_in_unit_sphere());
-
-    vec2 rand = randv2();
-    float a = rand.x * TAU;
-    float z = (2. * rand.y) - 1.;
-    float r = sqrt(1. - z*z);
-    return vec3(r*cos(a), r*sin(a), z);
+    return normalize(randv3_in_unit_sphere());
 }
 
 // ################################################################################################
@@ -255,7 +236,7 @@ void main() {
     // Pixel coordinates.
     vec2 uv = gl_FragCoord.xy / resolution;
     // Initialize the seed.
-    rand_seed = randf(gl_FragCoord.xy);
+    rand_seed = uint(gl_FragCoord.y + gl_FragCoord.x * gl_FragCoord.x) * 719393;
 
     // Create ray.
     Ray ray = camera_cast_ray(new_camera(), uv);
