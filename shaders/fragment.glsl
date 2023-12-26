@@ -25,6 +25,7 @@ float rand_seed = 0.25;
 // randf returns a random float in [0, 1)
 // st should always be the gl_FragCoord.xy value.
 float randf(vec2 st) {
+    rand_seed = fract(rand_seed * 2);
     return fract(tan(distance(st*PHI, st)*rand_seed)*st.x);
 }
 
@@ -47,6 +48,11 @@ vec3 randv3() {
 
 // randv3_in_unit_sphere returns a random vec3 in a unit sphere.
 vec3 randv3_in_unit_sphere() {
+    // while (true) {
+    //     vec3 p = randv3();
+    //     if (dot(p, p) < 1) return p;
+    // }
+
     vec2 tp = randv2();
     float theta = tp.x * TAU;
     float phi = tp.y * TAU;
@@ -56,6 +62,8 @@ vec3 randv3_in_unit_sphere() {
 
 // randv3_unit returns a random vec3 of magnitude 1.
 vec3 randv3_unit(){
+    // return normalize(randv3_in_unit_sphere());
+
     vec2 rand = randv2();
     float a = rand.x * TAU;
     float z = (2. * rand.y) - 1.;
@@ -95,7 +103,7 @@ Camera new_camera() {
     vec3 horizontal = vec3(vp_width, 0, 0);
     vec3 vertical = vec3(0, vp_height, 0);
     vec3 lower_left = origin - vec3(0, 0, focal_length) - horizontal/2 - vertical/2;
-    
+
     // Instantiate the camera.
     return Camera(origin, lower_left, horizontal, vertical);
 }
