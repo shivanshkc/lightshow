@@ -4,7 +4,6 @@
 out vec4 color;
 // Screen resolution, required for ray tracing calculations.
 uniform vec2 resolution;
-uniform uint time;
 
 // Configurations.
 #define INFINITY 1./0.
