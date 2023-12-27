@@ -70,6 +70,30 @@ func main() {
 	resolutionUni := gl.GetUniformLocation(program, gl.Str("resolution\x00"))
 	gl.Uniform2f(resolutionUni, float32(width), float32(height))
 
+	// Create and bind the Framebuffer.
+	var fbo uint32
+	gl.GenFramebuffers(1, &fbo)
+	gl.BindFramebuffer(gl.FRAMEBUFFER, fbo)
+
+	// Create the texture.
+	var tex uint32
+	gl.GenTextures(1, &tex)
+	gl.BindTexture(gl.TEXTURE_2D, tex)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, int32(width), int32(height), 0, gl.RGB, gl.UNSIGNED_BYTE, nil)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+
+	// Attach the texture to the framebuffer
+	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
+
+	// Check FBO status
+	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
+		panic("frame buffer is not complete")
+	}
+
+	// Set the viewport
+	gl.Viewport(0, 0, int32(width), int32(height))
+
 	// Render loop.
 	for !window.ShouldClose() {
 		showFPS()
@@ -77,8 +101,14 @@ func main() {
 		// Clear screen upon every frame.
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-		// Draw the gradient.
+		// Draw the frame.
 		gl.DrawArrays(gl.TRIANGLE_STRIP, 0, int32(len(vertices)/2))
+
+		// Bring the image from the off-screen texture to the screen.
+		gl.BindFramebuffer(gl.READ_FRAMEBUFFER, fbo)
+		gl.BindFramebuffer(gl.DRAW_FRAMEBUFFER, 0)
+		gl.BlitFramebuffer(0, 0, width, height, 0, 0, width, height,
+			gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT, gl.NEAREST)
 
 		window.SwapBuffers()
 		glfw.PollEvents()
