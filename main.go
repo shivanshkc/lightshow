@@ -84,7 +84,7 @@ func main() {
 	gl.UseProgram(program)
 	// Set up uniform variable for screen resolution.
 	resolutionUni := gl.GetUniformLocation(program, gl.Str("resolution\x00"))
-	gl.Uniform2f(resolutionUni, float32(width), float32(height))
+	gl.Uniform2f(resolutionUni, ssWidth, ssHeight)
 
 	// Setup the vertices data.
 	vao, vbo, size := setupVertices(program)
@@ -141,6 +141,13 @@ func main() {
 		gl.DrawArrays(gl.TRIANGLES, 0, size)
 		gl.BindVertexArray(0)
 		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
+		// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+		// gl.BindVertexArray(vao)
+		// gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		// gl.DrawArrays(gl.TRIANGLES, 0, size)
+		// gl.BindVertexArray(0)
+		// gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
 		window.SwapBuffers()
 		glfw.PollEvents()
