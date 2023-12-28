@@ -23,9 +23,6 @@ const (
 //go:embed shaders/vertex.glsl
 var vShaderSource string
 
-//go:embed shaders/vertex-aa.glsl
-var vShaderSourceAA string
-
 //go:embed shaders/fragment.glsl
 var fShaderSource string
 
@@ -69,13 +66,6 @@ func main() {
 	}
 	defer gl.DeleteShader(fShader)
 
-	// Compile the vertex AA shader.
-	vShaderAA, err := compileShader(vShaderSourceAA, gl.VERTEX_SHADER)
-	if err != nil {
-		panic(fmt.Errorf("error while compiling vertexAA shader: %w", err))
-	}
-	defer gl.DeleteShader(vShaderAA)
-
 	// Compile the fragment AA shader.
 	fShaderAA, err := compileShader(fShaderSourceAA, gl.FRAGMENT_SHADER)
 	if err != nil {
@@ -88,7 +78,7 @@ func main() {
 	defer gl.DeleteProgram(program)
 
 	// Create a program with the shaders attached.
-	programAA := setupProgram(vShaderAA, fShaderAA)
+	programAA := setupProgram(vShader, fShaderAA)
 	defer gl.DeleteProgram(programAA)
 
 	gl.UseProgram(program)
