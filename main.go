@@ -7,6 +7,7 @@ import (
 	"math"
 	"runtime"
 	"strings"
+	"unsafe"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -162,10 +163,10 @@ func initRenderShader() uint32 {
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
 
-	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(0))
+	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(0)))
 	gl.EnableVertexAttribArray(0)
 
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(2*4))
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(2*4)))
 	gl.EnableVertexAttribArray(1)
 
 	return program
@@ -178,7 +179,7 @@ func draw(program uint32, texture uint32) {
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 
-	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, gl.PtrOffset(0))
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, unsafe.Pointer(uintptr(0)))
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
