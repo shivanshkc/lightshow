@@ -1,253 +1,224 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
+	"log"
 	"math"
 	"runtime"
-	"unsafe"
+	"strings"
 
-	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-
-	_ "embed"
 )
 
-const (
-	width  = 1280
-	height = 720
-
-	ssWidth  = width * 2
-	ssHeight = height * 2
-)
+//go:embed shaders/compute.glsl
+var computeShaderSource string
 
 //go:embed shaders/vertex.glsl
-var vShaderSource string
+var vertexShaderSource string
 
 //go:embed shaders/fragment.glsl
-var fShaderSource string
+var fragmentShaderSource string
 
-//go:embed shaders/fragment-aa.glsl
-var fShaderSourceAA string
+const (
+	windowWidth  = 1280
+	windowHeight = 720
+)
+
+func init() {
+	runtime.LockOSThread()
+}
 
 func main() {
-	// This call ensures that all OpenGL calls are done from the main thread.
-	runtime.LockOSThread()
-
-	// Initiate glfw. A window context is mandatory for OpenGL to work.
 	if err := glfw.Init(); err != nil {
-		panic(fmt.Errorf("error in glfw.Init call: %w", err))
+		log.Fatalln("failed to initialize glfw:", err)
 	}
 	defer glfw.Terminate()
 
-	// Create the window.
-	glfw.WindowHint(glfw.Resizable, glfw.False)
-	window, err := glfw.CreateWindow(width, height, "Lightshow", nil, nil)
+	glfw.WindowHint(glfw.ContextVersionMajor, 4)
+	glfw.WindowHint(glfw.ContextVersionMinor, 6)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+
+	window, err := glfw.CreateWindow(windowWidth, windowHeight, "Compute Shader", nil, nil)
 	if err != nil {
-		panic(fmt.Errorf("error in glfw.CreateWindow call: %w", err))
+		log.Fatalln("failed to create window:", err)
 	}
+
 	window.MakeContextCurrent()
 
-	// Initiate OpenGL.
 	if err := gl.Init(); err != nil {
-		panic(fmt.Errorf("error in gl.Init call: %w", err))
+		log.Fatalln("failed to initialize opengl:", err)
 	}
 
-	// Compile the vertex shader.
-	vShader, err := compileShader(vShaderSource, gl.VERTEX_SHADER)
-	if err != nil {
-		panic(fmt.Errorf("error while compiling vertex shader: %w", err))
-	}
-	defer gl.DeleteShader(vShader)
+	computeProgram := initComputeShader()
+	renderProgram := initRenderShader()
 
-	// Compile the fragment shader.
-	fShader, err := compileShader(fShaderSource, gl.FRAGMENT_SHADER)
-	if err != nil {
-		panic(fmt.Errorf("error while compiling fragment shader: %w", err))
-	}
-	defer gl.DeleteShader(fShader)
-
-	// Compile the fragment AA shader.
-	fShaderAA, err := compileShader(fShaderSourceAA, gl.FRAGMENT_SHADER)
-	if err != nil {
-		panic(fmt.Errorf("error while compiling fragmentAA shader: %w", err))
-	}
-	defer gl.DeleteShader(fShaderAA)
-
-	// Create a program with the shaders attached.
-	program := setupProgram(vShader, fShader)
-	defer gl.DeleteProgram(program)
-
-	// Create a program with the shaders attached.
-	programAA := setupProgram(vShader, fShaderAA)
-	defer gl.DeleteProgram(programAA)
-
-	gl.UseProgram(program)
-	// Set up uniform variable for screen resolution.
-	resolutionUni := gl.GetUniformLocation(program, gl.Str("resolution\x00"))
-	gl.Uniform2f(resolutionUni, ssWidth, ssHeight)
-
-	// Setup the vertices data.
-	vao, vbo, size := setupVertices(program)
-
-	// Create and bind the Framebuffer.
-	var fbo uint32
-	gl.GenFramebuffers(1, &fbo)
-	gl.BindFramebuffer(gl.FRAMEBUFFER, fbo)
-
-	// Create the texture.
-	var tex uint32
-	gl.GenTextures(1, &tex)
-	gl.BindTexture(gl.TEXTURE_2D, tex)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, ssWidth, ssHeight, 0, gl.RGB, gl.UNSIGNED_BYTE, nil)
+	var texture uint32
+	gl.GenTextures(1, &texture)
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, windowWidth, windowHeight, 0, gl.RGBA, gl.FLOAT, nil)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	gl.BindImageTexture(0, texture, 0, false, 0, gl.READ_WRITE, gl.RGBA32F)
 
-	// Attach the texture to the framebuffer
-	gl.FramebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
-
-	// Check FBO status
-	if gl.CheckFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE {
-		panic("frame buffer is not complete")
-	}
-
-	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-
-	var iter int
-	// Render loop.
 	for !window.ShouldClose() {
 		showFPS()
-
-		gl.BindFramebuffer(gl.FRAMEBUFFER, fbo)
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		gl.UseProgram(program)
-		gl.BindVertexArray(vao)
-		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-		gl.Viewport(0, 0, ssWidth, ssHeight)
-		gl.DrawArrays(gl.TRIANGLES, 0, size)
-		gl.BindVertexArray(0)
-		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-
-		gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		gl.UseProgram(programAA)
-		gl.Viewport(0, 0, width, height)
-
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, tex)
-		gl.Uniform1i(gl.GetUniformLocation(programAA, gl.Str("screenTexture\x00")), 0)
-
-		gl.BindVertexArray(vao)
-		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-		gl.DrawArrays(gl.TRIANGLES, 0, size)
-		gl.BindVertexArray(0)
-		gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-
-		// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		// gl.BindVertexArray(vao)
-		// gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-		// gl.DrawArrays(gl.TRIANGLES, 0, size)
-		// gl.BindVertexArray(0)
-		// gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-
-		window.SwapBuffers()
 		glfw.PollEvents()
 
-		iter++
+		// Run the compute shader
+		gl.UseProgram(computeProgram)
+		gl.DispatchCompute(uint32(windowWidth/16), uint32(windowHeight/16), 1)
+		gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT)
+
+		// Render the texture
+		draw(renderProgram, texture)
+
+		window.SwapBuffers()
 	}
 }
 
-// compileShader compiles the given shader as per the given type.
+func initComputeShader() uint32 {
+	shader, err := compileShader(computeShaderSource+"\x00", gl.COMPUTE_SHADER)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	program := gl.CreateProgram()
+	gl.AttachShader(program, shader)
+	gl.LinkProgram(program)
+
+	var status int32
+	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
+	if status == gl.FALSE {
+		var logLength int32
+		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
+
+		logg := strings.Repeat("\x00", int(logLength+1))
+		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(logg))
+
+		log.Fatalln("failed to link program:", logg)
+	}
+
+	gl.DeleteShader(shader)
+
+	return program
+}
+
+func initRenderShader() uint32 {
+	vertexShader, err := compileShader(vertexShaderSource+"\x00", gl.VERTEX_SHADER)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fragmentShader, err := compileShader(fragmentShaderSource+"\x00", gl.FRAGMENT_SHADER)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	program := gl.CreateProgram()
+	gl.AttachShader(program, vertexShader)
+	gl.AttachShader(program, fragmentShader)
+	gl.LinkProgram(program)
+
+	var status int32
+	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
+	if status == gl.FALSE {
+		var logLength int32
+		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
+
+		logg := strings.Repeat("\x00", int(logLength+1))
+		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(logg))
+
+		log.Fatalln("failed to link program:", logg)
+	}
+
+	gl.DeleteShader(vertexShader)
+	gl.DeleteShader(fragmentShader)
+
+	var VAO, VBO uint32
+	vertices := []float32{
+		-1.0, -1.0, 0.0, 0.0,
+		1.0, -1.0, 1.0, 0.0,
+		1.0, 1.0, 1.0, 1.0,
+		-1.0, 1.0, 0.0, 1.0,
+	}
+	indices := []uint32{
+		0, 1, 2,
+		2, 3, 0,
+	}
+
+	gl.GenVertexArrays(1, &VAO)
+	gl.GenBuffers(1, &VBO)
+	var EBO uint32
+	gl.GenBuffers(1, &EBO)
+
+	gl.BindVertexArray(VAO)
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
+	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
+
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
+
+	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(0))
+	gl.EnableVertexAttribArray(0)
+
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, gl.PtrOffset(2*4))
+	gl.EnableVertexAttribArray(1)
+
+	return program
+}
+
+func draw(program uint32, texture uint32) {
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+	gl.UseProgram(program)
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.BindTexture(gl.TEXTURE_2D, texture)
+
+	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, gl.PtrOffset(0))
+}
+
 func compileShader(source string, shaderType uint32) (uint32, error) {
-	// Create a shader of the given type.
 	shader := gl.CreateShader(shaderType)
 
-	// Convert the shader source string to a C string.
-	cSources, free := gl.Strs(source + "\x00")
-	// Set the shader source code.
-	gl.ShaderSource(shader, 1, cSources, nil)
-	// Free the memory of the C string after usage.
+	csources, free := gl.Strs(source)
+	gl.ShaderSource(shader, 1, csources, nil)
 	free()
-
-	// Attempt to compile the shader.
 	gl.CompileShader(shader)
 
-	// Check if the shader compiled successfully.
 	var status int32
-	if gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status); status == gl.FALSE {
-		// Shader compilation failed. Attempt to retrieve failure log.
+	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
+	if status == gl.FALSE {
 		var logLength int32
 		gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLength)
 
-		// Load the failure message into CPU variable.
-		logMessage := make([]byte, logLength)
-		gl.GetShaderInfoLog(shader, logLength, nil, &logMessage[0])
+		logg := strings.Repeat("\x00", int(logLength+1))
+		gl.GetShaderInfoLog(shader, logLength, nil, gl.Str(logg))
 
-		return 0, fmt.Errorf("shader compilation error: %v", string(logMessage))
+		return 0, fmt.Errorf("failed to compile %v: %v", source, logg)
 	}
 
 	return shader, nil
 }
 
-func setupProgram(vShader, fShader uint32) uint32 {
-	program := gl.CreateProgram()
-
-	gl.AttachShader(program, vShader)
-	gl.AttachShader(program, fShader)
-	gl.LinkProgram(program)
-
-	return program
-}
-
-func setupVertices(program uint32) (uint32, uint32, int32) {
-	vertices := []float32{
-		// Positions   // Texture Coords
-		-1.0, 1.0, 0.0, 1.0,
-		-1.0, -1.0, 0.0, 0.0,
-		1.0, -1.0, 1.0, 0.0,
-
-		-1.0, 1.0, 0.0, 1.0,
-		1.0, -1.0, 1.0, 0.0,
-		1.0, 1.0, 1.0, 1.0,
-	}
-
-	var vao, vbo uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.GenBuffers(1, &vbo)
-
-	gl.BindVertexArray(vao)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
-
-	// Position attribute.
-	var pa uint32 = 0
-	gl.VertexAttribPointer(pa, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(0)))
-	gl.EnableVertexAttribArray(pa)
-
-	// Texture coord attribute.
-	var ta uint32 = 1
-	gl.VertexAttribPointer(ta, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(2*4)))
-	gl.EnableVertexAttribArray(ta)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
-	gl.BindVertexArray(0)
-
-	return vao, vbo, 6
-}
-
+// TODO: Make a cleaner abstraction for live-average FPS.
 // lastTime is required to calculated FPS.
 var lastTime float64
+var lastAvgFPS float64
+var calCount int
 
 // showFPS prints the FPS to the standard output.
 // It should be called inside the window.ShouldClose loop.
 func showFPS() {
 	currentTime := glfw.GetTime()
-	deltaTime := currentTime - lastTime
+	currentFPS := 1.0 / (currentTime - lastTime)
 	lastTime = currentTime
-	fmt.Printf("\rFPS: %v ###", math.Ceil(1.0/deltaTime))
-}
 
-func checkErr(id any) {
-	if err := gl.GetError(); err != gl.NO_ERROR {
-		panic(fmt.Errorf("[%v] error in opengl: %d", id, err))
-	}
+	lastAvgFPS = (float64(calCount)*lastAvgFPS + currentFPS) / (float64(calCount) + 1)
+	fmt.Printf("\rFPS: %v ###", math.Ceil(lastAvgFPS))
+
+	calCount++
 }

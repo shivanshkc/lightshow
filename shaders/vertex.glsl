@@ -1,10 +1,10 @@
-#version 450
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec2 tex_coords;
+#version 460
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aTexCoord;
 
-out vec2 TexCoords;
+out vec2 TexCoord;
 
 void main() {
-    TexCoords = tex_coords;
-    gl_Position = vec4(position, 0.0, 1.0);
+    gl_Position = vec4(aPos, 0.0, 1.0);
+    TexCoord = aTexCoord;
 }
