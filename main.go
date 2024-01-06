@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "embed"
 	"fmt"
 	"log"
 	"math"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
+
+	_ "embed"
 )
 
 //go:embed shaders/compute.glsl
@@ -23,8 +24,8 @@ var vertexShaderSource string
 var fragmentShaderSource string
 
 const (
-	windowWidth  = 1280
-	windowHeight = 720
+	windowWidth  = 800
+	windowHeight = 600
 )
 
 func init() {
@@ -141,10 +142,11 @@ func initRenderShader() uint32 {
 	var VAO, VBO uint32
 	vertices := []float32{
 		-1.0, -1.0, 0.0, 0.0,
-		1.0, -1.0, 1.0, 0.0,
-		1.0, 1.0, 1.0, 1.0,
-		-1.0, 1.0, 0.0, 1.0,
+		+1.0, -1.0, 1.0, 0.0,
+		+1.0, +1.0, 1.0, 1.0,
+		-1.0, +1.0, 0.0, 1.0,
 	}
+
 	indices := []uint32{
 		0, 1, 2,
 		2, 3, 0,
