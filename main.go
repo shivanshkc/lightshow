@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"runtime"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
@@ -24,8 +26,8 @@ var vertexShaderSource string
 var fragmentShaderSource string
 
 const (
-	windowWidth  = 800
-	windowHeight = 600
+	windowWidth  = 1920
+	windowHeight = 1080
 )
 
 func init() {
@@ -65,14 +67,20 @@ func main() {
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.BindImageTexture(0, texture, 0, false, 0, gl.READ_WRITE, gl.RGBA32F)
 
+	gl.UseProgram(computeProgram)
+	seedUni := gl.GetUniformLocation(computeProgram, gl.Str("init_seed\x00"))
+	randGen := rand.New(rand.NewSource(time.Now().Unix()))
+
 	for !window.ShouldClose() {
 		showFPS()
 		glfw.PollEvents()
 
+		gl.Uniform1ui(seedUni, uint32(randGen.Intn(999999)))
+
 		// Run the compute shader
 		gl.UseProgram(computeProgram)
 		gl.DispatchCompute(uint32(windowWidth/16), uint32(windowHeight/16), 1)
-		gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT)
+		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 
 		// Render the texture
 		draw(renderProgram, texture)
@@ -182,6 +190,7 @@ func draw(program uint32, texture uint32) {
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, unsafe.Pointer(uintptr(0)))
+	gl.ClearTexImage(texture, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(nil))
 }
 
 func compileShader(source string, shaderType uint32) (uint32, error) {
@@ -224,4 +233,10 @@ func showFPS() {
 	fmt.Printf("\rFPS: %v ###", math.Ceil(lastAvgFPS))
 
 	calCount++
+}
+
+func checkErr(id any) {
+	if err := gl.GetError(); err != gl.NO_ERROR {
+		panic(fmt.Errorf("[%v] error in opengl: %d", id, err))
+	}
 }
