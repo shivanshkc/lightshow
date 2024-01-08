@@ -1,7 +1,11 @@
 #version 460
 layout (local_size_x = 16, local_size_y = 16) in;
 
+// The texture to store the output.
 layout (rgba32f, binding = 0) uniform image2D imgOutput;
+
+// The starting seed taken as input.
+uniform uint init_seed;
 
 // Configurations.
 #define INFINITY 1./0.
@@ -10,8 +14,8 @@ layout (rgba32f, binding = 0) uniform image2D imgOutput;
 // ################################################################################################
 // This random number implementation is taken from Sebastian Lague's Ray Tracing repository.
 
-// rand_seed is the seed for generating random numbers.
-uint rand_seed = 0;
+// The seed that's updated after every rand call.
+uint rand_seed;
 
 // rand returns a random uint in the range 0 to 2^32.
 uint rand() {
@@ -236,7 +240,7 @@ void main() {
     float pY = float(pixelCoords.y) / float(imageSize(imgOutput).y);
 
      // Initialize the seed.
-    rand_seed = uint(pixelCoords.y + pixelCoords.x * pixelCoords.x) * 719393;
+    rand_seed = init_seed * uint(pixelCoords.x * pixelCoords.x + pixelCoords.y);
 
     // Create ray.
     Ray r = camera_cast_ray(new_camera(), vec2(pX, pY));
