@@ -26,8 +26,8 @@ var vertexShaderSource string
 var fragmentShaderSource string
 
 const (
-	windowWidth  = 1920
-	windowHeight = 1080
+	windowWidth  = 800
+	windowHeight = 600
 )
 
 func init() {
@@ -75,10 +75,9 @@ func main() {
 		showFPS()
 		glfw.PollEvents()
 
-		gl.Uniform1ui(seedUni, uint32(randGen.Intn(999999)))
-
 		// Run the compute shader
 		gl.UseProgram(computeProgram)
+		gl.Uniform1f(seedUni, randGen.Float32())
 		gl.DispatchCompute(uint32(windowWidth/16), uint32(windowHeight/16), 1)
 		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 

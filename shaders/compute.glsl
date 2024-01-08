@@ -5,7 +5,7 @@ layout (local_size_x = 16, local_size_y = 16) in;
 layout (rgba32f, binding = 0) uniform image2D imgOutput;
 
 // The starting seed taken as input.
-uniform uint init_seed;
+uniform float init_seed;
 
 // Configurations.
 #define INFINITY 1./0.
@@ -240,7 +240,7 @@ void main() {
     float pY = float(pixelCoords.y) / float(imageSize(imgOutput).y);
 
      // Initialize the seed.
-    rand_seed = init_seed * uint(pixelCoords.x * pixelCoords.x + pixelCoords.y);
+    rand_seed = uint(init_seed * pow(pixelCoords.x, 3) + pow(pixelCoords.y, 3));
 
     // Create ray.
     Ray r = camera_cast_ray(new_camera(), vec2(pX, pY));
