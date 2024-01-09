@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "embed"
 	"math/rand"
 	"runtime"
 	"time"
@@ -10,15 +9,6 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/shivanshkc/lightshow/pkg"
 )
-
-//go:embed shaders/compute.glsl
-var computeShaderSource string
-
-//go:embed shaders/vertex.glsl
-var vertexShaderSource string
-
-//go:embed shaders/fragment.glsl
-var fragmentShaderSource string
 
 const (
 	aspectRatio = 16.0 / 9.0
@@ -41,6 +31,20 @@ func init() {
 }
 
 func main() {
+	// Read shaders.
+	cShaderSource := pkg.ReadFiles(
+		"shaders/comp-1-head.glsl",
+		"shaders/comp-2-rand.glsl",
+		"shaders/comp-3-util.glsl",
+		"shaders/comp-4-cam.glsl",
+		"shaders/comp-5-mat.glsl",
+		"shaders/comp-6-shape-sphere.glsl",
+		"shaders/comp.glsl",
+	)
+
+	vShaderSource := pkg.ReadFiles("shaders/vert.glsl")
+	fShaderSource := pkg.ReadFiles("shaders/frag.glsl")
+
 	// Create a window, as OpenGL requires a window context.
 	window, err := pkg.CreateWindow("Lightshow", screenWidth, screenHeight)
 	pkg.CheckErr(err, "error in pkg.CreateWindow call")
@@ -52,13 +56,13 @@ func main() {
 	pkg.CheckErr(err, "failed to initialize opengl")
 
 	// Compile the compute shader.
-	computeShader, err := pkg.CompileShader(computeShaderSource+"\x00", gl.COMPUTE_SHADER)
+	computeShader, err := pkg.CompileShader(cShaderSource+"\x00", gl.COMPUTE_SHADER)
 	pkg.CheckErr(err, "failed to compile compute shader")
 	// Compile the vertex shader.
-	vertexShader, err := pkg.CompileShader(vertexShaderSource+"\x00", gl.VERTEX_SHADER)
+	vertexShader, err := pkg.CompileShader(vShaderSource+"\x00", gl.VERTEX_SHADER)
 	pkg.CheckErr(err, "failed to compile vertex shader")
 	// Compile the fragment shader.
-	fragmentShader, err := pkg.CompileShader(fragmentShaderSource+"\x00", gl.FRAGMENT_SHADER)
+	fragmentShader, err := pkg.CompileShader(fShaderSource+"\x00", gl.FRAGMENT_SHADER)
 	pkg.CheckErr(err, "failed to compile fragment shader")
 
 	// Setup vertex information for the vertex shader.
