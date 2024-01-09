@@ -1,7 +1,8 @@
 #version 460
-out vec4 FragColor;
 
 in vec2 TexCoord;
+
+out vec4 FragColor;
 
 uniform sampler2D ourTexture;
 

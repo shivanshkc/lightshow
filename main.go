@@ -1,19 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"math"
+	_ "embed"
 	"math/rand"
 	"runtime"
-	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-
-	_ "embed"
+	"github.com/shivanshkc/lightshow/pkg"
 )
 
 //go:embed shaders/compute.glsl
@@ -28,130 +23,98 @@ var fragmentShaderSource string
 const (
 	aspectRatio = 16.0 / 9.0
 
-	screenHeight = 1080
+	// Actual screen height and width.
+	screenHeight = 720
 	screenWidth  = aspectRatio * screenHeight
 
+	// Super-sampled screen height and width for antialiasing.
 	aaScreenHeight = screenHeight * 2
 	aaScreenWidth  = screenWidth * 2
 )
 
+// randGen is the random number generator that will be used to seed every frame.
+var randGen = rand.New(rand.NewSource(time.Now().Unix()))
+
 func init() {
+	// Make sure the OpenGL code runs on the main thread.
 	runtime.LockOSThread()
 }
 
 func main() {
-	if err := glfw.Init(); err != nil {
-		log.Fatalln("failed to initialize glfw:", err)
-	}
+	// Create a window, as OpenGL requires a window context.
+	window, err := pkg.CreateWindow("Lightshow", screenWidth, screenHeight)
+	pkg.CheckErr(err, "error in pkg.CreateWindow call")
+	// Clean up.
 	defer glfw.Terminate()
 
-	glfw.WindowHint(glfw.ContextVersionMajor, 4)
-	glfw.WindowHint(glfw.ContextVersionMinor, 6)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
+	// Initiate OpenGL.
+	err = gl.Init()
+	pkg.CheckErr(err, "failed to initialize opengl")
 
-	window, err := glfw.CreateWindow(screenWidth, screenHeight, "Compute Shader", nil, nil)
-	if err != nil {
-		log.Fatalln("failed to create window:", err)
-	}
+	// Compile the compute shader.
+	computeShader, err := pkg.CompileShader(computeShaderSource+"\x00", gl.COMPUTE_SHADER)
+	pkg.CheckErr(err, "failed to compile compute shader")
+	// Compile the vertex shader.
+	vertexShader, err := pkg.CompileShader(vertexShaderSource+"\x00", gl.VERTEX_SHADER)
+	pkg.CheckErr(err, "failed to compile vertex shader")
+	// Compile the fragment shader.
+	fragmentShader, err := pkg.CompileShader(fragmentShaderSource+"\x00", gl.FRAGMENT_SHADER)
+	pkg.CheckErr(err, "failed to compile fragment shader")
 
-	window.MakeContextCurrent()
+	// Setup vertex information for the vertex shader.
+	setupFullscreenQuad()
 
-	if err := gl.Init(); err != nil {
-		log.Fatalln("failed to initialize opengl:", err)
-	}
+	// Create the compute program, which will do the actual ray-tracing.
+	computeProgram, err := pkg.CreateProgram(computeShader)
+	pkg.CheckErr(err, "failed to create the compute program")
+	// Create the render program, which will render the result on screen.
+	renderProgram, err := pkg.CreateProgram(vertexShader, fragmentShader)
+	pkg.CheckErr(err, "failed to create the render program")
 
-	computeProgram := initComputeShader()
-	renderProgram := initRenderShader()
+	// Create the texture that will be populated by the compute shader.
+	texture := pkg.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
 
-	var texture uint32
-	gl.GenTextures(1, &texture)
-	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, aaScreenWidth, aaScreenHeight, 0, gl.RGBA, gl.FLOAT, nil)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	gl.BindImageTexture(0, texture, 0, false, 0, gl.READ_WRITE, gl.RGBA32F)
-
+	// Obtain the location of the initial random seed uniform.
 	gl.UseProgram(computeProgram)
-	seedUni := gl.GetUniformLocation(computeProgram, gl.Str("init_seed\x00"))
-	randGen := rand.New(rand.NewSource(time.Now().Unix()))
+	seedUniLocation := gl.GetUniformLocation(computeProgram, gl.Str("init_seed\x00"))
 
+	// Render loop.
 	for !window.ShouldClose() {
-		showFPS()
-		glfw.PollEvents()
+		// Show FPS.
+		pkg.ShowFPS(glfw.GetTime())
 
-		// Run the compute shader
+		// Switch to the compute program and set up inputs.
 		gl.UseProgram(computeProgram)
-		gl.Uniform1f(seedUni, randGen.Float32())
+		gl.Uniform1f(seedUniLocation, randGen.Float32())
+		// Run the compute shader.
 		gl.DispatchCompute(uint32(aaScreenWidth/16), uint32(aaScreenHeight/16), 1)
+		// Wait for compute to finish.
 		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 
-		// Render the texture
-		draw(renderProgram, texture)
+		// Clear the buffers.
+		gl.Clear(gl.COLOR_BUFFER_BIT)
 
+		// Switch to the render program and set up the input texture.
+		gl.UseProgram(renderProgram)
+		gl.ActiveTexture(gl.TEXTURE0)
+		gl.BindTexture(gl.TEXTURE_2D, texture)
+
+		// Render to screen.
+		gl.DrawElementsWithOffset(gl.TRIANGLES, 6, gl.UNSIGNED_INT, uintptr(0))
+		// Clear the texture before iteration.
+		// gl.ClearTexImage(texture, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(nil))
+
+		glfw.PollEvents()
 		window.SwapBuffers()
 	}
 }
 
-func initComputeShader() uint32 {
-	shader, err := compileShader(computeShaderSource+"\x00", gl.COMPUTE_SHADER)
-	if err != nil {
-		log.Fatalln(err)
-	}
+// setupFullscreenQuad setups the vertex information that is fed to the vertex shader to render a full-screen quad.
+//
+// I don't understand most of this function.
+func setupFullscreenQuad() {
+	var vao, vbo, ebo uint32
 
-	program := gl.CreateProgram()
-	gl.AttachShader(program, shader)
-	gl.LinkProgram(program)
-
-	var status int32
-	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
-	if status == gl.FALSE {
-		var logLength int32
-		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
-
-		logg := strings.Repeat("\x00", int(logLength+1))
-		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(logg))
-
-		log.Fatalln("failed to link program:", logg)
-	}
-
-	gl.DeleteShader(shader)
-
-	return program
-}
-
-func initRenderShader() uint32 {
-	vertexShader, err := compileShader(vertexShaderSource+"\x00", gl.VERTEX_SHADER)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	fragmentShader, err := compileShader(fragmentShaderSource+"\x00", gl.FRAGMENT_SHADER)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	program := gl.CreateProgram()
-	gl.AttachShader(program, vertexShader)
-	gl.AttachShader(program, fragmentShader)
-	gl.LinkProgram(program)
-
-	var status int32
-	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
-	if status == gl.FALSE {
-		var logLength int32
-		gl.GetProgramiv(program, gl.INFO_LOG_LENGTH, &logLength)
-
-		logg := strings.Repeat("\x00", int(logLength+1))
-		gl.GetProgramInfoLog(program, logLength, nil, gl.Str(logg))
-
-		log.Fatalln("failed to link program:", logg)
-	}
-
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(fragmentShader)
-
-	var VAO, VBO uint32
 	vertices := []float32{
 		-1.0, -1.0, 0.0, 0.0,
 		+1.0, -1.0, 1.0, 0.0,
@@ -159,88 +122,22 @@ func initRenderShader() uint32 {
 		-1.0, +1.0, 0.0, 1.0,
 	}
 
-	indices := []uint32{
-		0, 1, 2,
-		2, 3, 0,
-	}
+	indices := []uint32{0, 1, 2, 2, 3, 0}
 
-	gl.GenVertexArrays(1, &VAO)
-	gl.GenBuffers(1, &VBO)
-	var EBO uint32
-	gl.GenBuffers(1, &EBO)
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
 
-	gl.BindVertexArray(VAO)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, VBO)
+	gl.GenBuffers(1, &vbo)
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
 
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO)
+	gl.GenBuffers(1, &ebo)
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
 
-	gl.VertexAttribPointer(0, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(0)))
+	gl.VertexAttribPointerWithOffset(0, 2, gl.FLOAT, false, 4*4, uintptr(0))
 	gl.EnableVertexAttribArray(0)
 
-	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 4*4, unsafe.Pointer(uintptr(2*4)))
+	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 4*4, uintptr(2*4))
 	gl.EnableVertexAttribArray(1)
-
-	return program
-}
-
-func draw(program uint32, texture uint32) {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-	gl.UseProgram(program)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, texture)
-
-	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, unsafe.Pointer(uintptr(0)))
-	gl.ClearTexImage(texture, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(nil))
-}
-
-func compileShader(source string, shaderType uint32) (uint32, error) {
-	shader := gl.CreateShader(shaderType)
-
-	csources, free := gl.Strs(source)
-	gl.ShaderSource(shader, 1, csources, nil)
-	free()
-	gl.CompileShader(shader)
-
-	var status int32
-	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
-	if status == gl.FALSE {
-		var logLength int32
-		gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLength)
-
-		logg := strings.Repeat("\x00", int(logLength+1))
-		gl.GetShaderInfoLog(shader, logLength, nil, gl.Str(logg))
-
-		return 0, fmt.Errorf("failed to compile %v: %v", source, logg)
-	}
-
-	return shader, nil
-}
-
-// TODO: Make a cleaner abstraction for live-average FPS.
-// lastTime is required to calculated FPS.
-var lastTime float64
-var lastAvgFPS float64
-var calCount int
-
-// showFPS prints the FPS to the standard output.
-// It should be called inside the window.ShouldClose loop.
-func showFPS() {
-	currentTime := glfw.GetTime()
-	currentFPS := 1.0 / (currentTime - lastTime)
-	lastTime = currentTime
-
-	lastAvgFPS = (float64(calCount)*lastAvgFPS + currentFPS) / (float64(calCount) + 1)
-	fmt.Printf("\rFPS: %v ###", math.Ceil(lastAvgFPS))
-
-	calCount++
-}
-
-func checkErr(id any) {
-	if err := gl.GetError(); err != gl.NO_ERROR {
-		panic(fmt.Errorf("[%v] error in opengl: %d", id, err))
-	}
 }
