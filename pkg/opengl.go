@@ -112,6 +112,7 @@ func CreateImageTexture2D(width, height int32) uint32 {
 	// Generate a texture.
 	gl.GenTextures(1, &texture)
 	// Bind the texture to the 2D target, whatever that means.
+	// AFAIK, this line sets this texture as the target output for the shaders.
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	// Specify that it is an image texture that'll hold RGBA values.
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, nil)
