@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"math"
+	"os"
 )
 
 // TODO: Make a cleaner abstraction for live-average FPS.
@@ -31,4 +32,27 @@ func CheckErr(err error, msg string) {
 	if err != nil {
 		panic(fmt.Errorf("%s: %w", msg, err))
 	}
+}
+
+// ReadFiles reads files from the given paths, combines their content into a single string
+// and returns it. It panics if anything goes wrong.
+func ReadFiles(paths ...string) string {
+	var combined string
+
+	for _, path := range paths {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			panic(fmt.Errorf("error in os.ReadFile call: %w", err))
+		}
+
+		combined += fmt.Sprintf(`// ###############################################################
+// BEGIN %s
+
+%s
+
+		
+`, path, string(content))
+	}
+
+	return combined
 }
