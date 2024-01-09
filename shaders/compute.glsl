@@ -240,7 +240,7 @@ void main() {
     float pY = float(pixelCoords.y) / float(imageSize(imgOutput).y);
 
      // Initialize the seed.
-    rand_seed = uint(init_seed * pow(pixelCoords.x, 3) + pow(pixelCoords.y, 3));
+    rand_seed = uint(init_seed * (pow(pixelCoords.x, 2) + pow(pixelCoords.y, 3)));
 
     // Create ray.
     Ray r = camera_cast_ray(new_camera(), vec2(pX, pY));

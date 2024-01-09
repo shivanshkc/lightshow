@@ -26,8 +26,13 @@ var vertexShaderSource string
 var fragmentShaderSource string
 
 const (
-	windowWidth  = 800
-	windowHeight = 600
+	aspectRatio = 16.0 / 9.0
+
+	screenHeight = 1080
+	screenWidth  = aspectRatio * screenHeight
+
+	aaScreenHeight = screenHeight * 2
+	aaScreenWidth  = screenWidth * 2
 )
 
 func init() {
@@ -45,7 +50,7 @@ func main() {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	window, err := glfw.CreateWindow(windowWidth, windowHeight, "Compute Shader", nil, nil)
+	window, err := glfw.CreateWindow(screenWidth, screenHeight, "Compute Shader", nil, nil)
 	if err != nil {
 		log.Fatalln("failed to create window:", err)
 	}
@@ -62,7 +67,7 @@ func main() {
 	var texture uint32
 	gl.GenTextures(1, &texture)
 	gl.BindTexture(gl.TEXTURE_2D, texture)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, windowWidth, windowHeight, 0, gl.RGBA, gl.FLOAT, nil)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, aaScreenWidth, aaScreenHeight, 0, gl.RGBA, gl.FLOAT, nil)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.BindImageTexture(0, texture, 0, false, 0, gl.READ_WRITE, gl.RGBA32F)
@@ -78,7 +83,7 @@ func main() {
 		// Run the compute shader
 		gl.UseProgram(computeProgram)
 		gl.Uniform1f(seedUni, randGen.Float32())
-		gl.DispatchCompute(uint32(windowWidth/16), uint32(windowHeight/16), 1)
+		gl.DispatchCompute(uint32(aaScreenWidth/16), uint32(aaScreenHeight/16), 1)
 		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 
 		// Render the texture
