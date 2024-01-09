@@ -72,7 +72,7 @@ func main() {
 	pkg.CheckErr(err, "failed to create the render program")
 
 	// Create the texture that will be populated by the compute shader.
-	texture := pkg.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
+	_ = pkg.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
 
 	// Obtain the location of the initial random seed uniform.
 	gl.UseProgram(computeProgram)
@@ -89,20 +89,15 @@ func main() {
 		// Run the compute shader.
 		gl.DispatchCompute(uint32(aaScreenWidth/16), uint32(aaScreenHeight/16), 1)
 		// Wait for compute to finish.
-		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
+		gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT)
 
-		// Clear the buffers.
-		gl.Clear(gl.COLOR_BUFFER_BIT)
+		// This line is recommended doesn't seem to do anything.
+		// gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		// Switch to the render program and set up the input texture.
+		// Switch to the render program.
 		gl.UseProgram(renderProgram)
-		gl.ActiveTexture(gl.TEXTURE0)
-		gl.BindTexture(gl.TEXTURE_2D, texture)
-
 		// Render to screen.
 		gl.DrawElementsWithOffset(gl.TRIANGLES, 6, gl.UNSIGNED_INT, uintptr(0))
-		// Clear the texture before iteration.
-		// gl.ClearTexImage(texture, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(nil))
 
 		glfw.PollEvents()
 		window.SwapBuffers()
