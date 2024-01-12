@@ -60,3 +60,10 @@ func ReadFiles(log bool, paths ...string) string {
 	}
 	return combined
 }
+
+// MoveOnCircle can be used to move an object along a circular path.
+func MoveOnCircle(originX, originY, angle, radius float64) (float32, float32) {
+	X := originX + math.Cos(angle)*radius
+	Y := originY + math.Sin(angle)*radius
+	return float32(X), float32(Y)
+}

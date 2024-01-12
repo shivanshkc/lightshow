@@ -15,4 +15,4 @@ uniform float init_seed;
 
 // Configurations.
 #define INFINITY 1./0.
-#define BOUNCE_LIMIT 10
+#define BOUNCE_LIMIT 30
