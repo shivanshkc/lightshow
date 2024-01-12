@@ -85,7 +85,7 @@ func main() {
 
 	// Initial positions of the bodies.
 	positions := []float32{
-		0.1, 0.0, -1.5,
+		0.12, 0.0, -1.4,
 		-0.4, -0.4, -1.0,
 		0.0, -1000.5, -1.0,
 	}

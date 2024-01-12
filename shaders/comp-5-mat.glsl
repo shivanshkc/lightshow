@@ -81,7 +81,12 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
     switch (mat.mat_type) {
 
     case MATERIAL_METAL:
-        return false;
+        // Specular reflection.
+        vec3 reflected = vec3_reflect(ray.dir, info.normal);
+        // Set the new scattered ray.
+        scattered = Ray(info.point, normalize(reflected));
+        attn = mat.metal_attenuation;
+        return true;
 
     case MATERIAL_LAMBR:
         vec3 scatter_dir = info.normal + randv3_unit();
