@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -86,8 +85,8 @@ func main() {
 	// Initial positions of the bodies.
 	positions := []float32{
 		0.12, 0.0, -1.4,
-		-0.4, -0.4, -1.0,
-		-0.4, -0.4, -1.0,
+		-0.4, 0.0, -1.0,
+		-0.4, 0.0, -1.0,
 		0.0, -1000.5, -1.0,
 	}
 
@@ -104,8 +103,10 @@ func main() {
 		pkg.ShowFPS(glfw.GetTime())
 
 		// Update positions.
-		positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
-		positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
+		// positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
+		// positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
+		positions[3], positions[5] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime()/2, 0.8)
+		positions[6], positions[8] = positions[3], positions[5]
 		// Set new positions.
 		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 
