@@ -1,7 +1,8 @@
 // List of all spheres.
 Sphere spheres[] = Sphere[](
-    Sphere(vec3(0, 0, -1), 0.5),
-    Sphere(vec3(0, -1000.5, -1), 1000)
+    Sphere(vec3(0), 0.5),
+    Sphere(vec3(0), 0.1),
+    Sphere(vec3(0), 1000)
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
@@ -56,12 +57,19 @@ vec3 get_ray_color(Ray r) {
 }
 
 void main() {
+    // Obtain normalized pixel values.
     ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
     float pX = float(pixelCoords.x) / float(imageSize(imgOutput).x);
     float pY = float(pixelCoords.y) / float(imageSize(imgOutput).y);
 
      // Initialize the seed.
     rand_seed = uint(init_seed * (pow(pixelCoords.x, 2) + pow(pixelCoords.y, 3)));
+
+    // Move bodies to the given positions.
+    int j = 0;
+    for (int i = 0; i < spheres.length(); i++) {
+        spheres[i].center = vec3(positions[j++], positions[j++], positions[j++]);
+    }
 
     // Create ray.
     Ray r = camera_cast_ray(new_camera(), vec2(pX, pY));
