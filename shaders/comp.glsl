@@ -1,7 +1,8 @@
 // List of all spheres.
 Sphere spheres[] = Sphere[](
     Sphere(vec3(0), 0.5, new_metal_mat(vec3(0.7, 0.3, 0.3), 0.0)),
-    Sphere(vec3(0), 0.1, new_metal_mat(vec3(0.8, 0.8, 0.8), 0.5)),
+    Sphere(vec3(0), 0.1, new_glass_mat(1.5)),
+    Sphere(vec3(0), -0.09, new_glass_mat(1.5)),
     Sphere(vec3(0), 1000, new_lambr_mat(vec3(0.8, 0.8, 0.0)))
 );
 

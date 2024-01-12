@@ -87,6 +87,7 @@ func main() {
 	positions := []float32{
 		0.12, 0.0, -1.4,
 		-0.4, -0.4, -1.0,
+		-0.4, -0.4, -1.0,
 		0.0, -1000.5, -1.0,
 	}
 
@@ -103,7 +104,8 @@ func main() {
 		pkg.ShowFPS(glfw.GetTime())
 
 		// Update positions.
-		positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.1
+		positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
+		positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
 		// Set new positions.
 		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 

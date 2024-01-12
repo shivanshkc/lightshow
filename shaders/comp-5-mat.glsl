@@ -84,7 +84,7 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
 
     case MATERIAL_METAL:
         // Specular reflection.
-        vec3 reflected = vec3_reflect(ray.dir, info.normal);
+        vec3 reflected = reflect(ray.dir, info.normal);
         // Calculate scattered ray direction with fuzz effect.
         vec3 scatt_dir = normalize(reflected + mat.metal_fuzz*randv3_unit());
         // Set the new scattered ray.
@@ -104,7 +104,27 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
         return true;
 
     case MATERIAL_GLASS:
-        return false;
+        // No color in glass.
+        attn = vec3(1.0);
 
+        // Decide on the refraction ratio, based on the normal direction.
+        float ref_ratio = info.is_normal_outward ?
+            (1.0 / mat.glass_refractive_idx) :
+            mat.glass_refractive_idx;
+
+        float cos_theta = min(dot(-ray.dir, info.normal), 1.0);
+        float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+
+        // Calculate the refracted ray.
+        bool cannot_refract = ref_ratio * sin_theta > 1.0;
+        vec3 direction;
+        if (cannot_refract || reflectance(cos_theta, ref_ratio) > randf())
+            direction = reflect(ray.dir, info.normal);
+        else
+            direction = refract(ray.dir, info.normal, ref_ratio);
+
+        // Set the new scattered ray.
+        scattered = Ray(info.point, normalize(direction));
+        return true;
     }
 }
