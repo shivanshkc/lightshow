@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -82,10 +83,29 @@ func main() {
 	gl.UseProgram(computeProgram)
 	seedUniLocation := gl.GetUniformLocation(computeProgram, gl.Str("init_seed\x00"))
 
+	// Initial positions of the bodies.
+	positions := []float32{
+		0.1, 0.0, -1.5,
+		-0.4, -0.4, -1.0,
+		0.0, -1000.5, -1.0,
+	}
+
+	// Create the positions buffer and bind it.
+	var posBuf uint32
+	gl.GenBuffers(1, &posBuf)
+	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, posBuf)
+	gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
+	gl.BindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, posBuf)
+
 	// Render loop.
 	for !window.ShouldClose() {
 		// Show FPS.
 		pkg.ShowFPS(glfw.GetTime())
+
+		// Update positions.
+		positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.1
+		// Set new positions.
+		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 
 		// Switch to the compute program and set up inputs.
 		gl.UseProgram(computeProgram)
@@ -93,10 +113,10 @@ func main() {
 		// Run the compute shader.
 		gl.DispatchCompute(uint32(aaScreenWidth/16), uint32(aaScreenHeight/16), 1)
 		// Wait for compute to finish.
-		gl.MemoryBarrier(gl.SHADER_IMAGE_ACCESS_BARRIER_BIT)
+		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 
 		// This line is recommended doesn't seem to do anything.
-		// gl.Clear(gl.COLOR_BUFFER_BIT)
+		// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// Switch to the render program.
 		gl.UseProgram(renderProgram)
