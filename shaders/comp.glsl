@@ -1,8 +1,8 @@
 // List of all spheres.
 Sphere spheres[] = Sphere[](
-    Sphere(vec3(0), 0.5, new_metal_mat(vec3(0))),
-    Sphere(vec3(0), 0.1, new_glass_mat(0)),
-    Sphere(vec3(0), 1000, new_lambr_mat(vec3(0)))
+    Sphere(vec3(0), 0.5, new_lambr_mat(vec3(0.2, 0.1, 0.7))),
+    Sphere(vec3(0), 0.1, new_lambr_mat(vec3(0.5, 0.3, 0.8))),
+    Sphere(vec3(0), 1000, new_lambr_mat(vec3(0.4, 0.6, 0.1)))
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
@@ -47,9 +47,16 @@ vec3 get_ray_color(Ray r) {
             return get_bg_color(r) * attenuation;
         }
 
-        vec3 target = info.normal + randv3_unit();
-        r = Ray(info.point, normalize(target));
-        attenuation *= 0.25;
+        // Scatter the ray as per the material.
+        Ray scatt;
+        vec3 attn;
+        if (!mat_scatter(info.mat, r, info, scatt, attn)) {
+            return vec3(0.0, 0.0, 0.0);
+        }
+
+        // Update params for next iteration.
+        attenuation *= attn;
+        r = scatt;
     }
 
     // If the maximum depth is reached, return black

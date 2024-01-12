@@ -77,14 +77,25 @@ HitInfo hit_info_set_normal(HitInfo info, Ray r, vec3 outward_normal) {
     return info;
 }
 
-bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered, out vec3 color) {
-    // switch (mat.mat_type) {
-    // case MATERIAL_METAL:
-    //     break;
-    // case MATERIAL_LAMBR:
-    //     break;
-    // case MATERIAL_GLASS:
-    //     break;
-    // }
-    return false;
+bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered, out vec3 attn) {
+    switch (mat.mat_type) {
+
+    case MATERIAL_METAL:
+        return false;
+
+    case MATERIAL_LAMBR:
+        vec3 scatter_dir = info.normal + randv3_unit();
+        // Catch degenerate scatter direction.
+        if (length(scatter_dir) < 1e-8) {
+            scatter_dir = info.normal;
+        }
+        // Set the new scattered ray.
+        scattered = Ray(info.point, normalize(scatter_dir));
+        attn = mat.lambr_color;
+        return true;
+
+    case MATERIAL_GLASS:
+        return false;
+
+    }
 }
