@@ -10,7 +10,8 @@ struct Material {
     uint mat_type;
 
     // metal specific attr ###############
-    vec3 metal_attenuation;
+    vec3 metal_attn;
+    float metal_fuzz;
 
     // lambr specific attr ###############
     vec3 lambr_color;
@@ -21,14 +22,15 @@ struct Material {
 
 // new_empty_mat returns an empty instance of the Material.
 Material new_empty_mat() {
-    return Material(0, vec3(0), vec3(0), 0);
+    return Material(0, vec3(0), 0, vec3(0), 0);
 }
 
-Material new_metal_mat(vec3 attn) {
+Material new_metal_mat(vec3 attn, float fuzz) {
     Material mat = new_empty_mat();
 
     mat.mat_type = MATERIAL_METAL;
-    mat.metal_attenuation = attn;
+    mat.metal_attn = attn;
+    mat.metal_fuzz = fuzz;
     return mat;
 }
 
@@ -83,10 +85,12 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
     case MATERIAL_METAL:
         // Specular reflection.
         vec3 reflected = vec3_reflect(ray.dir, info.normal);
+        // Calculate scattered ray direction with fuzz effect.
+        vec3 scatt_dir = normalize(reflected + mat.metal_fuzz*randv3_unit());
         // Set the new scattered ray.
-        scattered = Ray(info.point, normalize(reflected));
-        attn = mat.metal_attenuation;
-        return true;
+        scattered = Ray(info.point, scatt_dir);
+        attn = mat.metal_attn;
+        return dot(scatt_dir, info.normal) > 0;
 
     case MATERIAL_LAMBR:
         vec3 scatter_dir = info.normal + randv3_unit();
