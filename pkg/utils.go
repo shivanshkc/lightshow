@@ -36,7 +36,7 @@ func CheckErr(err error, msg string) {
 
 // ReadFiles reads files from the given paths, combines their content into a single string
 // and returns it. It panics if anything goes wrong.
-func ReadFiles(paths ...string) string {
+func ReadFiles(log bool, paths ...string) string {
 	var combined string
 
 	for _, path := range paths {
@@ -54,5 +54,9 @@ func ReadFiles(paths ...string) string {
 `, path, string(content))
 	}
 
+	if log {
+		err := os.WriteFile("shader.log", []byte(combined), os.ModePerm)
+		CheckErr(err, "failed to log shader:")
+	}
 	return combined
 }

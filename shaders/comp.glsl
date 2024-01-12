@@ -1,8 +1,8 @@
 // List of all spheres.
 Sphere spheres[] = Sphere[](
-    Sphere(vec3(0), 0.5),
-    Sphere(vec3(0), 0.1),
-    Sphere(vec3(0), 1000)
+    Sphere(vec3(0), 0.5, new_metal_mat(vec3(0))),
+    Sphere(vec3(0), 0.1, new_glass_mat(0)),
+    Sphere(vec3(0), 1000, new_lambr_mat(vec3(0)))
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.

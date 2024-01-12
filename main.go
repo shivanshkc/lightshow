@@ -33,7 +33,7 @@ func init() {
 
 func main() {
 	// Read shaders.
-	cShaderSource := pkg.ReadFiles(
+	cShaderSource := pkg.ReadFiles(true,
 		"shaders/comp-1-head.glsl",
 		"shaders/comp-2-rand.glsl",
 		"shaders/comp-3-util.glsl",
@@ -43,8 +43,8 @@ func main() {
 		"shaders/comp.glsl",
 	)
 
-	vShaderSource := pkg.ReadFiles("shaders/vert.glsl")
-	fShaderSource := pkg.ReadFiles("shaders/frag.glsl")
+	vShaderSource := pkg.ReadFiles(false, "shaders/vert.glsl")
+	fShaderSource := pkg.ReadFiles(false, "shaders/frag.glsl")
 
 	// Create a window, as OpenGL requires a window context.
 	window, err := pkg.CreateWindow("Lightshow", screenWidth, screenHeight)
