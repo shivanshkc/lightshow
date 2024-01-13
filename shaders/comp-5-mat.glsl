@@ -105,7 +105,8 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
 
     case MATERIAL_GLASS:
         // No color in glass.
-        attn = vec3(1.0);
+        // attn = vec3(0.8, 0.95, 0.7);
+        attn = vec3(1);
 
         // Decide on the refraction ratio, based on the normal direction.
         float ref_ratio = info.is_normal_outward ?

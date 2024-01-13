@@ -84,10 +84,12 @@ func main() {
 
 	// Initial positions of the bodies.
 	positions := []float32{
-		0.12, 0.0, -1.4,
-		-0.4, 0.0, -1.0,
-		-0.4, 0.0, -1.0,
-		0.0, -1000.5, -1.0,
+		0.12, 0.0, -1.4, 0.5,
+		-0.4, 0.0, -1.0, 0.25,
+		-0.4, 0.0, -1.0, -0.23,
+		0.4, 0.0, -1.0, 0.25,
+		0.4, 0.0, -1.0, -0.23,
+		0.0, -1000.5, -1.0, 1000,
 	}
 
 	// Create the positions buffer and bind it.
@@ -105,8 +107,11 @@ func main() {
 		// Update positions.
 		// positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
 		// positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
-		positions[3], positions[5] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime()/2, 0.8)
-		positions[6], positions[8] = positions[3], positions[5]
+		positions[4], positions[6] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), 0.8)
+		positions[8], positions[10] = positions[4], positions[6]
+
+		positions[12], positions[14] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), -0.8)
+		positions[16], positions[18] = positions[12], positions[14]
 		// Set new positions.
 		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 
