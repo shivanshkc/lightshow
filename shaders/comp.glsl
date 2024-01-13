@@ -1,9 +1,15 @@
 // List of all spheres.
 Sphere spheres[] = Sphere[](
-    Sphere(vec3(0), 0.5, new_metal_mat(vec3(0.7, 0.3, 0.3), 0.0)),
-    Sphere(vec3(0), 0.2, new_glass_mat(1.5)),
-    Sphere(vec3(0), -0.18, new_glass_mat(1.5)),
-    Sphere(vec3(0), 1000, new_lambr_mat(vec3(0.8, 0.8, 0.0)))
+    // Sun
+    Sphere(vec3(0), 0, new_metal_mat(vec3(0.7, 0.3, 0.3), 0.0)),
+    // Hollow 1
+    Sphere(vec3(0), 0, new_glass_mat(1.5)),
+    Sphere(vec3(0), 0, new_glass_mat(1.5)),
+    // Hollow 2
+    Sphere(vec3(0), 0, new_glass_mat(1.5)),
+    Sphere(vec3(0), 0, new_glass_mat(1.5)),
+    // Ground
+    Sphere(vec3(0), 0, new_lambr_mat(vec3(0.8, 0.8, 0.0)))
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
@@ -74,9 +80,9 @@ void main() {
     rand_seed = uint(init_seed * (pow(pixelCoords.x, 2) + pow(pixelCoords.y, 3)));
 
     // Move bodies to the given positions.
-    int j = 0;
     for (int i = 0; i < spheres.length(); i++) {
-        spheres[i].center = vec3(positions[j++], positions[j++], positions[j++]);
+        spheres[i].center = positions[i].xyz;
+        spheres[i].radius = positions[i].w;
     }
 
     // Create ray.
