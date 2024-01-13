@@ -1,3 +1,10 @@
+// lightshow:import shaders/compute/inputs.glsl
+// lightshow:import shaders/compute/random.glsl
+// lightshow:import shaders/compute/utils.glsl
+// lightshow:import shaders/compute/camera.glsl
+// lightshow:import shaders/compute/material.glsl
+// lightshow:import shaders/compute/sphere.glsl
+
 // List of all spheres.
 Sphere spheres[] = Sphere[](
     // Sun

@@ -7,7 +7,9 @@ import (
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/shivanshkc/lightshow/pkg"
+
+	"github.com/shivanshkc/lightshow/pkg/opengl"
+	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
 const (
@@ -31,52 +33,38 @@ func init() {
 }
 
 func main() {
-	// Read shaders.
-	cShaderSource := pkg.ReadFiles(true,
-		"shaders/comp-1-head.glsl",
-		"shaders/comp-2-rand.glsl",
-		"shaders/comp-3-util.glsl",
-		"shaders/comp-4-cam.glsl",
-		"shaders/comp-5-mat.glsl",
-		"shaders/comp-6-shape-sphere.glsl",
-		"shaders/comp.glsl",
-	)
-
-	vShaderSource := pkg.ReadFiles(false, "shaders/vert.glsl")
-	fShaderSource := pkg.ReadFiles(false, "shaders/frag.glsl")
-
 	// Create a window, as OpenGL requires a window context.
-	window, err := pkg.CreateWindow("Lightshow", screenWidth, screenHeight)
-	pkg.CheckErr(err, "error in pkg.CreateWindow call")
+	window, err := utils.CreateWindow("Lightshow", screenWidth, screenHeight)
+	utils.CheckErr(err, "error in utils.CreateWindow call")
 	// Clean up.
 	defer glfw.Terminate()
 
 	// Initiate OpenGL.
 	err = gl.Init()
-	pkg.CheckErr(err, "failed to initialize opengl")
+	utils.CheckErr(err, "failed to initialize opengl")
 
-	// Compile the compute shader.
-	computeShader, err := pkg.CompileShader(cShaderSource+"\x00", gl.COMPUTE_SHADER)
-	pkg.CheckErr(err, "failed to compile compute shader")
-	// Compile the vertex shader.
-	vertexShader, err := pkg.CompileShader(vShaderSource+"\x00", gl.VERTEX_SHADER)
-	pkg.CheckErr(err, "failed to compile vertex shader")
-	// Compile the fragment shader.
-	fragmentShader, err := pkg.CompileShader(fShaderSource+"\x00", gl.FRAGMENT_SHADER)
-	pkg.CheckErr(err, "failed to compile fragment shader")
+	// Create shaders.
+	cShader, err := opengl.NewShader("shaders/compute/main.glsl", gl.COMPUTE_SHADER)
+	utils.CheckErr(err, "failed to create compute shader")
+
+	vShader, err := opengl.NewShader("shaders/vert.glsl", gl.VERTEX_SHADER)
+	utils.CheckErr(err, "failed to create vertex shader")
+
+	fShader, err := opengl.NewShader("shaders/frag.glsl", gl.FRAGMENT_SHADER)
+	utils.CheckErr(err, "failed to create fragment shader")
 
 	// Setup vertex information for the vertex shader.
 	setupFullscreenQuad()
 
 	// Create the compute program, which will do the actual ray-tracing.
-	computeProgram, err := pkg.CreateProgram(computeShader)
-	pkg.CheckErr(err, "failed to create the compute program")
+	computeProgram, err := utils.CreateProgram(cShader.ID())
+	utils.CheckErr(err, "failed to create the compute program")
 	// Create the render program, which will render the result on screen.
-	renderProgram, err := pkg.CreateProgram(vertexShader, fragmentShader)
-	pkg.CheckErr(err, "failed to create the render program")
+	renderProgram, err := utils.CreateProgram(vShader.ID(), fShader.ID())
+	utils.CheckErr(err, "failed to create the render program")
 
 	// Create the texture that will be populated by the compute shader.
-	_ = pkg.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
+	_ = utils.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
 
 	// Obtain the location of the initial random seed uniform.
 	gl.UseProgram(computeProgram)
@@ -102,15 +90,15 @@ func main() {
 	// Render loop.
 	for !window.ShouldClose() {
 		// Show FPS.
-		pkg.ShowFPS(glfw.GetTime())
+		utils.ShowFPS(glfw.GetTime())
 
 		// Update positions.
 		// positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
 		// positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
-		positions[4], positions[6] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), 0.8)
+		positions[4], positions[6] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), 0.8)
 		positions[8], positions[10] = positions[4], positions[6]
 
-		positions[12], positions[14] = pkg.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), -0.8)
+		positions[12], positions[14] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), -0.8)
 		positions[16], positions[18] = positions[12], positions[14]
 		// Set new positions.
 		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)

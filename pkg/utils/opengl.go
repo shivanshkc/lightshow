@@ -1,4 +1,4 @@
-package pkg
+package utils
 
 import (
 	"fmt"
@@ -69,41 +69,6 @@ func CreateProgram(shaders ...uint32) (uint32, error) {
 
 	// Success.
 	return program, nil
-}
-
-// CompileShader compiles the given shader source.
-// The shaderType must be one of gl.COMPUTE_SHADER, gl.VERTEX_SHADER or gl.FRAGMENT_SHADER.
-//
-// It returns a reference to the compiled shader and an error if any.
-func CompileShader(source string, shaderType uint32) (uint32, error) {
-	// Get a reference to the shader.
-	shader := gl.CreateShader(shaderType)
-
-	// Convert the shader source to a C-type string.
-	cSource, free := gl.Strs(source)
-	// Set the source to the shader reference.
-	gl.ShaderSource(shader, 1, cSource, nil)
-	// Free the memory of the C-type string.
-	free()
-	// Attempt shader compilation.
-	gl.CompileShader(shader)
-
-	var status int32
-	// Check compilation status.
-	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
-	if status == gl.FALSE {
-		// Get log length to obtain the failure log.
-		var logLength int32
-		gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLength)
-		// Get the failure log.
-		fLog := strings.Repeat("\x00", int(logLength+1))
-		gl.GetShaderInfoLog(shader, logLength, nil, gl.Str(fLog))
-		// Return the error with log.
-		return 0, fmt.Errorf("failed to compile: %v", fLog)
-	}
-
-	// Success.
-	return shader, nil
 }
 
 // CreateImageTexture2D creates a 2D image texture with the given width and height.
