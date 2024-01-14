@@ -32,6 +32,32 @@ func init() {
 	runtime.LockOSThread()
 }
 
+// func xmain() {
+// 	// Create new OpenGL context and window.
+// 	ctx, cancelFunc, err := opengl.New("Lightshow", width, height)
+// 	utils.Panic(err, "error in opengl.New call")
+
+// 	// Cleanup on exit.
+// 	defer cancelFunc()
+
+// 	// Create shaders.
+// 	cShader, err := opengl.NewShader("shaders/compute/main.glsl", gl.COMPUTE_SHADER)
+// 	utils.Panic(err, "failed to create compute shader")
+
+// 	vShader, err := opengl.NewShader("shaders/vert.glsl", gl.VERTEX_SHADER)
+// 	utils.Panic(err, "failed to create vertex shader")
+
+// 	fShader, err := opengl.NewShader("shaders/frag.glsl", gl.FRAGMENT_SHADER)
+// 	utils.Panic(err, "failed to create fragment shader")
+
+// 	vShader.SetVertices()
+
+// 	// Render loop.
+// 	ctx.Update(func(delta int64) {
+
+// 	})
+// }
+
 func main() {
 	// Create a window, as OpenGL requires a window context.
 	window, err := utils.CreateWindow("Lightshow", screenWidth, screenHeight)
@@ -117,7 +143,7 @@ func main() {
 		// Switch to the render program.
 		gl.UseProgram(renderProgram)
 		// Render to screen.
-		gl.DrawElementsWithOffset(gl.TRIANGLES, 6, gl.UNSIGNED_INT, uintptr(0))
+		gl.DrawArrays(gl.TRIANGLES, 0, 6)
 
 		glfw.PollEvents()
 		window.SwapBuffers()
@@ -128,31 +154,31 @@ func main() {
 //
 // I don't understand most of this function.
 func setupFullscreenQuad() {
-	var vao, vbo, ebo uint32
+	// Define the full-screen quad vertices and texture coordinates
+	quadVertices := []float32{
+		// Positions    // TexCoords
+		-1.0, +1.0 /*	*/, 0.0, 1.0,
+		-1.0, -1.0 /*	*/, 0.0, 0.0,
+		+1.0, -1.0 /*	*/, 1.0, 0.0,
 
-	vertices := []float32{
-		-1.0, -1.0, 0.0, 0.0,
-		+1.0, -1.0, 1.0, 0.0,
-		+1.0, +1.0, 1.0, 1.0,
-		-1.0, +1.0, 0.0, 1.0,
+		-1.0, +1.0 /*	*/, 0.0, 1.0,
+		+1.0, -1.0 /*	*/, 1.0, 0.0,
+		+1.0, +1.0 /*	*/, 1.0, 1.0,
 	}
 
-	indices := []uint32{0, 1, 2, 2, 3, 0}
-
+	// Setup VAO and VBO for the quad
+	var vao, vbo uint32
 	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
 	gl.GenBuffers(1, &vbo)
+
+	gl.BindVertexArray(vao)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, len(quadVertices)*4, gl.Ptr(quadVertices), gl.STATIC_DRAW)
 
-	gl.GenBuffers(1, &ebo)
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
-
+	// Position attribute
 	gl.VertexAttribPointerWithOffset(0, 2, gl.FLOAT, false, 4*4, uintptr(0))
 	gl.EnableVertexAttribArray(0)
-
+	// Texture coord attribute
 	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 4*4, uintptr(2*4))
 	gl.EnableVertexAttribArray(1)
 }
