@@ -78,13 +78,16 @@ vec3 get_ray_color(Ray r) {
 }
 
 void main() {
+    // Shorthand.
+    vec3 iid = gl_GlobalInvocationID;
+    // Initialize seed.
+    float pixelSeed = pow(iid.x, 3.1416) + pow(iid.y, 3) + pow(iid.z, 2);
+    rand_seed = uint(init_seed * pixelSeed);
+
     // Obtain normalized pixel values.
-    ivec2 pixelCoords = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 pixelCoords = ivec2(iid.xy);
     float pX = float(pixelCoords.x) / float(imageSize(imgOutput).x);
     float pY = float(pixelCoords.y) / float(imageSize(imgOutput).y);
-
-     // Initialize the seed.
-    rand_seed = uint(init_seed * (pow(pixelCoords.x, 2) + pow(pixelCoords.y, 3)));
 
     // Move bodies to the given positions.
     for (int i = 0; i < spheres.length(); i++) {
