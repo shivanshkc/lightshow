@@ -38,5 +38,5 @@ Ray camera_cast_ray(Camera cam, vec2 uv) {
         uv.x * cam.horizontal +
         uv.y * cam.vertical - cam.origin;
 
-    return Ray(cam.origin, normalize(ray_dir));
+    return Ray(cam.origin, ray_dir);
 }

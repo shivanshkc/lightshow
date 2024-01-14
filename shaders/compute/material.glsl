@@ -84,9 +84,9 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
 
     case MATERIAL_METAL:
         // Specular reflection.
-        vec3 reflected = reflect(ray.dir, info.normal);
+        vec3 reflected = reflect(normalize(ray.dir), info.normal);
         // Calculate scattered ray direction with fuzz effect.
-        vec3 scatt_dir = normalize(reflected + mat.metal_fuzz*randv3_unit());
+        vec3 scatt_dir = reflected + mat.metal_fuzz*randv3_unit();
         // Set the new scattered ray.
         scattered = Ray(info.point, scatt_dir);
         attn = mat.metal_attn;
@@ -99,7 +99,7 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
             scatter_dir = info.normal;
         }
         // Set the new scattered ray.
-        scattered = Ray(info.point, normalize(scatter_dir));
+        scattered = Ray(info.point, scatter_dir);
         attn = mat.lambr_color;
         return true;
 
@@ -125,7 +125,7 @@ bool mat_scatter(in Material mat, in Ray ray, in HitInfo info, out Ray scattered
             direction = refract(ray.dir, info.normal, ref_ratio);
 
         // Set the new scattered ray.
-        scattered = Ray(info.point, normalize(direction));
+        scattered = Ray(info.point, direction);
         return true;
     }
 }
