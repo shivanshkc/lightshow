@@ -20,8 +20,8 @@ const (
 	screenWidth  = aspectRatio * screenHeight
 
 	// Super-sampled screen height and width for antialiasing.
-	aaScreenHeight = screenHeight * 2
-	aaScreenWidth  = screenWidth * 2
+	aaScreenHeight = screenHeight * 1
+	aaScreenWidth  = screenWidth * 1
 )
 
 // randGen is the random number generator that will be used to seed every frame.
