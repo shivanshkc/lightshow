@@ -79,15 +79,15 @@ func main() {
 	fShader, err := opengl.NewShader("shaders/frag.glsl", gl.FRAGMENT_SHADER)
 	utils.CheckErr(err, "failed to create fragment shader")
 
-	// Setup vertex information for the vertex shader.
-	setupFullscreenQuad()
-
 	// Create the compute program, which will do the actual ray-tracing.
 	computeProgram, err := utils.CreateProgram(cShader.ID())
 	utils.CheckErr(err, "failed to create the compute program")
 	// Create the render program, which will render the result on screen.
 	renderProgram, err := utils.CreateProgram(vShader.ID(), fShader.ID())
 	utils.CheckErr(err, "failed to create the render program")
+
+	// Setup vertex information for the vertex shader.
+	setupFullscreenQuad(renderProgram)
 
 	// Create the texture that will be populated by the compute shader.
 	_ = utils.CreateImageTexture2D(aaScreenWidth, aaScreenHeight)
@@ -153,8 +153,8 @@ func main() {
 // setupFullscreenQuad setups the vertex information that is fed to the vertex shader to render a full-screen quad.
 //
 // I don't understand most of this function.
-func setupFullscreenQuad() {
-	// Define the full-screen quad vertices and texture coordinates
+func setupFullscreenQuad(program uint32) {
+	// Define the full-screen quad vertices and texture coordinates.
 	quadVertices := []float32{
 		// Positions    // TexCoords
 		-1.0, +1.0 /*	*/, 0.0, 1.0,
@@ -168,17 +168,24 @@ func setupFullscreenQuad() {
 
 	// Setup VAO and VBO for the quad
 	var vao, vbo uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.GenBuffers(1, &vbo)
 
+	// Add vao data.
+	gl.GenVertexArrays(1, &vao)
 	gl.BindVertexArray(vao)
+
+	// Add vbo data.
+	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(gl.ARRAY_BUFFER, len(quadVertices)*4, gl.Ptr(quadVertices), gl.STATIC_DRAW)
 
+	// Get attribute positions.
+	verLoc := uint32(gl.GetAttribLocation(program, gl.Str("vertex\x00")))
+	texLoc := uint32(gl.GetAttribLocation(program, gl.Str("texCoord\x00")))
+
 	// Position attribute
-	gl.VertexAttribPointerWithOffset(0, 2, gl.FLOAT, false, 4*4, uintptr(0))
+	gl.VertexAttribPointerWithOffset(verLoc, 2, gl.FLOAT, false, 4*4, uintptr(0))
 	gl.EnableVertexAttribArray(0)
 	// Texture coord attribute
-	gl.VertexAttribPointerWithOffset(1, 2, gl.FLOAT, false, 4*4, uintptr(2*4))
+	gl.VertexAttribPointerWithOffset(texLoc, 2, gl.FLOAT, false, 4*4, uintptr(2*4))
 	gl.EnableVertexAttribArray(1)
 }
