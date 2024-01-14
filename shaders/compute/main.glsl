@@ -16,7 +16,7 @@ Sphere spheres[] = Sphere[](
     Sphere(vec3(0), 0, new_glass_mat(1.5)),
     Sphere(vec3(0), 0, new_glass_mat(1.5)),
     // Ground
-    Sphere(vec3(0), 0, new_lambr_mat(vec3(0.8, 0.8, 0.0)))
+    Sphere(vec3(0), 0, new_lambr_mat(vec3(0.5, 0.5, 0.5)))
 );
 
 // get_closest_hit returns the hit-info of the closest point of hit out of all the given objects.
