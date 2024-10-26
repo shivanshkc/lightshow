@@ -2,7 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/go-gl/gl/v4.6-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -73,6 +75,17 @@ func CreateProgram(shaders ...uint32) (uint32, error) {
 
 // CreateImageTexture2D creates a 2D image texture with the given width and height.
 func CreateImageTexture2D(width, height int32) uint32 {
+	randGen := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	pixels := make([]float32, width*height*4)
+	for i := 0; i < int(width*height*4); i += 4 {
+		color := float32(randGen.Intn(2)) // Randomly choose 0.0 or 1.0
+		pixels[i] = color                 // R
+		pixels[i+1] = color               // G
+		pixels[i+2] = color               // B
+		pixels[i+3] = 1.0                 // A
+	}
+
 	var texture uint32
 	// Generate a texture.
 	gl.GenTextures(1, &texture)
@@ -80,7 +93,7 @@ func CreateImageTexture2D(width, height int32) uint32 {
 	// AFAIK, this line sets this texture as the target output for the shaders.
 	gl.BindTexture(gl.TEXTURE_2D, texture)
 	// Specify that it is an image texture that'll hold RGBA values.
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, nil)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, gl.Ptr(pixels))
 	// Filter parameters. *shrugs*
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
