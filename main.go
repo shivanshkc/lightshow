@@ -16,7 +16,7 @@ const (
 	aspectRatio = 16.0 / 9.0
 
 	// Actual screen height and width.
-	screenHeight = 720
+	screenHeight = 1080
 	screenWidth  = aspectRatio * screenHeight
 
 	// Super-sampled screen height and width for antialiasing.
@@ -32,32 +32,6 @@ func init() {
 	runtime.LockOSThread()
 }
 
-// func xmain() {
-// 	// Create new OpenGL context and window.
-// 	ctx, cancelFunc, err := opengl.New("Lightshow", width, height)
-// 	utils.Panic(err, "error in opengl.New call")
-
-// 	// Cleanup on exit.
-// 	defer cancelFunc()
-
-// 	// Create shaders.
-// 	cShader, err := opengl.NewShader("shaders/compute/main.glsl", gl.COMPUTE_SHADER)
-// 	utils.Panic(err, "failed to create compute shader")
-
-// 	vShader, err := opengl.NewShader("shaders/vert.glsl", gl.VERTEX_SHADER)
-// 	utils.Panic(err, "failed to create vertex shader")
-
-// 	fShader, err := opengl.NewShader("shaders/frag.glsl", gl.FRAGMENT_SHADER)
-// 	utils.Panic(err, "failed to create fragment shader")
-
-// 	vShader.SetVertices()
-
-// 	// Render loop.
-// 	ctx.Update(func(delta int64) {
-
-// 	})
-// }
-
 func main() {
 	// Create a window, as OpenGL requires a window context.
 	window, err := utils.CreateWindow("Lightshow", screenWidth, screenHeight)
@@ -70,14 +44,14 @@ func main() {
 	utils.CheckErr(err, "failed to initialize opengl")
 
 	// Create shaders.
-	cShader, err := opengl.NewShader("shaders/compute/main.glsl", gl.COMPUTE_SHADER)
-	utils.CheckErr(err, "failed to create compute shader")
-
 	vShader, err := opengl.NewShader("shaders/vert.glsl", gl.VERTEX_SHADER)
 	utils.CheckErr(err, "failed to create vertex shader")
 
 	fShader, err := opengl.NewShader("shaders/frag.glsl", gl.FRAGMENT_SHADER)
 	utils.CheckErr(err, "failed to create fragment shader")
+
+	cShader, err := opengl.NewShader("shaders/compute/main.glsl", gl.COMPUTE_SHADER)
+	utils.CheckErr(err, "failed to create compute shader")
 
 	// Create the compute program, which will do the actual ray-tracing.
 	computeProgram, err := utils.CreateProgram(cShader.ID())
@@ -95,14 +69,15 @@ func main() {
 	// Obtain the location of the initial random seed uniform.
 	gl.UseProgram(computeProgram)
 	seedUniLocation := gl.GetUniformLocation(computeProgram, gl.Str("init_seed\x00"))
+	frameCountUniLocation := gl.GetUniformLocation(computeProgram, gl.Str("frame_count\x00"))
 
 	// Initial positions of the bodies.
 	positions := []float32{
 		0.12, 0.0, -1.4, 0.5,
-		-0.4, 0.0, -1.0, 0.25,
-		-0.4, 0.0, -1.0, -0.23,
-		0.4, 0.0, -1.0, 0.25,
-		0.4, 0.0, -1.0, -0.23,
+		-0.6, 0.0, -1.0, 0.25,
+		-0.6, 0.0, -1.0, -0.23,
+		0.4, 0.0, -0.65, 0.25,
+		0.4, 0.0, -0.65, -0.23,
 		0.0, -1000.5, -1.0, 1000,
 	}
 
@@ -113,31 +88,33 @@ func main() {
 	gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 	gl.BindBufferBase(gl.SHADER_STORAGE_BUFFER, 1, posBuf)
 
+	var frameCount int
 	// Render loop.
 	for !window.ShouldClose() {
+		frameCount++
+
 		// Show FPS.
 		utils.ShowFPS(glfw.GetTime())
 
-		// Update positions.
-		// positions[4] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
-		// positions[7] = (float32(math.Sin(glfw.GetTime())) / 2) + 0.15
-		positions[4], positions[6] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), 0.8)
-		positions[8], positions[10] = positions[4], positions[6]
+		// // Update positions.
+		// positions[4], positions[6] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), 0.8)
+		// positions[8], positions[10] = positions[4], positions[6]
 
-		positions[12], positions[14] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), -0.8)
-		positions[16], positions[18] = positions[12], positions[14]
-		// Set new positions.
-		gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
+		// positions[12], positions[14] = utils.MoveOnCircle(float64(positions[0]), float64(positions[2]), glfw.GetTime(), -0.8)
+		// positions[16], positions[18] = positions[12], positions[14]
+		// // Set new positions.
+		// gl.BufferData(gl.SHADER_STORAGE_BUFFER, len(positions)*4, gl.Ptr(positions), gl.STATIC_DRAW)
 
 		// Switch to the compute program and set up inputs.
 		gl.UseProgram(computeProgram)
 		gl.Uniform1f(seedUniLocation, randGen.Float32())
+		gl.Uniform1i(frameCountUniLocation, int32(frameCount))
 		// Run the compute shader.
 		gl.DispatchCompute(uint32(aaScreenWidth/16), uint32(aaScreenHeight/16), 1)
 		// Wait for compute to finish.
 		gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 
-		// This line is recommended doesn't seem to do anything.
+		// This line is recommended but doesn't seem to do anything.
 		// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// Switch to the render program.

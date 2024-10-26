@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/compute-ray-tracing.iml" filepath="$PROJECT_DIR$/.idea/compute-ray-tracing.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/lightshow.iml" filepath="$PROJECT_DIR$/.idea/lightshow.iml" />
     </modules>
   </component>
 </project>
