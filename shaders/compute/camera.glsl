@@ -1,3 +1,8 @@
+// Ray that will be traced.
+struct Ray {
+    vec3 origin, dir;
+};
+
 // ray_point_at returns the point the ray will reach after travelling the given distance.
 vec3 ray_point_at(Ray r, float d) {
     return r.origin + r.dir * d;
@@ -9,7 +14,7 @@ struct Camera {
 };
 
 // new_camera is a constructor function for camera.
-Camera new_camera(image2D imgOutput) {
+Camera new_camera() {
     float focal_length = 1;
     vec2 resolution = imageSize(imgOutput);
     float aspect_ratio = (resolution.x / resolution.y);
