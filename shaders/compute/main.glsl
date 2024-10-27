@@ -1,10 +1,5 @@
 #version 460
 
-// Ray that will be traced.
-struct Ray {
-    vec3 origin, dir;
-};
-
 // lightshow:import shaders/compute/inputs.glsl
 // lightshow:import shaders/compute/random.glsl
 // lightshow:import shaders/compute/utils.glsl
@@ -104,7 +99,7 @@ void main() {
     }
 
     // Create ray.
-    Ray r = camera_cast_ray(new_camera(imgOutput), vec2(pX, pY));
+    Ray r = camera_cast_ray(new_camera(), vec2(pX, pY));
     // Determine the color by tracing the ray.
     vec3 col = get_ray_color(r);
     // Gamma correction.

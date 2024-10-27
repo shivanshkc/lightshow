@@ -8,13 +8,13 @@ A ray tracer built on OpenGL.
 `sudo apt-get install libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev pkg-config`
 
 - For Fedora:  
-`sudo dnf install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXxf86vm-devel pkgconf-pkg-config`
+`sudo dnf install mesa-libGL-devel libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXxf86vm-devel pkgconf-pkg-config`
 
 - For CentOS or RHEL:
     - Install the EPEL repository if not already enabled:  
 `sudo yum install epel-release`
     - Install the required development libraries:  
-    `sudo yum install libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXxf86vm-devel pkgconfig`
+    `sudo yum install mesa-libGL-devel libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel libXi-devel libXxf86vm-devel pkgconfig`
 
 - For Arch Linux:  
 `sudo pacman -S libx11 libxcursor libxrandr libxinerama libxi libxxf86vm pkgconf`
