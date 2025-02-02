@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"github.com/shivanshkc/lightshow/pkg/camera"
@@ -12,7 +15,7 @@ import (
 	"github.com/shivanshkc/lightshow/pkg/utils"
 )
 
-const (
+var (
 	// aspectRatio of the rendered image.
 	aspectRatio = 16.0 / 9.0
 	imageHeight = 720
@@ -32,17 +35,17 @@ var cameraOptions = &camera.Options{
 // renderOptions holds all the renderer configs.
 var renderOptions = &renderer.Options{
 	Camera:            camera.New(cameraOptions),
-	ImageWidth:        imageHeight * aspectRatio,
+	ImageWidth:        int(float64(imageHeight) * aspectRatio),
 	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
 	SamplesPerPixel:   50,
-	MaxWorkers:        400,
-	OutputFile:        "./dist/image.jpg",
+	MaxWorkers:        runtime.NumCPU(),
+	OutputFile:        fmt.Sprintf("./dist/image-%d.jpg", time.Now().Unix()),
 }
 
-// world is a ShapeGroup that holds all the shapes to be rendered.
-var world = shapes.NewGroup(
+// shapeList holds the list of shapes to be rendered.
+var shapeList = []shapes.Shape{
 	// Ground.
 	&shapes.Sphere{
 		Center: utils.NewVec3(0, -100000, 0),
@@ -67,29 +70,39 @@ var world = shapes.NewGroup(
 		Radius: 1.0,
 		Mat:    mats.NewMatte(utils.NewColour(0.4, 0.2, 0.1)),
 	},
-)
+}
 
 func main() {
+	// Profile CPU.
+	stopper, err := cpuProfiler()
+	if err != nil {
+		panic("cpu profiling failed: " + err.Error())
+	}
+	// Stop upon return.
+	defer stopper()
+
 	// Log execution time.
 	start := time.Now()
-	defer func() { fmt.Printf("Time taken: %+v\n", time.Since(start)) }()
+	defer func() { fmt.Printf("\nTime taken: %+v\n", time.Since(start)) }()
 
-	// Populate the world with random spheres.
-	randomize()
-
-	fmt.Println("Rendering...")
-	defer fmt.Println("Done.")
+	// Make a BVH out of the given shapes.
+	bvh := makeBVH(shapeList)
 
 	// Start rendering.
-	if err := renderer.New(renderOptions).Render(world); err != nil {
+	if err := renderer.New(renderOptions).Render(bvh); err != nil {
 		panic(fmt.Errorf("failed to render: %w", err))
 	}
 }
 
-// randomize adds random spheres to the world for a cool render.
+// makeBVH makes a BVH out of the given shapes.
+func makeBVH(list []shapes.Shape) *shapes.BVHNode {
+	return shapes.NewBVHNode(addRandomShapes(list)...)
+}
+
+// addRandomShapes adds random shapes to the given list for a cool render.
 //
 // It is configured to work best with the default camera options.
-func randomize() {
+func addRandomShapes(list []shapes.Shape) []shapes.Shape {
 	fmt.Println("Spawning...")
 	defer fmt.Println("Done.")
 
@@ -103,13 +116,12 @@ outer:
 			random.FloatBetween(-11, 11))
 
 		// Make sure the generated sphere doesn't intersect with existing ones.
-		for _, shape := range world.Shapes {
+		for _, shape := range list {
 			// If the shape is not a sphere, we continue.
 			sphere, ok := shape.(*shapes.Sphere)
 			if !ok {
 				continue outer
 			}
-
 			// If the shape is intersecting, we continue.
 			if sphere.Center.Sub(center).Mag() < sphere.Radius+radius {
 				continue outer
@@ -117,20 +129,36 @@ outer:
 		}
 
 		// Choose a material randomly.
-		matChooser := random.Float()
 		var mat mats.Material
-
-		//nolint:gocritic // Switch statement not possible.
-		if matChooser < 0.667 {
+		switch matChooser := random.Float(); {
+		case matChooser < 0.667:
 			mat = mats.NewMatte(random.Vec3().ToColour())
-		} else if matChooser < 0.9 {
+		case matChooser < 0.9:
 			mat = mats.NewMetallic(random.Vec3().ToColour(), random.FloatBetween(0, 0.5))
-		} else {
+		default:
 			mat = mats.NewGlass(1.5)
 		}
 
-		// Add to the world.
-		world.Shapes = append(world.Shapes, shapes.NewSphere(center, radius, mat))
+		// Add to the list.
+		list = append(list, shapes.NewSphere(center, radius, mat))
 		i++
 	}
+
+	return list
+}
+
+// cpuProfiler starts CPU profiling and returns a function to stop it.
+func cpuProfiler() (func(), error) {
+	// Create file to store profiling data.
+	profile, err := os.Create("./pprof/cpu.pprof")
+	if err != nil {
+		return nil, fmt.Errorf("could not create file for CPU profiling: %w", err)
+	}
+
+	// Start profiling.
+	if err := pprof.StartCPUProfile(profile); err != nil {
+		return nil, fmt.Errorf("could not start CPU profiling: %w", err)
+	}
+
+	return func() { pprof.StopCPUProfile() }, nil
 }
