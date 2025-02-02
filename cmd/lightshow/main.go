@@ -41,7 +41,7 @@ var renderOptions = &renderer.Options{
 	ImageHeight:       imageHeight,
 	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
 	MaxDiffusionDepth: 50,
-	SamplesPerPixel:   20,
+	SamplesPerPixel:   50,
 	MaxWorkers:        runtime.NumCPU(),
 	OutputFile:        fmt.Sprintf("./dist/image-%d.jpg", time.Now().Unix()),
 }

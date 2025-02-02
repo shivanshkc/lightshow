@@ -22,31 +22,5 @@ linters-settings:
     custom-order: true
 
 linters:
-  # Initially all linters are enabled.
-  enable-all: true
-  # Following linters are disabled.
-  disable:
-    - deadcode
-    - depguard # TODO: Explore this linter.
-    - exhaustivestruct
-    - exhaustruct
-    - forbidigo
-    - gochecknoglobals
-    - godox
-    - goerr113
-    - golint
-    - gomnd
-    - ifshort
-    - interfacer
-    - ireturn
-    - maligned
-    - nlreturn
-    - nosnakecase
-    - scopelint
-    - structcheck
-    - tagliatelle
-    - testpackage
-    - paralleltest
-    - varcheck
-    - varnamelen
-    - wsl
+  enable:
+    - gci
