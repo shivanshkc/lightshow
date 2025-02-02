@@ -10,7 +10,7 @@ import (
 // Sphere represents the sphere shape. It implements the Shape interface.
 type Sphere struct {
 	// Center is the position vector for the center of the sphere.
-	Center *utils.Vec3
+	Center utils.Vec3
 	// Radius of the sphere.
 	Radius float64
 
@@ -19,14 +19,13 @@ type Sphere struct {
 }
 
 // NewSphere returns a new sphere.
-func NewSphere(center *utils.Vec3, radius float64, mat mats.Material) *Sphere {
+func NewSphere(center utils.Vec3, radius float64, mat mats.Material) *Sphere {
 	return &Sphere{Center: center, Radius: radius, Mat: mat}
 }
 
-func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
+func (s *Sphere) Hit(ray utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	// To understand the math, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
-
 	oc := ray.Origin.Sub(s.Center)
 
 	// These are the coefficients of the quadractic equation.
@@ -45,13 +44,13 @@ func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	}
 
 	// To save calculations.
-	sqrtDiscrim := math.Sqrt(discriminant)
+	sqrtDisc := math.Sqrt(discriminant)
 
 	// The smaller root of the equation.
-	closerRoot := (-bHalf - sqrtDiscrim) / a
+	closerRoot := (-bHalf - sqrtDisc) / a
 	if !isWithin(closerRoot, minD, maxD) {
 		// The bigger root of the equation.
-		closerRoot = (-bHalf + sqrtDiscrim) / a
+		closerRoot = (-bHalf + sqrtDisc) / a
 		if !isWithin(closerRoot, minD, maxD) {
 			// Both hits are out of visual range.
 			return nil, false
@@ -76,6 +75,13 @@ func (s *Sphere) Hit(ray *utils.Ray, minD, maxD float64) (*mats.RayHit, bool) {
 	}
 
 	return rayHit, true
+}
+
+func (s *Sphere) BoundingBox() *AABB {
+	return &AABB{
+		Min: s.Center.Sub(utils.NewVec3(s.Radius, s.Radius, s.Radius)),
+		Max: s.Center.Add(utils.NewVec3(s.Radius, s.Radius, s.Radius)),
+	}
 }
 
 // isWithin checks if the given value is within min and max, both exclusive.

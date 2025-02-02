@@ -1,7 +1,7 @@
 package random
 
 import (
-	"time"
+	"hash/maphash"
 )
 
 // Float generates a random float in the [0, 1) interval.
@@ -9,13 +9,20 @@ import (
 // It does not use Go's standard random number generator
 // because of its poor concurrent performance.
 func Float() float64 {
-	seed := uint64(time.Now().Nanosecond())
+	// This seed generator is much faster than time.Now().
+	// TODO: Find an even faster seed generator.
+	seed := new(maphash.Hash).Sum64()
 	return xoshiro256StarStar(seed)
 }
 
-// FloatBetween generates a random float between the given min and max range.
+// FloatBetween generates a random float in the [min, max) interval.
 func FloatBetween(min, max float64) float64 {
 	return min + (Float() * (max - min))
+}
+
+// IntBetween generates a random int in the [min, max] interval.
+func IntBetween(min, max int) int {
+	return int(FloatBetween(float64(min), float64(max+1)))
 }
 
 // xoshiro256StarStar is a high-quality pseudo-random number generator (PRNG) algorithm.

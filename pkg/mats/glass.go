@@ -19,7 +19,7 @@ func NewGlass(ri float64) *Glass {
 	return &Glass{RefractiveIndex: ri}
 }
 
-func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Colour, bool) {
+func (g *Glass) Scatter(ray utils.Ray, hitInfo RayHit) (utils.Ray, utils.Colour, bool) {
 	// This method uses the physics of Total Internal Reflection and Schlick's approximation.
 	// To know more, visit-
 	// https://raytracing.github.io/books/RayTracingInOneWeekend.html#dielectrics/refraction
@@ -39,7 +39,7 @@ func (g *Glass) Scatter(ray *utils.Ray, hitInfo *RayHit) (*utils.Ray, *utils.Col
 	cannotRefract := rir*sine > 1
 
 	// Determine whether the ray will be reflected or refracted.
-	var scatterDir *utils.Vec3
+	var scatterDir utils.Vec3
 	if cannotRefract || schlickApprox(cosine, rir) > random.Float() {
 		scatterDir = ray.Dir.Reflected(hitInfo.Normal)
 	} else {

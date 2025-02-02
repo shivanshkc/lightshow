@@ -1,111 +1,76 @@
 # Lightshow
 
-Lightshow is a raytracer written purely in Go.
+A Go-based application designed to render complex light and shape interactions. The project includes a modular 
+architecture with key packages for rendering, shape handling, materials, and randomization utilities.
 
 ![Render](https://github.com/shivanshkc/lightshow/blob/main/showcase/image.jpg)
 
-## Quickstart
+## Features
 
-To render a scene using the default settings, go ahead and execute:
+- Efficient use of Goroutines with worker pooling for faster renders.
+- CPU profiling to locate performance bottlenecks.
+- Optimizations using Bounding Volume Hierarchies.
+- Configurable materials (matte, metallic, glass).
+- Camera system for scene manipulation.
+- Randomization utilities for generating variations in rendering.
 
-```bash
-make
+## Project Structure
+
+```
+lightshow/
+│
+├── cmd/
+│   └── lightshow/
+│       └── main.go          # Entry point of the application
+│
+├── pkg/
+│   ├── camera/              # Camera management
+│   ├── mats/                # Materials for rendering
+│   ├── renderer/            # Rendering engine and helpers
+│   ├── shapes/              # Shape definitions (spheres, BVH, etc.)
+│   ├── utils/               # Utility functions (ray, color, vector operations)
+│   └── random/              # Randomization utilities
+│
+├── dist/                    # Output directory for rendered images
+├── .github/                 # GitHub Actions workflows for CI/CD
+├── Makefile                 # Build automation
+├── go.mod                   # Go module definition
+├── go.sum                   # Module dependency checksums
+└── .golangci.yaml           # Linter configuration
 ```
 
-You will need to have Go installed for this to work.
+## Prerequisites
 
-## Details
+- [Go](https://golang.org/) (version 1.19 or higher)
+- Make (optional, for build automation)
 
-The rendering process is triggered by calling the `Render` method, which is available on the `Renderer` type. You can find the `Renderer` struct in the `pkg/renderer` package.
+## Setup and Installation
 
-The call would look something like this:
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/shivanshkc/lightshow.git
+   cd lightshow
+   ```
 
-```go
-var renderOptions = ... // TODO
-var world = ... // TODO
+2. Install dependencies:
+   ```sh
+   go mod tidy
+   ```
 
-// Start rendering.
-if err := renderer.New(renderOptions).Render(world); err != nil {
-    panic(fmt.Errorf("failed to render: %w", err))
-}
-```
+3. Run the application:
+   ```sh
+   go run cmd/lightshow/main.go
+   ```
 
-Now, let's focus on the `renderOptions` and `world` values.
+## Development
 
-### RenderOptions
+- Follow the coding style defined in `.golangci.yaml`.
+- Use the Makefile for common tasks, such as building and testing.
 
-Quickstart value:
+## Contributing
 
-```go
-const (
-	// aspectRatio of the rendered image.
-	aspectRatio = 16.0 / 9.0
-	imageHeight = 720
-)
+Contributions are welcome! Please open an issue or submit a pull request.
 
-var cameraOptions = &camera.Options{
-	LookFrom:            utils.NewVec3(13, 2, 3),
-	LookAt:              utils.NewVec3(0, 0, 0),
-	Up:                  utils.NewVec3(0, 1, 0),
-	AspectRatio:         aspectRatio,
-	FieldOfViewVertical: 20,
-	Aperture:            0.1,
-	FocusDistance:       10,
-}
+## License
 
-var renderOptions = &renderer.Options{
-	Camera:            camera.New(cameraOptions),
-	ImageWidth:        imageHeight * aspectRatio,
-	ImageHeight:       imageHeight,
-	SkyColour:         utils.NewColour(0.5, 0.75, 1.0),
-	MaxDiffusionDepth: 50,
-	SamplesPerPixel:   50,
-	MaxWorkers:        400,
-	OutputFile:        "./dist/image.jpg",
-}
-```
-
-As you can see, `RenderOptions` requires `CameraOptions` so we defined it first.
-
-All the fields in these options are documented in the code. Find `CameraOptions` definition in the `pkg/camera` package and that of `RenderOptions` in the `pkg/renderer` package.
-
-### World
-
-World is a simple slice of shapes that will be rendered.
-
-Quickstart value:
-
-```go
-var world = shapes.NewGroup(
-	// Ground.
-	&shapes.Sphere{
-		Center: utils.NewVec3(0, -100000, 0),
-		Radius: 100000,
-		Mat:    mats.NewMatte(utils.NewColour(0.5, 0.5, 1)),
-	},
-	// Middle glass sphere.
-	&shapes.Sphere{
-		Center: utils.NewVec3(0, 1, 0),
-		Radius: 1.0,
-		Mat:    mats.NewGlass(1.5),
-	},
-	// Front metallic sphere.
-	&shapes.Sphere{
-		Center: utils.NewVec3(4, 1, 0),
-		Radius: 1.0,
-		Mat:    mats.NewMetallic(utils.NewColour(0.7, 0.6, 0.5), 0),
-	},
-	// Back matte sphere.
-	&shapes.Sphere{
-		Center: utils.NewVec3(-4, 1, 0),
-		Radius: 1.0,
-		Mat:    mats.NewMatte(utils.NewColour(0.4, 0.2, 0.1)),
-	},
-)
-```
-
-With these values defined, the `Render` method can now be called. It will take some time to render based on the number of shapes and other graphical properties.
-
-## References
-
-- [_Ray Tracing in One Weekend_](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
+This project is licensed under the MIT License. See the `LICENSE` file for details.
