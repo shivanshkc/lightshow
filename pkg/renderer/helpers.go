@@ -1,6 +1,7 @@
 package renderer
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -87,7 +88,7 @@ func encodePPM(img image.Image, file io.Writer) error {
 			// Convert the pixel colour to RGBA.
 			col, asserted := img.At(x, y).(color.RGBA)
 			if !asserted {
-				return fmt.Errorf("failed to encode PPM: image contains invalid pixel value")
+				return errors.New("failed to encode PPM: image contains invalid pixel value")
 			}
 
 			// Write the PPM line.
