@@ -1,10 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"net/http"
+	"os"
 	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"github.com/shivanshkc/lightshow/pkg/camera"
@@ -13,8 +13,6 @@ import (
 	"github.com/shivanshkc/lightshow/pkg/renderer"
 	"github.com/shivanshkc/lightshow/pkg/shapes"
 	"github.com/shivanshkc/lightshow/pkg/utils"
-
-	_ "net/http/pprof" //nolint:gosec // It's not an HTTP application.
 )
 
 var (
@@ -75,8 +73,13 @@ var shapeList = []shapes.Shape{
 }
 
 func main() {
-	// Profiling.
-	go pprof()
+	// Profile CPU.
+	stopper, err := cpuProfiler()
+	if err != nil {
+		panic("cpu profiling failed: " + err.Error())
+	}
+	// Stop upon return.
+	defer stopper()
 
 	// Log execution time.
 	start := time.Now()
@@ -94,19 +97,6 @@ func main() {
 // makeBVH makes a BVH out of the given shapes.
 func makeBVH(list []shapes.Shape) *shapes.BVHNode {
 	return shapes.NewBVHNode(addRandomShapes(list)...)
-}
-
-// pprof enables profiling and sets up an HTTP server for pprof endpoints.
-func pprof() {
-	// Enable block profiling.
-	runtime.SetBlockProfileRate(1)
-	// Enable mutex profiling.
-	runtime.SetMutexProfileFraction(1)
-
-	//nolint:gosec // No need for timeouts.
-	if err := http.ListenAndServe(":6060", nil); errors.Is(err, http.ErrServerClosed) {
-		panic(fmt.Errorf("error in ListenAndServe for pprof: %w", err))
-	}
 }
 
 // addRandomShapes adds random shapes to the given list for a cool render.
@@ -155,4 +145,20 @@ outer:
 	}
 
 	return list
+}
+
+// cpuProfiler starts CPU profiling and returns a function to stop it.
+func cpuProfiler() (func(), error) {
+	// Create file to store profiling data.
+	profile, err := os.Create("./pprof/cpu.pprof")
+	if err != nil {
+		return nil, fmt.Errorf("could not create file for CPU profiling: %w", err)
+	}
+
+	// Start profiling.
+	if err := pprof.StartCPUProfile(profile); err != nil {
+		return nil, fmt.Errorf("could not start CPU profiling: %w", err)
+	}
+
+	return func() { pprof.StopCPUProfile() }, nil
 }
