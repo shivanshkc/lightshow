@@ -1,4 +1,6 @@
 import { Camera } from '../core/Camera';
+import { SceneBuffer } from '../core/SceneBuffer';
+import { SceneObject } from '../core/types';
 import raytracerWGSL from './shaders/raytracer.wgsl?raw';
 
 /**
@@ -14,6 +16,7 @@ export class RaytracingPipeline {
   private outputTextureView: GPUTextureView | null = null;
 
   private cameraBuffer: GPUBuffer;
+  private sceneBuffer: SceneBuffer;
 
   private width: number = 0;
   private height: number = 0;
@@ -26,6 +29,9 @@ export class RaytracingPipeline {
       size: 144, // 36 * 4 bytes
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+
+    // Create scene buffer
+    this.sceneBuffer = new SceneBuffer(device);
 
     // Create bind group layout
     this.bindGroupLayout = device.createBindGroupLayout({
@@ -43,6 +49,16 @@ export class RaytracingPipeline {
             format: 'rgba8unorm',
             viewDimension: '2d',
           },
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' },
+        },
+        {
+          binding: 3,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' },
         },
       ],
     });
@@ -81,14 +97,24 @@ export class RaytracingPipeline {
     this.outputTexture = this.device.createTexture({
       size: { width, height },
       format: 'rgba8unorm',
-      usage:
-        GPUTextureUsage.STORAGE_BINDING |
-        GPUTextureUsage.TEXTURE_BINDING,
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
 
     this.outputTextureView = this.outputTexture.createView();
 
     // Recreate bind group with new texture
+    this.recreateBindGroup();
+  }
+
+  /**
+   * Recreate bind group (needed when texture changes)
+   */
+  private recreateBindGroup(): void {
+    if (!this.outputTextureView) return;
+
+    const sceneBuffer = this.sceneBuffer.getBuffer();
+    const headerSize = SceneBuffer.getHeaderSize();
+
     this.bindGroup = this.device.createBindGroup({
       layout: this.bindGroupLayout,
       entries: [
@@ -100,6 +126,14 @@ export class RaytracingPipeline {
           binding: 1,
           resource: this.outputTextureView,
         },
+        {
+          binding: 2,
+          resource: { buffer: sceneBuffer, offset: 0, size: headerSize },
+        },
+        {
+          binding: 3,
+          resource: { buffer: sceneBuffer, offset: headerSize },
+        },
       ],
     });
   }
@@ -110,6 +144,13 @@ export class RaytracingPipeline {
   updateCamera(camera: Camera): void {
     const data = camera.getUniformData();
     this.device.queue.writeBuffer(this.cameraBuffer, 0, data);
+  }
+
+  /**
+   * Update scene objects buffer
+   */
+  updateScene(objects: SceneObject[]): void {
+    this.sceneBuffer.upload(objects);
   }
 
   /**
@@ -150,9 +191,9 @@ export class RaytracingPipeline {
    */
   destroy(): void {
     this.cameraBuffer.destroy();
+    this.sceneBuffer.destroy();
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
   }
 }
-
