@@ -1,4 +1,7 @@
 import { WebGPUContext } from './webgpu';
+import { RaytracingPipeline } from './RaytracingPipeline';
+import { BlitPipeline } from './BlitPipeline';
+import { Camera } from '../core/Camera';
 
 export interface RendererStats {
   fps: number;
@@ -10,19 +13,48 @@ export class Renderer {
   private device: GPUDevice;
   private context: GPUCanvasContext;
   private format: GPUTextureFormat;
-  
+
+  private raytracingPipeline: RaytracingPipeline;
+  private blitPipeline: BlitPipeline;
+  private camera: Camera;
+
+  private width: number = 0;
+  private height: number = 0;
+
   private animationFrameId: number | null = null;
   private lastFrameTime: number = 0;
   private frameCount: number = 0;
   private fps: number = 0;
   private fpsUpdateTime: number = 0;
-  
-  private clearColor: GPUColor = { r: 0.05, g: 0.05, b: 0.08, a: 1.0 };
 
   constructor(ctx: WebGPUContext) {
     this.device = ctx.device;
     this.context = ctx.context;
     this.format = ctx.format;
+
+    // Initialize camera
+    this.camera = new Camera();
+
+    // Initialize pipelines
+    this.raytracingPipeline = new RaytracingPipeline(this.device);
+    this.blitPipeline = new BlitPipeline(this.device, this.format);
+  }
+
+  /**
+   * Update render dimensions (call when canvas resizes)
+   */
+  resize(width: number, height: number): void {
+    if (width === this.width && height === this.height) return;
+    if (width <= 0 || height <= 0) return;
+
+    this.width = width;
+    this.height = height;
+
+    // Update camera aspect ratio
+    this.camera.setAspect(width / height);
+
+    // Resize raytracing output
+    this.raytracingPipeline.resizeOutput(width, height);
   }
 
   /**
@@ -30,7 +62,7 @@ export class Renderer {
    */
   start(): void {
     if (this.animationFrameId !== null) return;
-    
+
     this.lastFrameTime = performance.now();
     this.fpsUpdateTime = this.lastFrameTime;
     this.render();
@@ -47,10 +79,10 @@ export class Renderer {
   }
 
   /**
-   * Set the clear color
+   * Get the camera for external manipulation
    */
-  setClearColor(color: GPUColor): void {
-    this.clearColor = color;
+  getCamera(): Camera {
+    return this.camera;
   }
 
   /**
@@ -69,11 +101,13 @@ export class Renderer {
    */
   destroy(): void {
     this.stop();
+    this.raytracingPipeline.destroy();
+    this.blitPipeline.destroy();
   }
 
   private render = (): void => {
     const now = performance.now();
-    
+
     // Update FPS counter
     this.frameCount++;
     if (now - this.fpsUpdateTime >= 1000) {
@@ -83,23 +117,28 @@ export class Renderer {
     }
     this.lastFrameTime = now;
 
-    // Get current texture
-    const textureView = this.context.getCurrentTexture().createView();
+    // Skip render if not sized yet
+    if (this.width === 0 || this.height === 0) {
+      this.animationFrameId = requestAnimationFrame(this.render);
+      return;
+    }
+
+    // Update camera uniform buffer
+    this.raytracingPipeline.updateCamera(this.camera);
 
     // Create command encoder
     const commandEncoder = this.device.createCommandEncoder();
 
-    // Create render pass that clears to our color
-    const renderPass = commandEncoder.beginRenderPass({
-      colorAttachments: [{
-        view: textureView,
-        clearValue: this.clearColor,
-        loadOp: 'clear',
-        storeOp: 'store',
-      }],
-    });
+    // 1. Run raytracing compute pass
+    this.raytracingPipeline.dispatch(commandEncoder);
 
-    renderPass.end();
+    // 2. Blit result to screen
+    const targetView = this.context.getCurrentTexture().createView();
+    const sourceView = this.raytracingPipeline.getOutputTextureView();
+
+    if (sourceView) {
+      this.blitPipeline.render(commandEncoder, targetView, sourceView);
+    }
 
     // Submit commands
     this.device.queue.submit([commandEncoder.finish()]);
@@ -108,4 +147,3 @@ export class Renderer {
     this.animationFrameId = requestAnimationFrame(this.render);
   };
 }
-
