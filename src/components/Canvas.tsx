@@ -10,6 +10,7 @@ export type CanvasStatus = 'loading' | 'ready' | 'error';
 
 export function Canvas({ className }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contextRef = useRef<WebGPUContext | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -29,10 +30,20 @@ export function Canvas({ className }: CanvasProps) {
           return;
         }
 
+        contextRef.current = ctx;
         const renderer = new Renderer(ctx);
         rendererRef.current = renderer;
-        renderer.start();
         
+        // Initial resize
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const width = Math.max(1, Math.floor(rect.width * dpr));
+        const height = Math.max(1, Math.floor(rect.height * dpr));
+        canvas.width = width;
+        canvas.height = height;
+        renderer.resize(width, height);
+        
+        renderer.start();
         setStatus('ready');
       } catch (err) {
         if (!mounted) return;
@@ -49,6 +60,10 @@ export function Canvas({ className }: CanvasProps) {
       mounted = false;
       rendererRef.current?.destroy();
       rendererRef.current = null;
+      if (contextRef.current) {
+        contextRef.current.device.destroy();
+        contextRef.current = null;
+      }
     };
   }, []);
 
@@ -64,8 +79,14 @@ export function Canvas({ className }: CanvasProps) {
       const { width, height } = entry.contentRect;
       const dpr = window.devicePixelRatio || 1;
       
-      canvas.width = Math.max(1, Math.floor(width * dpr));
-      canvas.height = Math.max(1, Math.floor(height * dpr));
+      const pixelWidth = Math.max(1, Math.floor(width * dpr));
+      const pixelHeight = Math.max(1, Math.floor(height * dpr));
+      
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+      
+      // Update renderer dimensions
+      rendererRef.current?.resize(pixelWidth, pixelHeight);
     });
 
     observer.observe(canvas);
