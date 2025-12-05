@@ -17,6 +17,17 @@ struct CameraUniforms {
 }
 
 // ============================================
+// Render Settings
+// ============================================
+
+struct RenderSettings {
+  frameIndex: u32,
+  samplesPerPixel: u32,
+  maxBounces: u32,
+  flags: u32,  // bit 0: accumulate
+}
+
+// ============================================
 // Scene Data Structures
 // ============================================
 
@@ -52,9 +63,11 @@ struct SceneObject {
 // ============================================
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
-@group(0) @binding(1) var outputTexture: texture_storage_2d<rgba8unorm, write>;
-@group(0) @binding(2) var<storage, read> sceneHeader: SceneHeader;
-@group(0) @binding(3) var<storage, read> sceneObjects: array<SceneObject>;
+@group(0) @binding(1) var<uniform> settings: RenderSettings;
+@group(0) @binding(2) var outputTexture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(3) var accumulationTexture: texture_storage_2d<rgba32float, read_write>;
+@group(0) @binding(4) var<storage, read> sceneHeader: SceneHeader;
+@group(0) @binding(5) var<storage, read> sceneObjects: array<SceneObject>;
 
 // ============================================
 // Random Number Generation (PCG)
@@ -268,7 +281,7 @@ fn generateRay(pixelCoord: vec2<f32>, resolution: vec2<f32>) -> Ray {
 }
 
 // ============================================
-// Scene Tracing (Dynamic)
+// Scene Tracing
 // ============================================
 
 fn traceScene(ray: Ray) -> HitResult {
@@ -282,7 +295,7 @@ fn traceScene(ray: Ray) -> HitResult {
   for (var i = 0u; i < objectCount; i++) {
     let obj = sceneObjects[i];
     
-    // Build rotation matrix and its inverse (transpose for orthogonal matrix)
+    // Build rotation matrix and its inverse
     let rotMat = rotationMatrix(obj.rotation);
     let invRotMat = transpose(rotMat);
     
@@ -294,10 +307,10 @@ fn traceScene(ray: Ray) -> HitResult {
     var hit: HitRecord;
     
     if (obj.objectType == 0u) {
-      // Sphere - use scale.x as radius (uniform scale)
+      // Sphere
       hit = intersectSphere(localRay, vec3<f32>(0.0), obj.scale.x);
     } else {
-      // Cuboid - use scale as half-extents
+      // Cuboid
       hit = intersectBox(localRay, vec3<f32>(0.0), obj.scale);
     }
     
@@ -325,33 +338,64 @@ fn sampleSky(direction: vec3<f32>) -> vec3<f32> {
 }
 
 // ============================================
-// Shading (Simple for now - will be upgraded with path tracing)
+// Path Tracing
 // ============================================
 
-fn shade(hit: HitResult, ray: Ray) -> vec3<f32> {
-  if (!hit.hit) {
-    // Sky gradient
-    return sampleSky(ray.direction);
+fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
+  var ray = primaryRay;
+  var throughput = vec3<f32>(1.0);
+  var radiance = vec3<f32>(0.0);
+  
+  for (var bounce = 0u; bounce < settings.maxBounces; bounce++) {
+    let hit = traceScene(ray);
+    
+    if (!hit.hit) {
+      // Hit sky - add sky contribution
+      radiance += throughput * sampleSky(ray.direction);
+      break;
+    }
+    
+    let obj = sceneObjects[hit.objectIndex];
+    
+    // Add emission from emissive objects
+    if (obj.emission > 0.0) {
+      radiance += throughput * obj.emissionColor * obj.emission;
+    }
+    
+    // Handle transparency (simple pass-through for now)
+    if (obj.transparency > 0.9 && randomFloat(rng) < obj.transparency) {
+      ray.origin = hit.position + ray.direction * EPSILON;
+      continue;
+    }
+    
+    // Diffuse sampling direction (cosine-weighted)
+    let diffuseDir = randomCosineHemisphere(rng, hit.normal);
+    
+    // Specular reflection direction
+    let reflectDir = reflect(ray.direction, hit.normal);
+    
+    // Blend based on roughness - low roughness = more specular
+    let isSpecular = randomFloat(rng) > obj.roughness;
+    let newDir = select(diffuseDir, reflectDir, isSpecular);
+    
+    // Update throughput with material color
+    throughput *= obj.color;
+    
+    // Russian roulette for path termination after a few bounces
+    if (bounce > 3u) {
+      let p = max(throughput.x, max(throughput.y, throughput.z));
+      if (randomFloat(rng) > p) {
+        break;
+      }
+      throughput /= p;
+    }
+    
+    // Setup next ray
+    ray.origin = hit.position + hit.normal * EPSILON;
+    ray.direction = newDir;
   }
   
-  let obj = sceneObjects[hit.objectIndex];
-  
-  // Simple directional lighting
-  let lightDir = normalize(vec3<f32>(1.0, 1.0, 1.0));
-  let NdotL = max(dot(hit.normal, lightDir), 0.0);
-  
-  // Ambient + diffuse
-  let ambient = 0.2;
-  let diffuse = NdotL * 0.8;
-  
-  var color = obj.color * (ambient + diffuse);
-  
-  // Add emission (emissive objects glow)
-  if (obj.emission > 0.0) {
-    color = color + obj.emissionColor * obj.emission;
-  }
-  
-  return color;
+  return radiance;
 }
 
 // ============================================
@@ -368,12 +412,49 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     return;
   }
   
-  // Initialize random state (for future use)
-  var rng = initRandom(globalId.xy, 0u);
+  // Initialize random state with pixel and frame
+  var rng = initRandom(globalId.xy, settings.frameIndex);
   
-  let ray = generateRay(pixelCoord + 0.5, resolution);  // +0.5 for pixel center
-  let hit = traceScene(ray);
-  let color = shade(hit, ray);
+  // Jitter for anti-aliasing
+  let jitter = randomFloat2(&rng) - 0.5;
+  let ray = generateRay(pixelCoord + 0.5 + jitter, resolution);
   
-  textureStore(outputTexture, vec2<i32>(globalId.xy), vec4<f32>(color, 1.0));
+  // Trace path
+  var color = trace(ray, &rng);
+  
+  // Clamp fireflies (extremely bright samples)
+  color = min(color, vec3<f32>(10.0));
+  
+  // Accumulation
+  let pixelIndex = vec2<i32>(globalId.xy);
+  var accumulated: vec4<f32>;
+  
+  // Check if we should accumulate or reset
+  let shouldAccumulate = (settings.flags & 1u) != 0u;
+  
+  if (settings.frameIndex == 0u || !shouldAccumulate) {
+    // First frame or no accumulation - just use current sample
+    accumulated = vec4<f32>(color, 1.0);
+  } else {
+    // Progressive accumulation using running average
+    let previous = textureLoad(accumulationTexture, pixelIndex);
+    let totalSamples = f32(settings.frameIndex + 1u);
+    // Incremental mean: new_avg = old_avg + (new_val - old_avg) / n
+    accumulated = vec4<f32>(
+      previous.rgb + (color - previous.rgb) / totalSamples,
+      1.0
+    );
+  }
+  
+  // Store accumulated result
+  textureStore(accumulationTexture, pixelIndex, accumulated);
+  
+  // Tone mapping (Reinhard) and gamma correction for output
+  var finalColor = accumulated.rgb;
+  finalColor = finalColor / (finalColor + vec3<f32>(1.0));
+  
+  // Gamma correction (sRGB)
+  finalColor = pow(finalColor, vec3<f32>(1.0 / 2.2));
+  
+  textureStore(outputTexture, pixelIndex, vec4<f32>(finalColor, 1.0));
 }
