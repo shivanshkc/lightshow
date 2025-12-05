@@ -12,8 +12,10 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "nanoid": "^5.1.6",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@testing-library/react": "^14.1.0",
