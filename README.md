@@ -1,108 +1,145 @@
+# Lightshow
 
+A browser-based WebGPU raytracing application for creating and rendering 3D scenes with physically accurate lighting.
 
-## What is PRP?
+## Overview
 
-Product Requirement Prompt (PRP)
+Lightshow allows users to:
+- Add primitive objects (spheres, cuboids) to a scene
+- Transform objects using intuitive gizmos (translate, rotate, scale)
+- Customize materials (color, roughness, metallic, transparency, emission)
+- View real-time raytraced renders with global illumination
+- Save/load scenes and export rendered images
 
-## In short
+## Technology
 
-A PRP is PRD + curated codebase intelligence + agent/runbook—the minimum viable packet an AI needs to plausibly ship production-ready code on the first pass.
+- **Rendering**: WebGPU with WGSL compute shaders
+- **Frontend**: React 18 + TypeScript 5
+- **Styling**: Tailwind CSS (dark theme)
+- **State**: Zustand
+- **Build**: Vite 5
+- **Testing**: Vitest
 
-Product Requirement Prompt (PRP) is a structured prompt methodology first established in summer 2024 with context engineering at heart. A PRP supplies an AI coding agent with everything it needs to deliver a vertical slice of working software—no more, no less.
+## Project Documentation
 
-### How PRP Differs from Traditional PRD
+This repository contains comprehensive development documentation:
 
-A traditional PRD clarifies what the product must do and why customers need it, but deliberately avoids how it will be built.
+| File | Description |
+|------|-------------|
+| `PRP.md` | Product Requirements Prompt — full feature specification |
+| `EXECUTE.md` | AI execution prompt for automated development |
+| `stages/` | 14 detailed stage PRPs for incremental development |
+| `commits/` | 63 atomic commit specifications with tests |
 
-A PRP keeps the goal and justification sections of a PRD yet adds three AI-critical layers:
+### Documentation Structure
 
-### Context
+```
+lightshow/
+├── PRP.md                    # Main product requirements
+├── EXECUTE.md                # AI execution instructions
+├── stages/
+│   ├── README.md             # Stages overview
+│   ├── STAGE_01_*.md         # Project setup
+│   ├── STAGE_02_*.md         # Basic raytracer
+│   └── ...                   # Stages 03-14
+└── commits/
+    ├── README.md             # Commits overview
+    ├── STAGE_01_COMMITS.md   # Stage 1 commits
+    ├── STAGE_02_COMMITS.md   # Stage 2 commits
+    └── ...                   # Stages 03-14
+```
 
-Precise file paths and content, library versions and library context, code snippets examples. LLMs generate higher-quality code when given direct, in-prompt references instead of broad descriptions. Usage of a ai_docs/ directory to pipe in library and other docs.
+## Development
 
+### For AI-Assisted Development
 
+To have an AI model build this project from scratch:
 
+1. Provide the AI with access to this repository
+2. Instruct it to read and follow `EXECUTE.md`
+3. The AI will implement all 63 commits across 14 stages
 
-## Using Cursor Workflows
+### For Manual Development
 
-The `cursor_workflows/` directory contains workflow files that integrate with Cursor's AI capabilities.
+1. Read `PRP.md` to understand the product
+2. Follow stages in `stages/` directory in order
+3. Use commit specs in `commits/` for atomic implementation
 
-### Available Workflows
+### Commands
 
-1. **PRP Creation & Execution**:
-   - `@prime_context.md` - Load project context and understand PRP methodology
-   - `@prp_create.md <feature>` - Generate comprehensive PRPs with research
-   - `@prp_execute.md <prp-file>` - Execute PRPs against codebase
+```bash
+# Install dependencies
+npm install
 
-2. **Code Review**:
-   - `@code_review.md` - Review code changes using PRP methodology
+# Start development server
+npm run dev
 
-### How to Use Workflows
+# Run tests
+npm test
 
-1. **In Cursor**, use the `@` symbol followed by the workflow name
-2. **Example usage**:
-   ```
-   @prime_context.md
-   @prp_create.md user authentication system with OAuth2
-   @prp_execute.md PRPs/user-auth.md
-   @code_review.md
-   ```
+# Build for production
+npm run build
 
-## Using PRPs
+# Type check
+npx tsc --noEmit
+```
 
-### Creating a PRP
+## Features (v1.0)
 
-1. **Prime your context** first:
-   ```
-   @prime_context.md
-   ```
+### Scene Management
+- Add sphere and cuboid primitives
+- Select, delete, duplicate objects
+- Rename objects
+- Toggle visibility
 
-2. **Create a comprehensive PRP**:
-   ```
-   @prp_create.md implement user authentication with JWT tokens
-   ```
+### Transformations
+- Translation gizmo with axis/plane constraints
+- Rotation gizmo with trackball
+- Scale gizmo (uniform for spheres)
+- Grid snapping (Ctrl key)
 
-3. **Or manually use the template**:
-   ```bash
-   cp PRPs/templates/prp_base.md PRPs/my-feature.md
-   ```
+### Materials
+- Base color picker
+- Roughness (0 = mirror, 1 = matte)
+- Metallic (0 = dielectric, 1 = metal)
+- Transparency with IOR
+- Emission with color
 
-### Executing a PRP
+### Camera
+- Orbit (left-drag)
+- Pan (middle-drag or Shift+left)
+- Zoom (scroll)
+- Focus on selection (F key)
+- Reset (Home key)
 
-1. **Using Cursor workflow** (recommended):
-   ```
-   @prp_execute.md PRPs/my-feature.md
-   ```
+### Persistence
+- Save/load scene (JSON)
+- Export image (PNG)
+- Auto-save with recovery
 
+### Keyboard Shortcuts
 
-### PRP Best Practices
+| Key | Action |
+|-----|--------|
+| W / G | Translate mode |
+| E | Rotate mode |
+| R / S | Scale mode |
+| Delete | Delete selected |
+| Ctrl+D | Duplicate |
+| Ctrl+Z | Undo |
+| Ctrl+Shift+Z | Redo |
+| Escape | Deselect |
+| F | Focus on selected |
+| Home | Reset camera |
 
-1. **Context is King**: Include ALL necessary documentation, examples, and caveats
-2. **Validation Loops**: Provide executable tests/lints the AI can run and fix
-3. **Information Dense**: Use keywords and patterns from the codebase
-4. **Progressive Success**: Start simple, validate, then enhance
+## Browser Requirements
 
-### Example PRP Structure
+WebGPU is required:
+- Chrome 113+
+- Edge 113+
+- Safari 17+ (macOS/iOS)
+- Firefox 130+ (with flag)
 
-```markdown
-## Goal
+## License
 
-Implement user authentication with JWT tokens
-
-## Why
-
-- Enable secure user sessions
-- Support API authentication
-- Replace basic auth with industry standard
-
-## What
-
-JWT-based authentication system with login, logout, and token refresh
-
-### Success Criteria
-
-- [ ] Users can login with email/password
-- [ ] JWT tokens expire after 24 hours
-- [ ] Refresh tokens work correctly
-- [ ] All endpoints properly secured
-
+MIT
