@@ -8,6 +8,7 @@ export interface RendererStats {
   fps: number;
   frameTime: number;
   frameCount: number;
+  sampleCount: number;
 }
 
 export class Renderer {
@@ -28,7 +29,8 @@ export class Renderer {
   private fps: number = 0;
   private fpsUpdateTime: number = 0;
 
-  private unsubscribe: (() => void) | null = null;
+  private sceneUnsubscribe: (() => void) | null = null;
+  private previousObjectsRef: unknown = null;
 
   constructor(ctx: WebGPUContext) {
     this.device = ctx.device;
@@ -42,8 +44,15 @@ export class Renderer {
     this.raytracingPipeline = new RaytracingPipeline(this.device);
     this.blitPipeline = new BlitPipeline(this.device, this.format);
 
-    // Subscribe to scene store changes
-    this.unsubscribe = useSceneStore.subscribe((state) => {
+    // Subscribe to scene store changes - reset accumulation when objects change
+    this.previousObjectsRef = useSceneStore.getState().objects;
+    this.sceneUnsubscribe = useSceneStore.subscribe((state) => {
+      // Check if objects array reference changed (indicates modification)
+      if (state.objects !== this.previousObjectsRef) {
+        this.previousObjectsRef = state.objects;
+        this.raytracingPipeline.resetAccumulation();
+      }
+      // Update scene data
       this.raytracingPipeline.updateScene(state.objects);
     });
 
@@ -65,7 +74,7 @@ export class Renderer {
     // Update camera aspect ratio
     this.camera.setAspect(width / height);
 
-    // Resize raytracing output
+    // Resize raytracing output (this resets accumulation)
     this.raytracingPipeline.resizeOutput(width, height);
   }
 
@@ -98,6 +107,20 @@ export class Renderer {
   }
 
   /**
+   * Reset accumulation (call when camera changes)
+   */
+  resetAccumulation(): void {
+    this.raytracingPipeline.resetAccumulation();
+  }
+
+  /**
+   * Get current sample count
+   */
+  getSampleCount(): number {
+    return this.raytracingPipeline.getFrameIndex();
+  }
+
+  /**
    * Get current renderer statistics
    */
   getStats(): RendererStats {
@@ -105,6 +128,7 @@ export class Renderer {
       fps: this.fps,
       frameTime: performance.now() - this.lastFrameTime,
       frameCount: this.frameCount,
+      sampleCount: this.raytracingPipeline.getFrameIndex(),
     };
   }
 
@@ -115,9 +139,9 @@ export class Renderer {
     this.stop();
 
     // Unsubscribe from store
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+    if (this.sceneUnsubscribe) {
+      this.sceneUnsubscribe();
+      this.sceneUnsubscribe = null;
     }
 
     this.raytracingPipeline.destroy();
