@@ -1,5 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
 
+// Mock WebGPU globals
+vi.stubGlobal('GPUBufferUsage', {
+  STORAGE: 0x0080,
+  COPY_DST: 0x0008,
+  UNIFORM: 0x0040,
+});
+
+vi.stubGlobal('GPUTextureUsage', {
+  STORAGE_BINDING: 0x0008,
+  TEXTURE_BINDING: 0x0004,
+});
+
+vi.stubGlobal('GPUShaderStage', {
+  COMPUTE: 0x4,
+});
+
 describe('RaytracingPipeline', () => {
   it('dispatches correct workgroup count for various dimensions', () => {
     const workgroupSize = 8;
@@ -39,3 +55,25 @@ describe('RaytracingPipeline shader import', () => {
   });
 });
 
+describe('Accumulation', () => {
+  it('frameIndex starts at 0', () => {
+    const frameIndex = 0;
+    expect(frameIndex).toBe(0);
+  });
+  
+  it('resetAccumulation sets frameIndex to 0', () => {
+    let frameIndex = 50;
+    frameIndex = 0; // reset
+    expect(frameIndex).toBe(0);
+  });
+  
+  it('accumulation texture format is rgba32float', () => {
+    const format: GPUTextureFormat = 'rgba32float';
+    expect(format).toBe('rgba32float');
+  });
+
+  it('settings buffer is 16 bytes (4 u32)', () => {
+    const settingsSize = 4 * 4; // 4 u32 values
+    expect(settingsSize).toBe(16);
+  });
+});

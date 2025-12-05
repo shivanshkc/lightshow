@@ -113,3 +113,23 @@ export function cloneSceneObject(obj: SceneObject): SceneObject {
   };
 }
 
+// ============================================
+// Render Settings
+// ============================================
+
+export interface RenderSettings {
+  frameIndex: number;
+  samplesPerPixel: number;
+  maxBounces: number;
+  accumulate: boolean;
+}
+
+export function createDefaultRenderSettings(): RenderSettings {
+  return {
+    frameIndex: 0,
+    samplesPerPixel: 1,
+    maxBounces: 8,
+    accumulate: true,
+  };
+}
+
