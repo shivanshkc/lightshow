@@ -59,6 +59,10 @@ describe('Scene integration', () => {
 });
 
 describe('Scene rendering flow', () => {
+  beforeEach(() => {
+    useSceneStore.getState().clear();
+  });
+
   it('objects are serializable for GPU', () => {
     useSceneStore.getState().addSphere();
     const objects = useSceneStore.getState().objects;
@@ -75,3 +79,37 @@ describe('Scene rendering flow', () => {
   });
 });
 
+describe('Accumulation reset', () => {
+  beforeEach(() => {
+    useSceneStore.getState().clear();
+  });
+
+  it('object reference changes when object added', () => {
+    const initialObjects = useSceneStore.getState().objects;
+    useSceneStore.getState().addSphere();
+    const newObjects = useSceneStore.getState().objects;
+    
+    // Reference should be different (immutable update)
+    expect(newObjects).not.toBe(initialObjects);
+  });
+
+  it('object reference changes when object modified', () => {
+    const id = useSceneStore.getState().addSphere();
+    const objectsBefore = useSceneStore.getState().objects;
+    
+    useSceneStore.getState().updateTransform(id, { position: [1, 0, 0] });
+    const objectsAfter = useSceneStore.getState().objects;
+    
+    expect(objectsAfter).not.toBe(objectsBefore);
+  });
+
+  it('object reference changes when object removed', () => {
+    const id = useSceneStore.getState().addSphere();
+    const objectsBefore = useSceneStore.getState().objects;
+    
+    useSceneStore.getState().removeObject(id);
+    const objectsAfter = useSceneStore.getState().objects;
+    
+    expect(objectsAfter).not.toBe(objectsBefore);
+  });
+});
