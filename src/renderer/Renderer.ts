@@ -2,6 +2,7 @@ import { WebGPUContext } from './webgpu';
 import { RaytracingPipeline } from './RaytracingPipeline';
 import { BlitPipeline } from './BlitPipeline';
 import { Camera } from '../core/Camera';
+import { useSceneStore } from '../store/sceneStore';
 
 export interface RendererStats {
   fps: number;
@@ -27,6 +28,8 @@ export class Renderer {
   private fps: number = 0;
   private fpsUpdateTime: number = 0;
 
+  private unsubscribe: (() => void) | null = null;
+
   constructor(ctx: WebGPUContext) {
     this.device = ctx.device;
     this.context = ctx.context;
@@ -38,6 +41,15 @@ export class Renderer {
     // Initialize pipelines
     this.raytracingPipeline = new RaytracingPipeline(this.device);
     this.blitPipeline = new BlitPipeline(this.device, this.format);
+
+    // Subscribe to scene store changes
+    this.unsubscribe = useSceneStore.subscribe((state) => {
+      this.raytracingPipeline.updateScene(state.objects);
+    });
+
+    // Initial scene sync
+    const initialObjects = useSceneStore.getState().objects;
+    this.raytracingPipeline.updateScene(initialObjects);
   }
 
   /**
@@ -101,6 +113,13 @@ export class Renderer {
    */
   destroy(): void {
     this.stop();
+
+    // Unsubscribe from store
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
+
     this.raytracingPipeline.destroy();
     this.blitPipeline.destroy();
   }
