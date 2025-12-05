@@ -13,7 +13,6 @@ describe('raytracer shader', () => {
     const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
     expect(shaderCode.default).toContain('CameraUniforms');
     expect(shaderCode.default).toContain('@group(0) @binding(0)');
-    expect(shaderCode.default).toContain('@group(0) @binding(1)');
   });
 
   it('has ray generation function', async () => {
@@ -26,12 +25,6 @@ describe('raytracer shader', () => {
   it('has scene tracing function', async () => {
     const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
     expect(shaderCode.default).toContain('traceScene');
-  });
-
-  it('has shading function with sky gradient', async () => {
-    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
-    expect(shaderCode.default).toContain('shade');
-    expect(shaderCode.default).toContain('Sky gradient');
   });
 });
 
@@ -51,12 +44,6 @@ describe('raytracer shader - dynamic scene', () => {
   it('reads from sceneObjects array', async () => {
     const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
     expect(shaderCode.default).toContain('sceneObjects: array<SceneObject>');
-  });
-
-  it('has scene buffer bindings', async () => {
-    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
-    expect(shaderCode.default).toContain('@group(0) @binding(2)');
-    expect(shaderCode.default).toContain('@group(0) @binding(3)');
   });
 
   it('has rotation matrix function', async () => {
@@ -90,5 +77,42 @@ describe('Random shader functions', () => {
   it('shader initializes random state', async () => {
     const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
     expect(shaderCode.default).toContain('initRandom');
+  });
+});
+
+describe('Path tracing shader', () => {
+  it('has trace function with bounce loop', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('fn trace');
+    expect(shaderCode.default).toContain('for (var bounce');
+    expect(shaderCode.default).toContain('maxBounces');
+  });
+  
+  it('implements Russian roulette', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('Russian roulette');
+  });
+  
+  it('has tone mapping (Reinhard)', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('Reinhard');
+  });
+
+  it('has accumulation texture', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('accumulationTexture');
+  });
+
+  it('has RenderSettings struct', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('struct RenderSettings');
+    expect(shaderCode.default).toContain('frameIndex');
+    expect(shaderCode.default).toContain('maxBounces');
+  });
+
+  it('handles emission', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('obj.emission > 0.0');
+    expect(shaderCode.default).toContain('emissionColor');
   });
 });
