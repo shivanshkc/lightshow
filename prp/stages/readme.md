@@ -10,20 +10,20 @@ Each PRP is designed for **one-pass implementation** — containing all necessar
 
 | Stage | Name | Effort | Description |
 |-------|------|--------|-------------|
-| [01](./STAGE_01_PROJECT_SETUP.md) | Project Setup & WebGPU Foundation | Small | Vite, TypeScript, React, Tailwind, WebGPU init |
-| [02](./STAGE_02_BASIC_RAYTRACER.md) | Basic Raytracer | Medium | Ray generation, sphere/box intersection, normal shading |
-| [03](./STAGE_03_SCENE_DATA.md) | Scene Data Pipeline | Medium | Zustand store, GPU buffers, dynamic scene |
-| [04](./STAGE_04_LIGHTING.md) | Lighting & Shadows | Medium | Path tracing, shadows, global illumination |
-| [05](./STAGE_05_MATERIALS.md) | Materials System | Medium | Color, roughness, transparency, emission |
-| [06](./STAGE_06_CAMERA.md) | Camera Controls | Small | Orbit, pan, zoom, focus |
-| [07](./STAGE_07_UI_SHELL.md) | UI Shell | Medium | Three-panel layout, dark theme |
-| [08](./STAGE_08_SELECTION.md) | Object Selection & Picking | Medium | Click-to-select, raycasting |
-| [09](./STAGE_09_GIZMO_TRANSLATE.md) | Translation Gizmo | Large | Axis/plane translation, snapping |
-| [10](./STAGE_10_GIZMO_ROTATE_SCALE.md) | Rotation & Scale Gizmos | Large | Rotation rings, scale handles |
-| [11](./STAGE_11_PROPERTIES_PANEL.md) | Properties Panel | Medium | Transform inputs, material controls |
-| [12](./STAGE_12_SCENE_OPS.md) | Scene Operations | Medium | Delete, duplicate, undo/redo, rename |
-| [13](./STAGE_13_POLISH.md) | Polish & UX | Medium | Visual polish, performance, edge cases |
-| [14](./STAGE_14_EXPORT.md) | Export & Persistence | Small | Save/load JSON, export PNG, auto-save |
+| [01](./stage-01-project-setup.md) | Project Setup & WebGPU Foundation | Small | Vite, TypeScript, React, Tailwind, WebGPU init |
+| [02](./stage-02-basic-raytracer.md) | Basic Raytracer | Medium | Ray generation, sphere/box intersection, normal shading |
+| [03](./stage-03-scene-data.md) | Scene Data Pipeline | Medium | Zustand store, GPU buffers, dynamic scene |
+| [04](./stage-04-lighting.md) | Lighting & Shadows | Medium | Path tracing, shadows, global illumination |
+| [05](./stage-05-materials.md) | Materials System | Medium | Color, roughness, transparency, emission |
+| [06](./stage-06-camera.md) | Camera Controls | Small | Orbit, pan, zoom, focus |
+| [07](./stage-07-ui-shell.md) | UI Shell | Medium | Three-panel layout, dark theme |
+| [08](./stage-08-selection.md) | Object Selection & Picking | Medium | Click-to-select, raycasting |
+| [09](./stage-09-gizmo-translate.md) | Translation Gizmo | Large | Axis/plane translation, snapping |
+| [10](./stage-10-gizmo-rotate-scale.md) | Rotation & Scale Gizmos | Large | Rotation rings, scale handles |
+| [11](./stage-11-properties-panel.md) | Properties Panel | Medium | Transform inputs, material controls |
+| [12](./stage-12-scene-ops.md) | Scene Operations | Medium | Delete, duplicate, undo/redo, rename |
+| [13](./stage-13-polish.md) | Polish & UX | Medium | Visual polish, performance, edge cases |
+| [14](./stage-14-export.md) | Export & Persistence | Small | Save/load JSON, export PNG, auto-save |
 
 ---
 

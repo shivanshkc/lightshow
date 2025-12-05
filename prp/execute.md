@@ -21,14 +21,15 @@ This project follows a standardized documentation structure:
 
 ```
 project/
-├── PRP.md              # Product Requirements Prompt (main specification)
-├── EXECUTE.md          # This file (execution instructions)
-├── stages/
-│   ├── README.md       # Stages overview
-│   └── STAGE_XX_*.md   # Individual stage PRPs
-└── commits/
-    ├── README.md       # Commits overview  
-    └── STAGE_XX_COMMITS.md  # Commit specifications per stage
+├── EXECUTE.md                  # This file (execution instructions)
+└── prp/
+    ├── master.md               # Product Requirements Prompt (main specification)
+    ├── stages/
+    │   ├── README.md           # Stages overview
+    │   └── stage-XX-*.md       # Individual stage PRPs
+    └── commits/
+        ├── README.md           # Commits overview  
+        └── stage-XX-commits.md # Commit specifications per stage
 ```
 
 ---
@@ -37,7 +38,7 @@ project/
 
 Before starting, ensure:
 - [ ] You are in the project root directory
-- [ ] Required runtime/tools are available (check PRP.md for tech stack)
+- [ ] Required runtime/tools are available (check prp/master.md for tech stack)
 - [ ] Git is initialized in the project directory
 
 ---
@@ -48,7 +49,7 @@ Before starting, ensure:
 
 **Read the main Product Requirements Prompt:**
 ```
-Read file: PRP.md
+Read file: prp/master.md
 ```
 
 This file describes:
@@ -70,7 +71,7 @@ This file describes:
 
 **Read the stages overview:**
 ```
-Read file: stages/README.md
+Read file: prp/stages/README.md
 ```
 
 This provides:
@@ -81,7 +82,7 @@ This provides:
 
 **Then read each stage PRP as you reach it:**
 ```
-Read file: stages/STAGE_XX_*.md
+Read file: prp/stages/stage-XX-*.md
 ```
 
 ---
@@ -90,7 +91,7 @@ Read file: stages/STAGE_XX_*.md
 
 **Read the commits overview:**
 ```
-Read file: commits/README.md
+Read file: prp/commits/README.md
 ```
 
 This explains:
@@ -107,13 +108,13 @@ For each stage (in order), follow this process:
 
 #### 4.1 Read the Stage PRP
 ```
-Read file: stages/STAGE_XX_*.md
+Read file: prp/stages/stage-XX-*.md
 ```
 Understand the overall goal and technical approach for this stage.
 
 #### 4.2 Read the Stage Commits
 ```
-Read file: commits/STAGE_XX_COMMITS.md
+Read file: prp/commits/stage-XX-commits.md
 ```
 This contains the specific commits to implement.
 
@@ -160,10 +161,10 @@ For each stage, follow this exact process:
 === STAGE XX: [Stage Name] ===
 
 1. Read stage requirements:
-   → Read file: stages/STAGE_XX_*.md
+   → Read file: prp/stages/stage-XX-*.md
 
 2. Read commit specifications:
-   → Read file: commits/STAGE_XX_COMMITS.md
+   → Read file: prp/commits/stage-XX-commits.md
 
 3. For each commit (X.1, X.2, ...):
    
@@ -240,7 +241,7 @@ git status                    # Check status
 git log --oneline -10         # View recent commits
 ```
 
-### Testing (examples - check PRP for actual commands)
+### Testing (examples - check prp/master.md for actual commands)
 ```bash
 npm test                      # Node.js projects
 pytest                        # Python projects
@@ -283,7 +284,7 @@ The project is complete when:
 2. All tests pass
 3. Type checking passes (if applicable)
 4. The application runs correctly
-5. Manual testing confirms features work as specified in PRP.md
+5. Manual testing confirms features work as specified in prp/master.md
 
 ---
 
@@ -292,10 +293,10 @@ The project is complete when:
 Start with **Stage 1, Commit 1**.
 
 ```
-1. Read: PRP.md (understand what you're building)
-2. Read: stages/README.md (understand the stages)
-3. Read: stages/STAGE_01_*.md (first stage details)
-4. Read: commits/STAGE_01_COMMITS.md (first stage commits)
+1. Read: prp/master.md (understand what you're building)
+2. Read: prp/stages/README.md (understand the stages)
+3. Read: prp/stages/stage-01-*.md (first stage details)
+4. Read: prp/commits/stage-01-commits.md (first stage commits)
 5. Execute Commit 1.1 (first commit of first stage)
 ```
 
