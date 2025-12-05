@@ -8,20 +8,20 @@ This directory contains detailed commit breakdowns for each development stage. E
 
 | Stage | Commits | Focus |
 |-------|---------|-------|
-| [Stage 01](./STAGE_01_COMMITS.md) | 5 | Project setup, WebGPU init |
-| [Stage 02](./STAGE_02_COMMITS.md) | 6 | Basic raytracer |
-| [Stage 03](./STAGE_03_COMMITS.md) | 5 | Scene data pipeline |
-| [Stage 04](./STAGE_04_COMMITS.md) | 5 | Lighting & shadows |
-| [Stage 05](./STAGE_05_COMMITS.md) | 4 | Materials system |
-| [Stage 06](./STAGE_06_COMMITS.md) | 4 | Camera controls |
-| [Stage 07](./STAGE_07_COMMITS.md) | 5 | UI shell |
-| [Stage 08](./STAGE_08_COMMITS.md) | 4 | Object selection |
-| [Stage 09](./STAGE_09_COMMITS.md) | 5 | Translation gizmo |
-| [Stage 10](./STAGE_10_COMMITS.md) | 4 | Rotation & scale gizmos |
-| [Stage 11](./STAGE_11_COMMITS.md) | 4 | Properties panel |
-| [Stage 12](./STAGE_12_COMMITS.md) | 4 | Scene operations |
-| [Stage 13](./STAGE_13_COMMITS.md) | 4 | Polish & UX |
-| [Stage 14](./STAGE_14_COMMITS.md) | 4 | Export & persistence |
+| [Stage 01](./stage-01-commits.md) | 5 | Project setup, WebGPU init |
+| [Stage 02](./stage-02-commits.md) | 6 | Basic raytracer |
+| [Stage 03](./stage-03-commits.md) | 5 | Scene data pipeline |
+| [Stage 04](./stage-04-commits.md) | 5 | Lighting & shadows |
+| [Stage 05](./stage-05-commits.md) | 4 | Materials system |
+| [Stage 06](./stage-06-commits.md) | 4 | Camera controls |
+| [Stage 07](./stage-07-commits.md) | 5 | UI shell |
+| [Stage 08](./stage-08-commits.md) | 4 | Object selection |
+| [Stage 09](./stage-09-commits.md) | 5 | Translation gizmo |
+| [Stage 10](./stage-10-commits.md) | 4 | Rotation & scale gizmos |
+| [Stage 11](./stage-11-commits.md) | 4 | Properties panel |
+| [Stage 12](./stage-12-commits.md) | 4 | Scene operations |
+| [Stage 13](./stage-13-commits.md) | 4 | Polish & UX |
+| [Stage 14](./stage-14-commits.md) | 4 | Export & persistence |
 
 **Total: 63 commits**
 

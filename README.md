@@ -26,27 +26,28 @@ This repository contains comprehensive development documentation:
 
 | File | Description |
 |------|-------------|
-| `PRP.md` | Product Requirements Prompt — full feature specification |
 | `EXECUTE.md` | AI execution prompt for automated development |
-| `stages/` | 14 detailed stage PRPs for incremental development |
-| `commits/` | 63 atomic commit specifications with tests |
+| `prp/master.md` | Product Requirements Prompt — full feature specification |
+| `prp/stages/` | 14 detailed stage PRPs for incremental development |
+| `prp/commits/` | 63 atomic commit specifications with tests |
 
 ### Documentation Structure
 
 ```
 lightshow/
-├── PRP.md                    # Main product requirements
-├── EXECUTE.md                # AI execution instructions
-├── stages/
-│   ├── README.md             # Stages overview
-│   ├── STAGE_01_*.md         # Project setup
-│   ├── STAGE_02_*.md         # Basic raytracer
-│   └── ...                   # Stages 03-14
-└── commits/
-    ├── README.md             # Commits overview
-    ├── STAGE_01_COMMITS.md   # Stage 1 commits
-    ├── STAGE_02_COMMITS.md   # Stage 2 commits
-    └── ...                   # Stages 03-14
+├── EXECUTE.md                        # AI execution instructions
+└── prp/
+    ├── master.md                     # Main product requirements
+    ├── stages/
+    │   ├── README.md                 # Stages overview
+    │   ├── stage-01-project-setup.md # Project setup
+    │   ├── stage-02-basic-raytracer.md # Basic raytracer
+    │   └── ...                       # Stages 03-14
+    └── commits/
+        ├── README.md                 # Commits overview
+        ├── stage-01-commits.md       # Stage 1 commits
+        ├── stage-02-commits.md       # Stage 2 commits
+        └── ...                       # Stages 03-14
 ```
 
 ## Development
@@ -61,9 +62,9 @@ To have an AI model build this project from scratch:
 
 ### For Manual Development
 
-1. Read `PRP.md` to understand the product
-2. Follow stages in `stages/` directory in order
-3. Use commit specs in `commits/` for atomic implementation
+1. Read `prp/master.md` to understand the product
+2. Follow stages in `prp/stages/` directory in order
+3. Use commit specs in `prp/commits/` for atomic implementation
 
 ### Commands
 
