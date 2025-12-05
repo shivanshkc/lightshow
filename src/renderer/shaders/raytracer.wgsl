@@ -1,4 +1,12 @@
 // ============================================
+// Constants
+// ============================================
+
+const PI: f32 = 3.14159265359;
+const EPSILON: f32 = 0.001;
+const MAX_FLOAT: f32 = 3.402823466e+38;
+
+// ============================================
 // Camera Uniforms
 // ============================================
 
@@ -49,6 +57,55 @@ struct SceneObject {
 @group(0) @binding(3) var<storage, read> sceneObjects: array<SceneObject>;
 
 // ============================================
+// Random Number Generation (PCG)
+// ============================================
+
+fn pcg_hash(input: u32) -> u32 {
+  var state = input * 747796405u + 2891336453u;
+  var word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+fn initRandom(pixel: vec2<u32>, frame: u32) -> u32 {
+  return pcg_hash(pixel.x + pcg_hash(pixel.y + pcg_hash(frame)));
+}
+
+fn randomFloat(state: ptr<function, u32>) -> f32 {
+  *state = pcg_hash(*state);
+  return f32(*state) / f32(0xFFFFFFFFu);
+}
+
+fn randomFloat2(state: ptr<function, u32>) -> vec2<f32> {
+  return vec2<f32>(randomFloat(state), randomFloat(state));
+}
+
+// Cosine-weighted hemisphere sampling for diffuse surfaces
+fn randomCosineHemisphere(state: ptr<function, u32>, normal: vec3<f32>) -> vec3<f32> {
+  let r1 = randomFloat(state);
+  let r2 = randomFloat(state);
+  
+  let phi = 2.0 * PI * r1;
+  let cosTheta = sqrt(r2);
+  let sinTheta = sqrt(1.0 - r2);
+  
+  // Create local coordinate system (tangent space)
+  var tangent: vec3<f32>;
+  if (abs(normal.x) > 0.9) {
+    tangent = normalize(cross(vec3<f32>(0.0, 1.0, 0.0), normal));
+  } else {
+    tangent = normalize(cross(vec3<f32>(1.0, 0.0, 0.0), normal));
+  }
+  let bitangent = cross(normal, tangent);
+  
+  // Transform to world space
+  return normalize(
+    tangent * cos(phi) * sinTheta +
+    bitangent * sin(phi) * sinTheta +
+    normal * cosTheta
+  );
+}
+
+// ============================================
 // Ray Structure
 // ============================================
 
@@ -66,6 +123,7 @@ struct HitRecord {
   t: f32,
   position: vec3<f32>,
   normal: vec3<f32>,
+  frontFace: bool,
 }
 
 struct HitResult {
@@ -73,6 +131,7 @@ struct HitResult {
   t: f32,
   position: vec3<f32>,
   normal: vec3<f32>,
+  frontFace: bool,
   objectIndex: i32,
 }
 
@@ -86,29 +145,31 @@ fn intersectSphere(ray: Ray, center: vec3<f32>, radius: f32) -> HitRecord {
   
   let oc = ray.origin - center;
   let a = dot(ray.direction, ray.direction);
-  let b = 2.0 * dot(oc, ray.direction);
+  let halfB = dot(oc, ray.direction);
   let c = dot(oc, oc) - radius * radius;
-  let discriminant = b * b - 4.0 * a * c;
+  let discriminant = halfB * halfB - a * c;
   
   if (discriminant < 0.0) {
     return result;
   }
   
   let sqrtD = sqrt(discriminant);
-  var t = (-b - sqrtD) / (2.0 * a);
+  var t = (-halfB - sqrtD) / a;
   
-  if (t < 0.001) {
-    t = (-b + sqrtD) / (2.0 * a);
+  if (t < EPSILON) {
+    t = (-halfB + sqrtD) / a;
   }
   
-  if (t < 0.001) {
+  if (t < EPSILON) {
     return result;
   }
   
   result.hit = true;
   result.t = t;
   result.position = ray.origin + t * ray.direction;
-  result.normal = normalize(result.position - center);
+  let outwardNormal = (result.position - center) / radius;
+  result.frontFace = dot(ray.direction, outwardNormal) < 0.0;
+  result.normal = select(-outwardNormal, outwardNormal, result.frontFace);
   
   return result;
 }
@@ -132,26 +193,31 @@ fn intersectBox(ray: Ray, center: vec3<f32>, halfExtents: vec3<f32>) -> HitRecor
   }
   
   var t = tNear;
-  if (t < 0.001) {
+  if (t < EPSILON) {
     t = tFar;
-  }
-  if (t < 0.001) {
-    return result;
+    if (t < EPSILON) {
+      return result;
+    }
   }
   
   result.hit = true;
   result.t = t;
   result.position = ray.origin + t * ray.direction;
   
-  // Calculate normal (which face was hit)
-  let p = result.position - center;
-  let d = halfExtents;
+  // Calculate normal - determine which face was hit
+  let p = (result.position - center) / halfExtents;
+  let absP = abs(p);
   
-  result.normal = normalize(vec3<f32>(
-    f32(abs(p.x) > d.x - 0.001) * sign(p.x),
-    f32(abs(p.y) > d.y - 0.001) * sign(p.y),
-    f32(abs(p.z) > d.z - 0.001) * sign(p.z)
-  ));
+  if (absP.x > absP.y && absP.x > absP.z) {
+    result.normal = vec3<f32>(sign(p.x), 0.0, 0.0);
+  } else if (absP.y > absP.z) {
+    result.normal = vec3<f32>(0.0, sign(p.y), 0.0);
+  } else {
+    result.normal = vec3<f32>(0.0, 0.0, sign(p.z));
+  }
+  
+  result.frontFace = dot(ray.direction, result.normal) < 0.0;
+  result.normal = select(-result.normal, result.normal, result.frontFace);
   
   return result;
 }
@@ -208,7 +274,7 @@ fn generateRay(pixelCoord: vec2<f32>, resolution: vec2<f32>) -> Ray {
 fn traceScene(ray: Ray) -> HitResult {
   var closest: HitResult;
   closest.hit = false;
-  closest.t = 999999.0;
+  closest.t = MAX_FLOAT;
   closest.objectIndex = -1;
   
   let objectCount = sceneHeader.objectCount;
@@ -240,6 +306,7 @@ fn traceScene(ray: Ray) -> HitResult {
       closest.t = hit.t;
       closest.position = ray.origin + hit.t * ray.direction;
       closest.normal = normalize(rotMat * hit.normal);
+      closest.frontFace = hit.frontFace;
       closest.objectIndex = i32(i);
     }
   }
@@ -248,14 +315,23 @@ fn traceScene(ray: Ray) -> HitResult {
 }
 
 // ============================================
-// Shading
+// Sky/Environment
+// ============================================
+
+fn sampleSky(direction: vec3<f32>) -> vec3<f32> {
+  let t = 0.5 * (direction.y + 1.0);
+  let skyColor = mix(vec3<f32>(1.0, 1.0, 1.0), vec3<f32>(0.5, 0.7, 1.0), t);
+  return skyColor * 0.5;  // Dim sky for better contrast
+}
+
+// ============================================
+// Shading (Simple for now - will be upgraded with path tracing)
 // ============================================
 
 fn shade(hit: HitResult, ray: Ray) -> vec3<f32> {
   if (!hit.hit) {
     // Sky gradient
-    let t = 0.5 * (ray.direction.y + 1.0);
-    return mix(vec3<f32>(1.0, 1.0, 1.0), vec3<f32>(0.5, 0.7, 1.0), t);
+    return sampleSky(ray.direction);
   }
   
   let obj = sceneObjects[hit.objectIndex];
@@ -291,6 +367,9 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   if (pixelCoord.x >= resolution.x || pixelCoord.y >= resolution.y) {
     return;
   }
+  
+  // Initialize random state (for future use)
+  var rng = initRandom(globalId.xy, 0u);
   
   let ray = generateRay(pixelCoord + 0.5, resolution);  // +0.5 for pixel center
   let hit = traceScene(ray);

@@ -70,3 +70,25 @@ describe('raytracer shader - dynamic scene', () => {
     expect(shaderCode.default).toContain('for (var i = 0u;');
   });
 });
+
+describe('Random shader functions', () => {
+  it('shader contains PCG hash function', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('pcg_hash');
+  });
+  
+  it('shader contains randomFloat function', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('randomFloat');
+  });
+  
+  it('shader contains hemisphere sampling', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('randomCosineHemisphere');
+  });
+
+  it('shader initializes random state', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('initRandom');
+  });
+});
