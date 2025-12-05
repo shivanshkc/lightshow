@@ -35,3 +35,38 @@ describe('raytracer shader', () => {
   });
 });
 
+describe('raytracer shader - dynamic scene', () => {
+  it('has SceneHeader struct', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('struct SceneHeader');
+    expect(shaderCode.default).toContain('objectCount: u32');
+  });
+
+  it('has SceneObject struct', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('struct SceneObject');
+    expect(shaderCode.default).toContain('objectType: u32');
+  });
+
+  it('reads from sceneObjects array', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('sceneObjects: array<SceneObject>');
+  });
+
+  it('has scene buffer bindings', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('@group(0) @binding(2)');
+    expect(shaderCode.default).toContain('@group(0) @binding(3)');
+  });
+
+  it('has rotation matrix function', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('rotationMatrix');
+  });
+
+  it('iterates over objects in traceScene', async () => {
+    const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
+    expect(shaderCode.default).toContain('sceneHeader.objectCount');
+    expect(shaderCode.default).toContain('for (var i = 0u;');
+  });
+});
