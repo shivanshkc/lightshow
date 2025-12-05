@@ -1,14 +1,15 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU, WebGPUContext } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 
 interface CanvasProps {
   className?: string;
+  onRendererReady?: (renderer: Renderer) => void;
 }
 
 export type CanvasStatus = 'loading' | 'ready' | 'error';
 
-export function Canvas({ className }: CanvasProps) {
+export function Canvas({ className, onRendererReady }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<WebGPUContext | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -45,6 +46,11 @@ export function Canvas({ className }: CanvasProps) {
         
         renderer.start();
         setStatus('ready');
+
+        // Notify parent that renderer is ready
+        if (onRendererReady) {
+          onRendererReady(renderer);
+        }
       } catch (err) {
         if (!mounted) return;
         
@@ -65,7 +71,7 @@ export function Canvas({ className }: CanvasProps) {
         contextRef.current = null;
       }
     };
-  }, []);
+  }, [onRendererReady]);
 
   // Handle resize
   useEffect(() => {
