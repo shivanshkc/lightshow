@@ -1,17 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
 import { initWebGPU, WebGPUContext } from '../renderer/webgpu';
+import { Renderer } from '../renderer/Renderer';
 
 interface CanvasProps {
   className?: string;
-  onContextReady?: (ctx: WebGPUContext) => void;
-  onError?: (error: Error) => void;
 }
 
 export type CanvasStatus = 'loading' | 'ready' | 'error';
 
-export function Canvas({ className, onContextReady, onError }: CanvasProps) {
+export function Canvas({ className }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const contextRef = useRef<WebGPUContext | null>(null);
+  const rendererRef = useRef<Renderer | null>(null);
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,16 +29,17 @@ export function Canvas({ className, onContextReady, onError }: CanvasProps) {
           return;
         }
 
-        contextRef.current = ctx;
+        const renderer = new Renderer(ctx);
+        rendererRef.current = renderer;
+        renderer.start();
+        
         setStatus('ready');
-        onContextReady?.(ctx);
       } catch (err) {
         if (!mounted) return;
         
         const error = err instanceof Error ? err : new Error(String(err));
         setStatus('error');
         setErrorMessage(error.message);
-        onError?.(error);
       }
     };
 
@@ -47,12 +47,10 @@ export function Canvas({ className, onContextReady, onError }: CanvasProps) {
 
     return () => {
       mounted = false;
-      if (contextRef.current) {
-        contextRef.current.device.destroy();
-        contextRef.current = null;
-      }
+      rendererRef.current?.destroy();
+      rendererRef.current = null;
     };
-  }, [onContextReady, onError]);
+  }, []);
 
   // Handle resize
   useEffect(() => {
@@ -118,4 +116,3 @@ export function Canvas({ className, onContextReady, onError }: CanvasProps) {
 }
 
 export default Canvas;
-
