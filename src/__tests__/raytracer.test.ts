@@ -98,9 +98,10 @@ describe('Path tracing shader', () => {
     expect(shaderCode.default).toContain('Reinhard');
   });
 
-  it('has accumulation texture', async () => {
+  it('has separate read and write accumulation textures (ping-pong)', async () => {
     const shaderCode = await import('../renderer/shaders/raytracer.wgsl?raw');
-    expect(shaderCode.default).toContain('accumulationTexture');
+    expect(shaderCode.default).toContain('previousAccumulation');
+    expect(shaderCode.default).toContain('currentAccumulation');
   });
 
   it('has RenderSettings struct', async () => {

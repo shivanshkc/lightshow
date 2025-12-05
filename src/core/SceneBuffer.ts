@@ -6,14 +6,14 @@ import { SceneObject } from './types';
  */
 const OBJECT_SIZE_BYTES = 128; // Each object is 128 bytes aligned
 const MAX_OBJECTS = 256;
-const HEADER_SIZE_BYTES = 16; // SceneHeader struct size
+const HEADER_SIZE_BYTES = 32; // SceneHeader struct size (must be at least 32 for WebGPU min binding size)
 
 /**
- * SceneBuffer manages the GPU storage buffer for scene objects
+ * SceneBuffer manages the GPU storage buffers for scene objects
  * 
- * Memory layout:
- * - Header (16 bytes): objectCount (u32) + padding (vec3<u32>)
- * - Objects (128 bytes each):
+ * Uses two separate buffers to meet WebGPU alignment requirements:
+ * - Header buffer (16 bytes): objectCount (u32) + padding (vec3<u32>)
+ * - Objects buffer (128 bytes each):
  *   Transform (64 bytes):
  *     - position (vec3<f32>) + objectType (u32) = 16 bytes
  *     - scale (vec3<f32>) + pad = 16 bytes
@@ -27,23 +27,30 @@ const HEADER_SIZE_BYTES = 16; // SceneHeader struct size
  */
 export class SceneBuffer {
   private device: GPUDevice;
-  private buffer: GPUBuffer;
-  private stagingData: Float32Array;
+  private headerBuffer: GPUBuffer;
+  private objectsBuffer: GPUBuffer;
+  private headerData: Uint32Array;
+  private objectsData: Float32Array;
 
   constructor(device: GPUDevice) {
     this.device = device;
 
-    // Calculate total buffer size
-    const bufferSize = HEADER_SIZE_BYTES + MAX_OBJECTS * OBJECT_SIZE_BYTES;
-
-    // Create GPU buffer
-    this.buffer = device.createBuffer({
-      size: bufferSize,
+    // Create header buffer (16 bytes minimum, but use 256 for alignment)
+    this.headerBuffer = device.createBuffer({
+      size: HEADER_SIZE_BYTES,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
-    // Create staging buffer (CPU side)
-    this.stagingData = new Float32Array(bufferSize / 4);
+    // Create objects buffer
+    const objectsBufferSize = MAX_OBJECTS * OBJECT_SIZE_BYTES;
+    this.objectsBuffer = device.createBuffer({
+      size: objectsBufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    // Create staging arrays (CPU side) - 32 bytes = 8 u32s
+    this.headerData = new Uint32Array(HEADER_SIZE_BYTES / 4);
+    this.objectsData = new Float32Array(objectsBufferSize / 4);
   }
 
   /**
@@ -52,34 +59,34 @@ export class SceneBuffer {
   upload(objects: SceneObject[]): void {
     const count = Math.min(objects.length, MAX_OBJECTS);
 
-    // Clear staging buffer
-    this.stagingData.fill(0);
+    // Clear staging buffers
+    this.headerData.fill(0);
+    this.objectsData.fill(0);
 
-    // Write header (object count as Uint32)
-    const headerView = new Uint32Array(this.stagingData.buffer, 0, 4);
-    headerView[0] = count;
+    // Write header (object count)
+    this.headerData[0] = count;
 
     // Write each object
-    const headerFloats = HEADER_SIZE_BYTES / 4; // 4 floats
-    const objectFloats = OBJECT_SIZE_BYTES / 4; // 32 floats
+    const objectFloats = OBJECT_SIZE_BYTES / 4; // 32 floats per object
 
     for (let i = 0; i < count; i++) {
       const obj = objects[i];
       if (obj.visible) {
-        const offset = headerFloats + i * objectFloats;
+        const offset = i * objectFloats;
         this.writeObject(obj, offset);
       }
     }
 
     // Upload to GPU
-    this.device.queue.writeBuffer(this.buffer, 0, this.stagingData);
+    this.device.queue.writeBuffer(this.headerBuffer, 0, this.headerData);
+    this.device.queue.writeBuffer(this.objectsBuffer, 0, this.objectsData);
   }
 
   /**
    * Write a single object to the staging buffer
    */
   private writeObject(obj: SceneObject, offset: number): void {
-    const buf = this.stagingData;
+    const buf = this.objectsData;
     const uint32View = new Uint32Array(buf.buffer);
 
     // Transform section (64 bytes = 16 floats)
@@ -136,10 +143,17 @@ export class SceneBuffer {
   }
 
   /**
-   * Get the GPU buffer for binding
+   * Get the header GPU buffer for binding
    */
-  getBuffer(): GPUBuffer {
-    return this.buffer;
+  getHeaderBuffer(): GPUBuffer {
+    return this.headerBuffer;
+  }
+
+  /**
+   * Get the objects GPU buffer for binding
+   */
+  getObjectsBuffer(): GPUBuffer {
+    return this.objectsBuffer;
   }
 
   /**
@@ -161,7 +175,7 @@ export class SceneBuffer {
    * Cleanup resources
    */
   destroy(): void {
-    this.buffer.destroy();
+    this.headerBuffer.destroy();
+    this.objectsBuffer.destroy();
   }
 }
-

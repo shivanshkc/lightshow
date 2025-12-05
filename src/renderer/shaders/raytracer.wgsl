@@ -33,7 +33,13 @@ struct RenderSettings {
 
 struct SceneHeader {
   objectCount: u32,
-  _pad: vec3<u32>,
+  _pad1: u32,
+  _pad2: u32,
+  _pad3: u32,
+  _pad4: u32,
+  _pad5: u32,
+  _pad6: u32,
+  _pad7: u32,
 }
 
 struct SceneObject {
@@ -65,9 +71,10 @@ struct SceneObject {
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
 @group(0) @binding(1) var<uniform> settings: RenderSettings;
 @group(0) @binding(2) var outputTexture: texture_storage_2d<rgba8unorm, write>;
-@group(0) @binding(3) var accumulationTexture: texture_storage_2d<rgba32float, read_write>;
-@group(0) @binding(4) var<storage, read> sceneHeader: SceneHeader;
-@group(0) @binding(5) var<storage, read> sceneObjects: array<SceneObject>;
+@group(0) @binding(3) var previousAccumulation: texture_2d<f32>;  // Read previous frame
+@group(0) @binding(4) var currentAccumulation: texture_storage_2d<rgba32float, write>;  // Write current frame
+@group(0) @binding(5) var<storage, read> sceneHeader: SceneHeader;
+@group(0) @binding(6) var<storage, read> sceneObjects: array<SceneObject>;
 
 // ============================================
 // Random Number Generation (PCG)
@@ -437,7 +444,7 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     accumulated = vec4<f32>(color, 1.0);
   } else {
     // Progressive accumulation using running average
-    let previous = textureLoad(accumulationTexture, pixelIndex);
+    let previous = textureLoad(previousAccumulation, pixelIndex, 0);
     let totalSamples = f32(settings.frameIndex + 1u);
     // Incremental mean: new_avg = old_avg + (new_val - old_avg) / n
     accumulated = vec4<f32>(
@@ -446,8 +453,8 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     );
   }
   
-  // Store accumulated result
-  textureStore(accumulationTexture, pixelIndex, accumulated);
+  // Store accumulated result to current accumulation texture
+  textureStore(currentAccumulation, pixelIndex, accumulated);
   
   // Tone mapping (Reinhard) and gamma correction for output
   var finalColor = accumulated.rgb;
@@ -455,6 +462,12 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   
   // Gamma correction (sRGB)
   finalColor = pow(finalColor, vec3<f32>(1.0 / 2.2));
+  
+  // DEBUG: If scene is empty, show UV gradient to verify pipeline works
+  if (sceneHeader.objectCount == 0u) {
+    let uv = pixelCoord / resolution;
+    finalColor = vec3<f32>(uv.x, uv.y, 0.5);
+  }
   
   textureStore(outputTexture, pixelIndex, vec4<f32>(finalColor, 1.0));
 }

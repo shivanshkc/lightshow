@@ -1,6 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import { render } from '@testing-library/react';
 import App from '../App';
+
+// Mock ResizeObserver before anything else
+beforeAll(() => {
+  global.ResizeObserver = class ResizeObserver {
+    observe = vi.fn();
+    unobserve = vi.fn();
+    disconnect = vi.fn();
+  };
+});
 
 // Mock WebGPU
 const mockDevice = {

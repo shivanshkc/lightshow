@@ -133,3 +133,78 @@ export function createDefaultRenderSettings(): RenderSettings {
   };
 }
 
+// ============================================
+// Material Presets
+// ============================================
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+export function validateMaterial(mat: Partial<Material>): Material {
+  const def = createDefaultMaterial();
+  return {
+    color: mat.color ?? def.color,
+    roughness: clamp(mat.roughness ?? def.roughness, 0, 1),
+    metallic: clamp(mat.metallic ?? def.metallic, 0, 1),
+    transparency: clamp(mat.transparency ?? def.transparency, 0, 1),
+    ior: clamp(mat.ior ?? def.ior, 1, 2.5),
+    emission: Math.max(0, mat.emission ?? def.emission),
+    emissionColor: mat.emissionColor ?? def.emissionColor,
+  };
+}
+
+export const MATERIAL_PRESETS = {
+  default: createDefaultMaterial(),
+  
+  glass: {
+    color: [1.0, 1.0, 1.0] as [number, number, number],
+    roughness: 0.0,
+    metallic: 0.0,
+    transparency: 0.95,
+    ior: 1.5,
+    emission: 0.0,
+    emissionColor: [1, 1, 1] as [number, number, number],
+  },
+  
+  mirror: {
+    color: [0.95, 0.95, 0.95] as [number, number, number],
+    roughness: 0.0,
+    metallic: 1.0,
+    transparency: 0.0,
+    ior: 1.5,
+    emission: 0.0,
+    emissionColor: [1, 1, 1] as [number, number, number],
+  },
+  
+  plastic: {
+    color: [0.8, 0.2, 0.2] as [number, number, number],
+    roughness: 0.3,
+    metallic: 0.0,
+    transparency: 0.0,
+    ior: 1.5,
+    emission: 0.0,
+    emissionColor: [1, 1, 1] as [number, number, number],
+  },
+  
+  metal: {
+    color: [0.9, 0.85, 0.7] as [number, number, number],
+    roughness: 0.2,
+    metallic: 1.0,
+    transparency: 0.0,
+    ior: 1.5,
+    emission: 0.0,
+    emissionColor: [1, 1, 1] as [number, number, number],
+  },
+  
+  light: {
+    color: [1, 1, 1] as [number, number, number],
+    roughness: 0.5,
+    metallic: 0.0,
+    transparency: 0.0,
+    ior: 1.5,
+    emission: 5.0,
+    emissionColor: [1, 0.95, 0.9] as [number, number, number],
+  },
+} as const;
+

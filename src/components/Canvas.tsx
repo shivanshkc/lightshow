@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { initWebGPU, WebGPUContext } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 
@@ -122,23 +122,23 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     );
   }
 
-  if (status === 'loading') {
-    return (
-      <div className={`flex items-center justify-center bg-base ${className}`}>
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-text-secondary">Initializing WebGPU...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Always render canvas, overlay loading state on top
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      tabIndex={0}
-    />
+    <div className={`relative ${className}`}>
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full"
+        tabIndex={0}
+      />
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-base">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
+            <p className="text-text-secondary">Initializing WebGPU...</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
