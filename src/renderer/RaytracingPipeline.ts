@@ -15,8 +15,10 @@ export class RaytracingPipeline {
   private outputTexture: GPUTexture | null = null;
   private outputTextureView: GPUTextureView | null = null;
 
-  private accumulationTexture: GPUTexture | null = null;
-  private accumulationTextureView: GPUTextureView | null = null;
+  // Ping-pong accumulation textures (rgba32float doesn't support read-write)
+  private accumulationTextures: [GPUTexture | null, GPUTexture | null] = [null, null];
+  private accumulationTextureViews: [GPUTextureView | null, GPUTextureView | null] = [null, null];
+  private currentAccumulationIndex: number = 0;
 
   private cameraBuffer: GPUBuffer;
   private settingsBuffer: GPUBuffer;
@@ -49,6 +51,7 @@ export class RaytracingPipeline {
     this.sceneBuffer = new SceneBuffer(device);
 
     // Create bind group layout
+    // Note: rgba32float doesn't support read-write, so we use separate read and write textures
     this.bindGroupLayout = device.createBindGroupLayout({
       entries: [
         {
@@ -73,19 +76,24 @@ export class RaytracingPipeline {
         {
           binding: 3,
           visibility: GPUShaderStage.COMPUTE,
-          storageTexture: {
-            access: 'read-write',
-            format: 'rgba32float',
-            viewDimension: '2d',
-          },
+          texture: { sampleType: 'unfilterable-float', viewDimension: '2d' }, // Read-only previous accumulation (rgba32float is unfilterable)
         },
         {
           binding: 4,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: 'read-only-storage' },
+          storageTexture: {
+            access: 'write-only',
+            format: 'rgba32float',
+            viewDimension: '2d',
+          }, // Write-only new accumulation
         },
         {
           binding: 5,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' },
+        },
+        {
+          binding: 6,
           visibility: GPUShaderStage.COMPUTE,
           buffer: { type: 'read-only-storage' },
         },
@@ -121,8 +129,8 @@ export class RaytracingPipeline {
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
-    if (this.accumulationTexture) {
-      this.accumulationTexture.destroy();
+    for (const tex of this.accumulationTextures) {
+      if (tex) tex.destroy();
     }
 
     // Create new output texture
@@ -133,13 +141,15 @@ export class RaytracingPipeline {
     });
     this.outputTextureView = this.outputTexture.createView();
 
-    // Create accumulation texture (high precision for progressive rendering)
-    this.accumulationTexture = this.device.createTexture({
-      size: { width, height },
-      format: 'rgba32float',
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
-    });
-    this.accumulationTextureView = this.accumulationTexture.createView();
+    // Create two accumulation textures for ping-pong
+    for (let i = 0; i < 2; i++) {
+      this.accumulationTextures[i] = this.device.createTexture({
+        size: { width, height },
+        format: 'rgba32float',
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      this.accumulationTextureViews[i] = this.accumulationTextures[i]!.createView();
+    }
 
     // Reset accumulation on resize
     this.resetAccumulation();
@@ -163,13 +173,18 @@ export class RaytracingPipeline {
   }
 
   /**
-   * Recreate bind group (needed when textures change)
+   * Recreate bind group (needed when textures change or ping-pong swap)
    */
   private recreateBindGroup(): void {
-    if (!this.outputTextureView || !this.accumulationTextureView) return;
-
-    const sceneBuffer = this.sceneBuffer.getBuffer();
-    const headerSize = SceneBuffer.getHeaderSize();
+    if (!this.outputTextureView) return;
+    
+    const readIndex = this.currentAccumulationIndex;
+    const writeIndex = 1 - this.currentAccumulationIndex;
+    
+    const readView = this.accumulationTextureViews[readIndex];
+    const writeView = this.accumulationTextureViews[writeIndex];
+    
+    if (!readView || !writeView) return;
 
     this.bindGroup = this.device.createBindGroup({
       layout: this.bindGroupLayout,
@@ -188,15 +203,19 @@ export class RaytracingPipeline {
         },
         {
           binding: 3,
-          resource: this.accumulationTextureView,
+          resource: readView, // Previous accumulation (read)
         },
         {
           binding: 4,
-          resource: { buffer: sceneBuffer, offset: 0, size: headerSize },
+          resource: writeView, // New accumulation (write)
         },
         {
           binding: 5,
-          resource: { buffer: sceneBuffer, offset: headerSize },
+          resource: { buffer: this.sceneBuffer.getHeaderBuffer() },
+        },
+        {
+          binding: 6,
+          resource: { buffer: this.sceneBuffer.getObjectsBuffer() },
         },
       ],
     });
@@ -234,10 +253,15 @@ export class RaytracingPipeline {
    * Run the compute pass
    */
   dispatch(commandEncoder: GPUCommandEncoder): void {
-    if (!this.bindGroup || this.width === 0 || this.height === 0) return;
+    if (this.width === 0 || this.height === 0) return;
 
     // Update settings with current frame index
     this.updateSettings();
+    
+    // Recreate bind group for current ping-pong state
+    this.recreateBindGroup();
+    
+    if (!this.bindGroup) return;
 
     const computePass = commandEncoder.beginComputePass();
     computePass.setPipeline(this.pipeline);
@@ -250,6 +274,9 @@ export class RaytracingPipeline {
 
     computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
     computePass.end();
+
+    // Swap accumulation textures for next frame
+    this.currentAccumulationIndex = 1 - this.currentAccumulationIndex;
 
     // Increment frame index after dispatch
     this.frameIndex++;
@@ -279,8 +306,8 @@ export class RaytracingPipeline {
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
-    if (this.accumulationTexture) {
-      this.accumulationTexture.destroy();
+    for (const tex of this.accumulationTextures) {
+      if (tex) tex.destroy();
     }
   }
 }

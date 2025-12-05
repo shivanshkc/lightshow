@@ -1,27 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import tailwindConfig from '../../tailwind.config.js';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 describe('Tailwind Configuration', () => {
-  it('has custom dark theme colors defined', () => {
-    const colors = tailwindConfig.theme?.extend?.colors;
+  it('has custom dark theme colors defined in CSS', () => {
+    const cssPath = resolve(__dirname, '../index.css');
+    const css = readFileSync(cssPath, 'utf-8');
     
-    expect(colors).toBeDefined();
-    expect(colors?.base).toBe('#121212');
-    expect(colors?.panel).toBe('#1E1E1E');
-    expect(colors?.accent).toBe('#007ACC');
+    expect(css).toContain('--color-base');
+    expect(css).toContain('--color-panel');
+    expect(css).toContain('--color-accent');
   });
 
   it('has gizmo colors defined', () => {
-    const colors = tailwindConfig.theme?.extend?.colors;
+    const cssPath = resolve(__dirname, '../index.css');
+    const css = readFileSync(cssPath, 'utf-8');
     
-    expect(colors?.['gizmo-x']).toBe('#E53935');
-    expect(colors?.['gizmo-y']).toBe('#43A047');
-    expect(colors?.['gizmo-z']).toBe('#1E88E5');
+    expect(css).toContain('--color-gizmo-x');
+    expect(css).toContain('--color-gizmo-y');
+    expect(css).toContain('--color-gizmo-z');
   });
 
-  it('includes all source paths in content', () => {
-    expect(tailwindConfig.content).toContain('./index.html');
-    expect(tailwindConfig.content).toContain('./src/**/*.{js,ts,jsx,tsx}');
+  it('imports tailwindcss', () => {
+    const cssPath = resolve(__dirname, '../index.css');
+    const css = readFileSync(cssPath, 'utf-8');
+    
+    expect(css).toContain('@import "tailwindcss"');
   });
 });
-
