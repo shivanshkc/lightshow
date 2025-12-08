@@ -1,9 +1,9 @@
+import { Canvas } from './components/Canvas';
+
 export default function App() {
   return (
-    <div>
-      <h1>Lightshow</h1>
-      <p>WebGPU Raytracer</p>
+    <div className="w-full h-full bg-base">
+      <Canvas className="w-full h-full" />
     </div>
   );
 }
-
