@@ -14,7 +14,7 @@ Each PRP is designed for **one-pass implementation** — containing all necessar
 | [02](./stage-02-basic-raytracer.md) | Basic Raytracer | Medium | Ray generation, sphere/box intersection, normal shading |
 | [03](./stage-03-scene-data.md) | Scene Data Pipeline | Medium | Zustand store, GPU buffers, dynamic scene |
 | [04](./stage-04-lighting.md) | Lighting & Shadows | Medium | Path tracing, shadows, global illumination |
-| [05](./stage-05-materials.md) | Materials System | Medium | Color, roughness, transparency, emission |
+| [05](./stage-05-materials.md) | Materials System | Medium | Material types: Plastic, Metal, Glass, Light |
 | [06](./stage-06-camera.md) | Camera Controls | Small | Orbit, pan, zoom, focus |
 | [07](./stage-07-ui-shell.md) | UI Shell | Medium | Three-panel layout, dark theme |
 | [08](./stage-08-selection.md) | Object Selection & Picking | Medium | Click-to-select, raycasting |
@@ -158,4 +158,3 @@ After v1.0 completion, potential future stages include:
 
 *Document Version: 1.0*
 *Created: December 2024*
-

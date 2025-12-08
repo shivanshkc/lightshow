@@ -26,7 +26,7 @@ This repository contains comprehensive development documentation:
 
 | File | Description |
 |------|-------------|
-| `EXECUTE.md` | AI execution prompt for automated development |
+| `prp/execute.md` | AI execution prompt for automated development |
 | `prp/master.md` | Product Requirements Prompt — full feature specification |
 | `prp/stages/` | 14 detailed stage PRPs for incremental development |
 | `prp/commits/` | 63 atomic commit specifications with tests |
@@ -35,8 +35,8 @@ This repository contains comprehensive development documentation:
 
 ```
 lightshow/
-├── EXECUTE.md                        # AI execution instructions
 └── prp/
+    ├── execute.md                    # AI execution instructions
     ├── master.md                     # Main product requirements
     ├── stages/
     │   ├── README.md                 # Stages overview
@@ -57,7 +57,7 @@ lightshow/
 To have an AI model build this project from scratch:
 
 1. Provide the AI with access to this repository
-2. Instruct it to read and follow `EXECUTE.md`
+2. Instruct it to read and follow `prp/execute.md`
 3. The AI will implement all 63 commits across 14 stages
 
 ### For Manual Development

@@ -1,7 +1,7 @@
 # Stage 5: Materials System
 
 ## Objective
-Implement the complete material system with diffuse color, roughness-based reflections, transparency with refraction, and light emission. Materials should respond realistically to the lighting system from Stage 4.
+Implement the material type system with four distinct material types: Plastic (diffuse), Metal (reflective), Glass (transparent with refraction), and Light (emissive). All materials have a color property.
 
 ---
 
@@ -11,113 +11,142 @@ Implement the complete material system with diffuse color, roughness-based refle
 
 ---
 
-## Material Properties Overview
+## Material Types Overview
 
-| Property | Range | Effect |
-|----------|-------|--------|
-| **Color** | RGB [0-1] | Base albedo color of the surface |
-| **Roughness** | 0-1 | 0 = perfect mirror, 1 = fully diffuse |
-| **Transparency** | 0-1 | 0 = opaque, 1 = fully transparent |
-| **IOR** | 1.0-2.5 | Index of refraction (glass ~1.5) |
-| **Emission** | 0-∞ | Light emission intensity |
-| **EmissionColor** | RGB [0-1] | Color of emitted light |
+| Type | Description | Properties | Shader Behavior |
+|------|-------------|------------|-----------------|
+| **Plastic** | Rough diffuse surface | Color | Lambertian reflection, scattered rays |
+| **Metal** | Perfectly reflective | Color | Mirror reflection, color tints reflection |
+| **Glass** | Transparent with refraction | Color, IOR | Snell's law refraction, Fresnel effect |
+| **Light** | Emissive surface | Color, Intensity | Emits light, illuminates scene |
 
 ---
 
-## Updated Type Definitions
+## Type Definitions
 
-### types.ts additions
+### types.ts
 
 ```typescript
+// Material type enum
+export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
+
+// Material interface
 export interface Material {
-  color: [number, number, number];
-  roughness: number;
-  metallic: number;           // NEW: 0 = dielectric, 1 = metal
-  transparency: number;
-  ior: number;                // NEW: index of refraction
-  emission: number;
-  emissionColor: [number, number, number];
+  type: MaterialType;
+  color: [number, number, number];  // RGB 0-1
+  // Type-specific properties
+  ior: number;        // Glass only: Index of refraction (1.0-2.5)
+  intensity: number;  // Light only: Emission intensity (0.1-20)
 }
 
 export function createDefaultMaterial(): Material {
   return {
+    type: 'plastic',
     color: [0.8, 0.8, 0.8],
-    roughness: 0.5,
-    metallic: 0.0,
-    transparency: 0.0,
     ior: 1.5,
-    emission: 0.0,
-    emissionColor: [1, 1, 1],
+    intensity: 5.0,
   };
 }
 
-// Preset materials
+// Material type helpers
+export const MATERIAL_TYPES: { value: MaterialType; label: string }[] = [
+  { value: 'plastic', label: 'Plastic' },
+  { value: 'metal', label: 'Metal' },
+  { value: 'glass', label: 'Glass' },
+  { value: 'light', label: 'Light' },
+];
+
+// Preset materials for quick selection
 export const MATERIAL_PRESETS = {
-  default: createDefaultMaterial(),
-  
+  redPlastic: {
+    type: 'plastic' as const,
+    color: [0.8, 0.2, 0.2] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  bluePlastic: {
+    type: 'plastic' as const,
+    color: [0.2, 0.4, 0.8] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  gold: {
+    type: 'metal' as const,
+    color: [1.0, 0.84, 0.0] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  silver: {
+    type: 'metal' as const,
+    color: [0.95, 0.95, 0.95] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  copper: {
+    type: 'metal' as const,
+    color: [0.72, 0.45, 0.2] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
   glass: {
-    color: [1.0, 1.0, 1.0],
-    roughness: 0.0,
-    metallic: 0.0,
-    transparency: 0.95,
+    type: 'glass' as const,
+    color: [1.0, 1.0, 1.0] as [number, number, number],
     ior: 1.5,
-    emission: 0.0,
-    emissionColor: [1, 1, 1],
+    intensity: 5.0,
   },
-  
-  mirror: {
-    color: [0.95, 0.95, 0.95],
-    roughness: 0.0,
-    metallic: 1.0,
-    transparency: 0.0,
+  diamond: {
+    type: 'glass' as const,
+    color: [1.0, 1.0, 1.0] as [number, number, number],
+    ior: 2.4,
+    intensity: 5.0,
+  },
+  warmLight: {
+    type: 'light' as const,
+    color: [1.0, 0.95, 0.8] as [number, number, number],
     ior: 1.5,
-    emission: 0.0,
-    emissionColor: [1, 1, 1],
+    intensity: 10.0,
   },
-  
-  plastic: {
-    color: [0.8, 0.2, 0.2],
-    roughness: 0.3,
-    metallic: 0.0,
-    transparency: 0.0,
+  coolLight: {
+    type: 'light' as const,
+    color: [0.8, 0.9, 1.0] as [number, number, number],
     ior: 1.5,
-    emission: 0.0,
-    emissionColor: [1, 1, 1],
+    intensity: 10.0,
   },
-  
-  metal: {
-    color: [0.9, 0.85, 0.7],
-    roughness: 0.2,
-    metallic: 1.0,
-    transparency: 0.0,
-    ior: 1.5,
-    emission: 0.0,
-    emissionColor: [1, 1, 1],
-  },
-  
-  light: {
-    color: [1, 1, 1],
-    roughness: 0.5,
-    metallic: 0.0,
-    transparency: 0.0,
-    ior: 1.5,
-    emission: 5.0,
-    emissionColor: [1, 0.95, 0.9],
-  },
-} as const;
+};
+
+// Validation
+export function validateMaterial(mat: Partial<Material>): Material {
+  const def = createDefaultMaterial();
+  return {
+    type: mat.type ?? def.type,
+    color: mat.color ?? def.color,
+    ior: clamp(mat.ior ?? def.ior, 1.0, 2.5),
+    intensity: clamp(mat.intensity ?? def.intensity, 0.1, 20.0),
+  };
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
 ```
 
 ---
 
-## GPU Buffer Layout Update
+## GPU Buffer Layout
 
 ### SceneObject struct (128 bytes)
 
 ```wgsl
+// Material type constants
+const MAT_PLASTIC: u32 = 0u;
+const MAT_METAL: u32 = 1u;
+const MAT_GLASS: u32 = 2u;
+const MAT_LIGHT: u32 = 3u;
+
 struct SceneObject {
   // Transform block (64 bytes)
   position: vec3<f32>,      // 12
-  objectType: u32,          // 4
+  objectType: u32,          // 4  (0 = sphere, 1 = cuboid)
   scale: vec3<f32>,         // 12
   _pad1: f32,               // 4
   rotation: vec3<f32>,      // 12
@@ -126,46 +155,31 @@ struct SceneObject {
   
   // Material block (64 bytes)
   color: vec3<f32>,         // 12
-  roughness: f32,           // 4
-  emissionColor: vec3<f32>, // 12
-  emission: f32,            // 4
-  transparency: f32,        // 4
-  ior: f32,                 // 4  NEW
-  metallic: f32,            // 4  NEW
-  _mat_pad1: f32,           // 4
-  _material_pad: vec4<f32>, // 16
+  materialType: u32,        // 4  (0=plastic, 1=metal, 2=glass, 3=light)
+  ior: f32,                 // 4  (glass IOR)
+  intensity: f32,           // 4  (light intensity)
+  _mat_pad1: vec2<f32>,     // 8
+  _material_pad: vec3<vec4<f32>>, // 48
 }
 ```
 
 ---
 
-## WGSL Material Functions
+## WGSL Shader Implementation
 
-### Material sampling and BRDF
+### Material handling functions
 
 ```wgsl
 // ============================================
-// Fresnel (Schlick approximation)
+// Refraction (Snell's Law)
 // ============================================
 
-fn fresnelSchlick(cosTheta: f32, F0: vec3<f32>) -> vec3<f32> {
-  return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-fn fresnelSchlickRoughness(cosTheta: f32, F0: vec3<f32>, roughness: f32) -> vec3<f32> {
-  return F0 + (max(vec3<f32>(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-// ============================================
-// Refraction
-// ============================================
-
-fn refract_ray(incident: vec3<f32>, normal: vec3<f32>, eta: f32) -> vec3<f32> {
+fn refractRay(incident: vec3<f32>, normal: vec3<f32>, eta: f32) -> vec3<f32> {
   let cosI = -dot(incident, normal);
   let sinT2 = eta * eta * (1.0 - cosI * cosI);
   
+  // Total internal reflection
   if (sinT2 > 1.0) {
-    // Total internal reflection
     return reflect(incident, normal);
   }
   
@@ -173,76 +187,48 @@ fn refract_ray(incident: vec3<f32>, normal: vec3<f32>, eta: f32) -> vec3<f32> {
   return eta * incident + (eta * cosI - cosT) * normal;
 }
 
-// Schlick approximation for reflectance
-fn reflectance(cosine: f32, refIdx: f32) -> f32 {
+// Schlick approximation for Fresnel reflectance
+fn schlickReflectance(cosine: f32, refIdx: f32) -> f32 {
   var r0 = (1.0 - refIdx) / (1.0 + refIdx);
   r0 = r0 * r0;
   return r0 + (1.0 - r0) * pow(1.0 - cosine, 5.0);
 }
 
 // ============================================
-// GGX Microfacet Distribution
+// Random hemisphere sampling (for Plastic)
 // ============================================
 
-fn distributionGGX(N: vec3<f32>, H: vec3<f32>, roughness: f32) -> f32 {
-  let a = roughness * roughness;
-  let a2 = a * a;
-  let NdotH = max(dot(N, H), 0.0);
-  let NdotH2 = NdotH * NdotH;
+fn randomCosineHemisphere(rng: ptr<function, u32>, normal: vec3<f32>) -> vec3<f32> {
+  let r1 = randomFloat(rng);
+  let r2 = randomFloat(rng);
   
-  let denom = NdotH2 * (a2 - 1.0) + 1.0;
-  return a2 / (PI * denom * denom);
-}
-
-fn geometrySchlickGGX(NdotV: f32, roughness: f32) -> f32 {
-  let r = roughness + 1.0;
-  let k = (r * r) / 8.0;
-  return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-fn geometrySmith(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>, roughness: f32) -> f32 {
-  let NdotV = max(dot(N, V), 0.0);
-  let NdotL = max(dot(N, L), 0.0);
-  return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
-}
-
-// ============================================
-// Importance sampling GGX
-// ============================================
-
-fn importanceSampleGGX(Xi: vec2<f32>, N: vec3<f32>, roughness: f32) -> vec3<f32> {
-  let a = roughness * roughness;
+  let phi = 2.0 * PI * r1;
+  let cosTheta = sqrt(r2);
+  let sinTheta = sqrt(1.0 - r2);
   
-  let phi = 2.0 * PI * Xi.x;
-  let cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y));
-  let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-  
-  // Spherical to cartesian
-  let H = vec3<f32>(
-    cos(phi) * sinTheta,
-    sin(phi) * sinTheta,
-    cosTheta
-  );
-  
-  // Tangent space to world space
+  // Create orthonormal basis
   var up: vec3<f32>;
-  if (abs(N.z) < 0.999) {
-    up = vec3<f32>(0.0, 0.0, 1.0);
+  if (abs(normal.y) < 0.999) {
+    up = vec3<f32>(0.0, 1.0, 0.0);
   } else {
     up = vec3<f32>(1.0, 0.0, 0.0);
   }
+  let tangent = normalize(cross(up, normal));
+  let bitangent = cross(normal, tangent);
   
-  let tangent = normalize(cross(up, N));
-  let bitangent = cross(N, tangent);
-  
-  return normalize(tangent * H.x + bitangent * H.y + N * H.z);
+  // Transform to world space
+  return normalize(
+    tangent * cos(phi) * sinTheta +
+    bitangent * sin(phi) * sinTheta +
+    normal * cosTheta
+  );
 }
 ```
 
-### Updated trace function with full material support
+### Main trace function with material types
 
 ```wgsl
-fn trace(primaryRay: Ray, rng: ptr<function, RandomState>) -> vec3<f32> {
+fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
   var ray = primaryRay;
   var throughput = vec3<f32>(1.0);
   var radiance = vec3<f32>(0.0);
@@ -251,87 +237,84 @@ fn trace(primaryRay: Ray, rng: ptr<function, RandomState>) -> vec3<f32> {
     let hit = traceScene(ray);
     
     if (!hit.hit) {
+      // Sky/environment
       radiance += throughput * sampleSky(ray.direction);
       break;
     }
     
     let obj = sceneObjects[hit.objectIndex];
-    let V = -ray.direction;
-    let N = hit.normal;
+    let V = -ray.direction;  // View direction (toward camera)
+    var N = hit.normal;      // Surface normal
     
-    // Add emission
-    if (obj.emission > 0.0) {
-      radiance += throughput * obj.emissionColor * obj.emission;
+    // Ensure normal faces the ray
+    let frontFace = dot(ray.direction, N) < 0.0;
+    if (!frontFace) {
+      N = -N;
     }
     
-    // Handle transparent materials
-    if (obj.transparency > 0.0) {
-      let eta = select(obj.ior, 1.0 / obj.ior, hit.frontFace);
-      let cosTheta = min(dot(V, N), 1.0);
-      let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-      
-      let cannotRefract = eta * sinTheta > 1.0;
-      let fresnel = reflectance(cosTheta, eta);
-      
-      var direction: vec3<f32>;
-      if (cannotRefract || randomFloat(rng) < fresnel) {
-        // Reflect
-        direction = reflect(-V, N);
-      } else {
-        // Refract
-        direction = refract_ray(-V, N, eta);
+    switch (obj.materialType) {
+      // ========== LIGHT ==========
+      case MAT_LIGHT: {
+        radiance += throughput * obj.color * obj.intensity;
+        // Light sources terminate the ray
+        return radiance;
       }
       
-      // Tint by material color based on transparency
-      throughput *= mix(obj.color, vec3<f32>(1.0), obj.transparency);
+      // ========== PLASTIC ==========
+      case MAT_PLASTIC: {
+        // Lambertian diffuse reflection
+        let direction = randomCosineHemisphere(rng, N);
+        throughput *= obj.color;
+        
+        ray.origin = hit.position + N * EPSILON;
+        ray.direction = direction;
+      }
       
-      ray.origin = hit.position + direction * EPSILON * 2.0;
-      ray.direction = direction;
-      continue;
+      // ========== METAL ==========
+      case MAT_METAL: {
+        // Perfect mirror reflection
+        let direction = reflect(-V, N);
+        throughput *= obj.color;  // Tint reflection by metal color
+        
+        ray.origin = hit.position + N * EPSILON;
+        ray.direction = direction;
+      }
+      
+      // ========== GLASS ==========
+      case MAT_GLASS: {
+        let eta = select(obj.ior, 1.0 / obj.ior, frontFace);
+        let cosTheta = min(dot(V, N), 1.0);
+        let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+        
+        let cannotRefract = eta * sinTheta > 1.0;
+        let fresnel = schlickReflectance(cosTheta, eta);
+        
+        var direction: vec3<f32>;
+        if (cannotRefract || randomFloat(rng) < fresnel) {
+          // Reflect
+          direction = reflect(-V, N);
+        } else {
+          // Refract
+          direction = refractRay(-V, N, eta);
+        }
+        
+        // Glass tints light passing through
+        throughput *= obj.color;
+        
+        ray.origin = hit.position + direction * EPSILON * 2.0;
+        ray.direction = direction;
+      }
+      
+      default: {
+        // Fallback to plastic
+        let direction = randomCosineHemisphere(rng, N);
+        throughput *= obj.color;
+        ray.origin = hit.position + N * EPSILON;
+        ray.direction = direction;
+      }
     }
     
-    // Calculate F0 (surface reflectance at zero incidence)
-    var F0 = vec3<f32>(0.04);  // Dielectric base
-    F0 = mix(F0, obj.color, obj.metallic);
-    
-    // Sample microfacet normal for specular
-    let Xi = randomFloat2(rng);
-    let H = importanceSampleGGX(Xi, N, obj.roughness);
-    let L_spec = reflect(-V, H);
-    
-    // Cosine-weighted hemisphere for diffuse
-    let L_diff = randomCosineHemisphere(rng, N);
-    
-    // Choose between diffuse and specular
-    let NdotV = max(dot(N, V), 0.0);
-    let F = fresnelSchlickRoughness(NdotV, F0, obj.roughness);
-    let specularWeight = (F.r + F.g + F.b) / 3.0;
-    
-    var L: vec3<f32>;
-    var pdf: f32;
-    
-    if (randomFloat(rng) < specularWeight * (1.0 - obj.roughness * 0.5)) {
-      // Specular path
-      L = L_spec;
-      let NdotL = max(dot(N, L), 0.0);
-      let NdotH = max(dot(N, H), 0.0);
-      let VdotH = max(dot(V, H), 0.0);
-      
-      let D = distributionGGX(N, H, obj.roughness);
-      let G = geometrySmith(N, V, L, obj.roughness);
-      
-      let specular = (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
-      throughput *= specular * NdotL / max(specularWeight, 0.001);
-    } else {
-      // Diffuse path
-      L = L_diff;
-      let NdotL = max(dot(N, L), 0.0);
-      
-      let kD = (1.0 - F) * (1.0 - obj.metallic);
-      throughput *= kD * obj.color;
-    }
-    
-    // Russian roulette
+    // Russian roulette for path termination
     if (bounce > 3u) {
       let p = max(throughput.x, max(throughput.y, throughput.z));
       if (randomFloat(rng) > p) {
@@ -339,12 +322,45 @@ fn trace(primaryRay: Ray, rng: ptr<function, RandomState>) -> vec3<f32> {
       }
       throughput /= p;
     }
-    
-    ray.origin = hit.position + N * EPSILON;
-    ray.direction = L;
   }
   
   return radiance;
+}
+```
+
+---
+
+## SceneBuffer Update
+
+### SceneBuffer.ts changes
+
+```typescript
+// Update writeObject to include new material properties
+private writeObject(view: DataView, offset: number, obj: SceneObject): void {
+  // ... position, scale, rotation as before ...
+  
+  // Material block (starting at offset + 64)
+  const matOffset = offset + 64;
+  
+  // Color (vec3 = 12 bytes)
+  view.setFloat32(matOffset + 0, obj.material.color[0], true);
+  view.setFloat32(matOffset + 4, obj.material.color[1], true);
+  view.setFloat32(matOffset + 8, obj.material.color[2], true);
+  
+  // Material type (u32 = 4 bytes)
+  const typeMap: Record<MaterialType, number> = {
+    plastic: 0,
+    metal: 1,
+    glass: 2,
+    light: 3,
+  };
+  view.setUint32(matOffset + 12, typeMap[obj.material.type], true);
+  
+  // IOR (f32 = 4 bytes)
+  view.setFloat32(matOffset + 16, obj.material.ior, true);
+  
+  // Intensity (f32 = 4 bytes)
+  view.setFloat32(matOffset + 20, obj.material.intensity, true);
 }
 ```
 
@@ -356,40 +372,41 @@ fn trace(primaryRay: Ray, rng: ptr<function, RandomState>) -> vec3<f32> {
 
 | Test ID | Description | Setup | Expected Result |
 |---------|-------------|-------|-----------------|
-| T5.1 | Diffuse color | Red sphere, roughness=1 | Matte red sphere |
-| T5.2 | Mirror | Silver sphere, roughness=0, metallic=1 | Perfect reflections |
-| T5.3 | Glass | Sphere with transparency=0.95, ior=1.5 | Visible refraction, caustics |
-| T5.4 | Rough glass | Glass with roughness=0.3 | Frosted glass look |
-| T5.5 | Metal | Gold color, metallic=1, roughness=0.2 | Metallic reflections |
-| T5.6 | Plastic | Color + roughness=0.3 | Subtle glossy highlights |
-| T5.7 | Light source | Emission=5, white | Illuminates scene |
-| T5.8 | Colored light | Emission=5, red | Red illumination |
-| T5.9 | Total internal reflection | Glass sphere edge | Reflective ring inside |
-| T5.10 | Fresnel effect | Glass at grazing angle | More reflective at edges |
+| T5.1 | Plastic diffuse | Red plastic sphere | Matte red sphere, soft shadows |
+| T5.2 | Metal reflection | Silver metal sphere | Perfect mirror reflections |
+| T5.3 | Metal color tint | Gold metal sphere | Golden-tinted reflections |
+| T5.4 | Glass refraction | Clear glass sphere, IOR=1.5 | Visible refraction, inverted background |
+| T5.5 | Glass with color | Blue tinted glass | Blue-tinted transparency |
+| T5.6 | Glass IOR variation | Sphere with IOR=2.4 | Stronger refraction (diamond-like) |
+| T5.7 | Light emission | White light sphere | Illuminates nearby objects |
+| T5.8 | Colored light | Red light sphere | Red illumination on scene |
+| T5.9 | Total internal reflection | Glass sphere edge | Reflective ring at steep angles |
+| T5.10 | Fresnel on glass | Glass at grazing angle | More reflective at edges |
 
 ### Interaction Tests
 
 | Test ID | Description | Steps | Expected |
 |---------|-------------|-------|----------|
-| T5.I1 | Color change | Change color in UI | Immediate visual update |
-| T5.I2 | Roughness slider | Drag 0→1 | Smooth transition |
-| T5.I3 | Transparency slider | Drag 0→1 | Object becomes see-through |
-| T5.I4 | Emission toggle | Enable emission | Object starts glowing |
+| T5.I1 | Change material type | Select object → change type dropdown | Immediate visual update |
+| T5.I2 | Color change | Change color picker | Surface color updates |
+| T5.I3 | Glass IOR | Adjust IOR slider | Refraction amount changes |
+| T5.I4 | Light intensity | Adjust intensity slider | Brightness changes |
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Base color affects surface appearance
-- [ ] Roughness=0 produces mirror-like reflections
-- [ ] Roughness=1 produces matte/diffuse appearance
-- [ ] Metallic=1 produces colored reflections (gold, copper)
-- [ ] Transparency creates see-through materials
-- [ ] IOR affects refraction angle correctly
+- [ ] Plastic materials show diffuse, matte appearance
+- [ ] Metal materials show perfect mirror reflections
+- [ ] Metal color tints the reflection correctly
+- [ ] Glass materials show refraction
+- [ ] Glass IOR affects refraction angle correctly
+- [ ] Glass shows Fresnel effect (more reflective at edges)
 - [ ] Glass shows total internal reflection at steep angles
-- [ ] Emission makes objects glow and light the scene
-- [ ] Emission color affects the color of cast light
-- [ ] Material changes reset accumulation and update render
+- [ ] Light materials glow and illuminate the scene
+- [ ] Light intensity affects brightness
+- [ ] Light color affects illumination color
+- [ ] Material type changes reset accumulation and update render
 
 ---
 
@@ -397,19 +414,18 @@ fn trace(primaryRay: Ray, rng: ptr<function, RandomState>) -> vec3<f32> {
 
 | File | Changes |
 |------|---------|
-| `src/core/types.ts` | Add metallic, IOR to Material |
-| `src/core/SceneBuffer.ts` | Update GPU layout |
-| `src/renderer/shaders/raytracer.wgsl` | Full material BRDF |
-| `src/store/sceneStore.ts` | Include new material properties |
+| `src/core/types.ts` | Add MaterialType, update Material interface |
+| `src/core/SceneBuffer.ts` | Update GPU layout for new material properties |
+| `src/renderer/shaders/raytracer.wgsl` | Material type switch, refraction, reflection |
+| `src/store/sceneStore.ts` | Support new material properties |
 
 ---
 
 ## Definition of Done
 
 Stage 5 is complete when:
-1. All material properties visibly affect rendering
-2. Glass materials show realistic refraction
-3. Metallic materials have colored reflections
-4. Roughness smoothly blends between mirror and diffuse
-5. Emissive materials properly illuminate the scene
-
+1. All four material types work correctly
+2. Glass shows realistic refraction with Fresnel
+3. Metal shows perfect reflections with color tinting
+4. Light materials properly illuminate the scene
+5. Material changes update the render in real-time

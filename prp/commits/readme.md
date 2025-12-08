@@ -155,10 +155,10 @@ Scopes:
 - 4.5: Add sample counter to UI
 
 ### Stage 5: Materials System
-- 5.1: Add material presets and validation
-- 5.2: Implement Fresnel and GGX
-- 5.3: Implement refraction
-- 5.4: Integrate full material system
+- 5.1: Add material types and presets
+- 5.2: Update GPU buffer for material types
+- 5.3: Implement material shaders
+- 5.4: Integrate material system in trace loop
 
 ### Stage 6: Camera Controls
 - 6.1: Create camera store
@@ -194,9 +194,9 @@ Scopes:
 
 ### Stage 11: Properties Panel
 - 11.1: Create NumberInput component
-- 11.2: Create Slider and ColorPicker
+- 11.2: Create Slider, ColorPicker, and Select
 - 11.3: Create TransformSection
-- 11.4: Create MaterialSection
+- 11.4: Create MaterialSection with type selector
 
 ### Stage 12: Scene Operations
 - 12.1: Add undo/redo middleware
@@ -219,4 +219,3 @@ Scopes:
 ---
 
 *Total Development: ~63 commits across 14 stages*
-
