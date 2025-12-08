@@ -3,10 +3,11 @@ import { SceneObject } from './types';
 /**
  * GPU buffer layout constants
  * These must match the shader struct definitions exactly
+ * Note: WebGPU requires 256-byte alignment for storage buffer bindings
  */
 const OBJECT_SIZE_BYTES = 128; // 32 floats per object
 const MAX_OBJECTS = 256;
-const HEADER_SIZE_BYTES = 16; // 4 u32s
+const HEADER_SIZE_BYTES = 256; // Padded to 256 bytes for WebGPU alignment
 
 /**
  * Manages GPU buffer for scene objects

@@ -136,14 +136,14 @@ export class RaytracingPipeline {
           resource: { 
             buffer: sceneBuffer,
             offset: 0,
-            size: 16, // Header size (SceneHeader struct)
+            size: 256, // Header size (padded to 256 bytes for WebGPU alignment)
           },
         },
         {
           binding: 3,
           resource: { 
             buffer: sceneBuffer,
-            offset: 16, // After header
+            offset: 256, // After header (256-byte aligned)
           },
         },
       ],
