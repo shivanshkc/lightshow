@@ -240,20 +240,20 @@ describe('sceneStore', () => {
       expect(obj?.material.color).toEqual([1, 0, 0]);
     });
 
-    it('updates roughness', () => {
+    it('updates ior', () => {
       const id = useSceneStore.getState().addSphere();
       
-      useSceneStore.getState().updateMaterial(id, { roughness: 0.9 });
+      useSceneStore.getState().updateMaterial(id, { ior: 1.8 });
       
       const obj = useSceneStore.getState().getObject(id);
-      expect(obj?.material.roughness).toBe(0.9);
+      expect(obj?.material.ior).toBe(1.8);
     });
 
     it('preserves other material properties', () => {
       const id = useSceneStore.getState().addSphere();
       useSceneStore.getState().updateMaterial(id, { color: [1, 0, 0] });
       
-      useSceneStore.getState().updateMaterial(id, { roughness: 0.9 });
+      useSceneStore.getState().updateMaterial(id, { ior: 1.8 });
       
       const obj = useSceneStore.getState().getObject(id);
       expect(obj?.material.color).toEqual([1, 0, 0]); // Still preserved
