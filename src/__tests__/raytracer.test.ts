@@ -85,9 +85,60 @@ describe('Dynamic Scene Data (Stage 3)', () => {
     expect(raytracerShader).toContain('obj.color');
   });
 
-  it('supports emission', () => {
-    expect(raytracerShader).toContain('obj.emission');
-    expect(raytracerShader).toContain('obj.emissionColor');
+});
+
+describe('Material System (Stage 5)', () => {
+  it('has material type constants', () => {
+    expect(raytracerShader).toContain('const MAT_PLASTIC');
+    expect(raytracerShader).toContain('const MAT_METAL');
+    expect(raytracerShader).toContain('const MAT_GLASS');
+    expect(raytracerShader).toContain('const MAT_LIGHT');
+  });
+
+  it('has materialType field in SceneObject', () => {
+    expect(raytracerShader).toContain('materialType: u32');
+  });
+
+  it('has ior field for glass', () => {
+    expect(raytracerShader).toContain('ior: f32');
+  });
+
+  it('has intensity field for lights', () => {
+    expect(raytracerShader).toContain('intensity: f32');
+  });
+
+  it('has schlickReflectance function for Fresnel', () => {
+    expect(raytracerShader).toContain('fn schlickReflectance');
+  });
+
+  it('has refractRay function for glass', () => {
+    expect(raytracerShader).toContain('fn refractRay');
+  });
+
+  it('uses switch statement for material handling', () => {
+    expect(raytracerShader).toContain('switch obj.materialType');
+  });
+
+  it('handles MAT_LIGHT case', () => {
+    expect(raytracerShader).toContain('case MAT_LIGHT');
+    expect(raytracerShader).toContain('obj.intensity');
+  });
+
+  it('handles MAT_METAL case', () => {
+    expect(raytracerShader).toContain('case MAT_METAL');
+    expect(raytracerShader).toContain('reflect(ray.direction, hit.normal)');
+  });
+
+  it('handles MAT_GLASS case', () => {
+    expect(raytracerShader).toContain('case MAT_GLASS');
+    expect(raytracerShader).toContain('obj.ior');
+    expect(raytracerShader).toContain('schlickReflectance');
+    expect(raytracerShader).toContain('refractRay');
+  });
+
+  it('handles MAT_PLASTIC default case', () => {
+    expect(raytracerShader).toContain('case MAT_PLASTIC');
+    expect(raytracerShader).toContain('diffuseDir');
   });
 });
 
