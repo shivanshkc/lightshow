@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+// @ts-expect-error - tailwind config is JS
 import tailwindConfig from '../../tailwind.config.js';
 
 describe('Tailwind Configuration', () => {

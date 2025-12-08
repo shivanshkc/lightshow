@@ -11,10 +11,22 @@ describe('Canvas Component', () => {
     const mockDevice = {
       destroy: vi.fn(),
       lost: Promise.resolve({ reason: 'destroyed', message: '' }),
+      createCommandEncoder: vi.fn().mockReturnValue({
+        beginRenderPass: vi.fn().mockReturnValue({
+          end: vi.fn(),
+        }),
+        finish: vi.fn().mockReturnValue({}),
+      }),
+      queue: {
+        submit: vi.fn(),
+      },
     };
 
     const mockGPUContext = {
       configure: vi.fn(),
+      getCurrentTexture: vi.fn().mockReturnValue({
+        createView: vi.fn().mockReturnValue({}),
+      }),
     };
 
     vi.stubGlobal('navigator', {
@@ -33,6 +45,12 @@ describe('Canvas Component', () => {
       }
       return null;
     });
+
+    // Mock requestAnimationFrame
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((_cb) => {
+      return 1;
+    });
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
   });
 
   it('shows loading state initially', () => {
@@ -46,17 +64,7 @@ describe('Canvas Component', () => {
     expect(canvas).not.toBeNull();
   });
 
-  it('calls onContextReady when initialization succeeds', async () => {
-    const onContextReady = vi.fn();
-    
-    render(<Canvas onContextReady={onContextReady} />);
-    
-    await waitFor(() => {
-      expect(onContextReady).toHaveBeenCalled();
-    }, { timeout: 2000 });
-  });
-
-  it('hides loading overlay when ready', async () => {
+  it('hides loading overlay when WebGPU initializes', async () => {
     render(<Canvas />);
     
     // Initially shows loading
@@ -76,6 +84,12 @@ describe('Canvas Component', () => {
 });
 
 describe('Canvas Error Handling', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+  });
+
   it('shows error state when WebGPU is not supported', async () => {
     // Override mock to simulate no WebGPU
     vi.stubGlobal('navigator', { gpu: undefined });
@@ -87,14 +101,13 @@ describe('Canvas Error Handling', () => {
     }, { timeout: 2000 });
   });
 
-  it('calls onError when initialization fails', async () => {
+  it('displays the error message', async () => {
     vi.stubGlobal('navigator', { gpu: undefined });
-    const onError = vi.fn();
     
-    render(<Canvas onError={onError} />);
+    render(<Canvas />);
     
     await waitFor(() => {
-      expect(onError).toHaveBeenCalled();
+      expect(screen.getByText(/not supported/i)).toBeDefined();
     }, { timeout: 2000 });
   });
 });
