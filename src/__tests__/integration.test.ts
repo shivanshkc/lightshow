@@ -110,14 +110,11 @@ describe('Scene Integration', () => {
       const id = useSceneStore.getState().addSphere();
       const obj = useSceneStore.getState().getObject(id);
 
+      expect(obj?.material.type).toBeDefined();
       expect(obj?.material.color).toBeDefined();
       expect(obj?.material.color.length).toBe(3);
-      expect(typeof obj?.material.roughness).toBe('number');
-      expect(typeof obj?.material.metallic).toBe('number');
-      expect(typeof obj?.material.transparency).toBe('number');
-      expect(typeof obj?.material.emission).toBe('number');
-      expect(obj?.material.emissionColor).toBeDefined();
-      expect(obj?.material.emissionColor.length).toBe(3);
+      expect(typeof obj?.material.ior).toBe('number');
+      expect(typeof obj?.material.intensity).toBe('number');
     });
   });
 });
