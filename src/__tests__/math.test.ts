@@ -15,7 +15,6 @@ import {
   mat4Inverse,
   mat4Multiply,
   type Vec3,
-  type Mat4,
 } from '../core/math';
 
 describe('Vector Operations', () => {

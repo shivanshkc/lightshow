@@ -113,7 +113,7 @@ export class RaytracingPipeline {
    */
   updateCamera(camera: Camera): void {
     const data = camera.getUniformData();
-    this.device.queue.writeBuffer(this.cameraBuffer, 0, data);
+    this.device.queue.writeBuffer(this.cameraBuffer, 0, data.buffer);
   }
 
   /**
