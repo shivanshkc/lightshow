@@ -4,8 +4,12 @@ import {
   createDefaultMaterial,
   createDefaultSphere,
   createDefaultCuboid,
+  validateMaterial,
+  MATERIAL_TYPES,
+  MATERIAL_PRESETS,
   type SceneObject,
   type PrimitiveType,
+  type MaterialType,
 } from '../core/types';
 
 describe('Transform', () => {
@@ -37,42 +41,29 @@ describe('Transform', () => {
 
 describe('Material', () => {
   describe('createDefaultMaterial', () => {
-    it('returns valid material', () => {
+    it('default material is plastic', () => {
       const mat = createDefaultMaterial();
-      
+      expect(mat.type).toBe('plastic');
+    });
+
+    it('default material has gray color', () => {
+      const mat = createDefaultMaterial();
+      expect(mat.color).toEqual([0.8, 0.8, 0.8]);
+    });
+
+    it('default material has IOR 1.5', () => {
+      const mat = createDefaultMaterial();
+      expect(mat.ior).toBe(1.5);
+    });
+
+    it('default material has intensity 5', () => {
+      const mat = createDefaultMaterial();
+      expect(mat.intensity).toBe(5.0);
+    });
+
+    it('color has 3 components', () => {
+      const mat = createDefaultMaterial();
       expect(mat.color.length).toBe(3);
-      expect(mat.emissionColor.length).toBe(3);
-    });
-
-    it('roughness is in valid range [0, 1]', () => {
-      const mat = createDefaultMaterial();
-      
-      expect(mat.roughness).toBeGreaterThanOrEqual(0);
-      expect(mat.roughness).toBeLessThanOrEqual(1);
-    });
-
-    it('metallic is in valid range [0, 1]', () => {
-      const mat = createDefaultMaterial();
-      
-      expect(mat.metallic).toBeGreaterThanOrEqual(0);
-      expect(mat.metallic).toBeLessThanOrEqual(1);
-    });
-
-    it('transparency is in valid range [0, 1]', () => {
-      const mat = createDefaultMaterial();
-      
-      expect(mat.transparency).toBeGreaterThanOrEqual(0);
-      expect(mat.transparency).toBeLessThanOrEqual(1);
-    });
-
-    it('emission is non-negative', () => {
-      const mat = createDefaultMaterial();
-      expect(mat.emission).toBeGreaterThanOrEqual(0);
-    });
-
-    it('ior is positive', () => {
-      const mat = createDefaultMaterial();
-      expect(mat.ior).toBeGreaterThan(0);
     });
 
     it('color components are in valid range [0, 1]', () => {
@@ -83,6 +74,86 @@ describe('Material', () => {
         expect(c).toBeLessThanOrEqual(1);
       }
     });
+  });
+});
+
+describe('Material Types', () => {
+  it('MATERIAL_TYPES has all four types', () => {
+    const types = MATERIAL_TYPES.map(t => t.value);
+    expect(types).toContain('plastic');
+    expect(types).toContain('metal');
+    expect(types).toContain('glass');
+    expect(types).toContain('light');
+  });
+
+  it('MATERIAL_TYPES has labels', () => {
+    for (const type of MATERIAL_TYPES) {
+      expect(type.label).toBeDefined();
+      expect(type.label.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('Material Presets', () => {
+  it('gold preset is metal type', () => {
+    expect(MATERIAL_PRESETS.gold.type).toBe('metal');
+  });
+
+  it('silver preset is metal type', () => {
+    expect(MATERIAL_PRESETS.silver.type).toBe('metal');
+  });
+
+  it('glass preset has IOR 1.5', () => {
+    expect(MATERIAL_PRESETS.glass.ior).toBe(1.5);
+  });
+
+  it('diamond preset has high IOR', () => {
+    expect(MATERIAL_PRESETS.diamond.ior).toBe(2.4);
+  });
+
+  it('warmLight preset is light type', () => {
+    expect(MATERIAL_PRESETS.warmLight.type).toBe('light');
+  });
+
+  it('warmLight preset has intensity > 0', () => {
+    expect(MATERIAL_PRESETS.warmLight.intensity).toBeGreaterThan(0);
+  });
+
+  it('redPlastic preset is plastic type', () => {
+    expect(MATERIAL_PRESETS.redPlastic.type).toBe('plastic');
+  });
+});
+
+describe('validateMaterial', () => {
+  it('clamps IOR to 1.0-2.5', () => {
+    expect(validateMaterial({ ior: 0.5 }).ior).toBe(1.0);
+    expect(validateMaterial({ ior: 3.0 }).ior).toBe(2.5);
+  });
+
+  it('clamps intensity to 0.1-20', () => {
+    expect(validateMaterial({ intensity: 0 }).intensity).toBe(0.1);
+    expect(validateMaterial({ intensity: 50 }).intensity).toBe(20);
+  });
+
+  it('uses defaults for missing properties', () => {
+    const mat = validateMaterial({});
+    expect(mat.type).toBe('plastic');
+    expect(mat.color).toBeDefined();
+    expect(mat.ior).toBeDefined();
+    expect(mat.intensity).toBeDefined();
+  });
+
+  it('preserves valid values', () => {
+    const mat = validateMaterial({
+      type: 'glass',
+      color: [1, 0, 0],
+      ior: 1.8,
+      intensity: 10,
+    });
+    expect(mat.type).toBe('glass');
+    expect(mat.color).toEqual([1, 0, 0]);
+    expect(mat.ior).toBe(1.8);
+    expect(mat.intensity).toBe(10);
   });
 });
 
@@ -153,6 +224,18 @@ describe('Type Safety', () => {
     expect(cuboid).toBe('cuboid');
   });
 
+  it('MaterialType is union of four types', () => {
+    const plastic: MaterialType = 'plastic';
+    const metal: MaterialType = 'metal';
+    const glass: MaterialType = 'glass';
+    const light: MaterialType = 'light';
+    
+    expect(plastic).toBe('plastic');
+    expect(metal).toBe('metal');
+    expect(glass).toBe('glass');
+    expect(light).toBe('light');
+  });
+
   it('SceneObject structure is correct', () => {
     const obj: SceneObject = {
       id: 'test-id',
@@ -167,4 +250,3 @@ describe('Type Safety', () => {
     expect(obj.type).toBe('sphere');
   });
 });
-

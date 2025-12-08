@@ -8,6 +8,9 @@ export type ObjectId = string;
 // Supported primitive types
 export type PrimitiveType = 'sphere' | 'cuboid';
 
+// Material type enum
+export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
+
 /**
  * Transform data for positioning objects in 3D space
  */
@@ -20,15 +23,16 @@ export interface Transform {
 
 /**
  * Material properties for rendering
+ * - plastic: Lambertian diffuse surface
+ * - metal: Perfect mirror reflection, color tints reflection
+ * - glass: Transparent with refraction, Fresnel effect
+ * - light: Emissive surface that illuminates scene
  */
 export interface Material {
-  color: [number, number, number];        // RGB, 0-1 range
-  roughness: number;                      // 0 = mirror, 1 = diffuse
-  metallic: number;                       // 0 = dielectric, 1 = metal
-  transparency: number;                   // 0 = opaque, 1 = fully transparent
-  ior: number;                            // Index of refraction (for glass)
-  emission: number;                       // 0 = no emission, >0 = light source
-  emissionColor: [number, number, number]; // RGB of emitted light
+  type: MaterialType;
+  color: [number, number, number];  // RGB 0-1
+  ior: number;                      // Glass only: Index of refraction (1.0-2.5)
+  intensity: number;                // Light only: Emission intensity (0.1-20)
 }
 
 /**
@@ -59,17 +63,14 @@ export function createDefaultTransform(): Transform {
 }
 
 /**
- * Create a default material (light gray, slightly rough)
+ * Create a default material (plastic, light gray)
  */
 export function createDefaultMaterial(): Material {
   return {
+    type: 'plastic',
     color: [0.8, 0.8, 0.8],
-    roughness: 0.5,
-    metallic: 0,
-    transparency: 0,
     ior: 1.5,
-    emission: 0,
-    emissionColor: [1, 1, 1],
+    intensity: 5.0,
   };
 }
 
@@ -100,6 +101,101 @@ export function createDefaultCuboid(): Omit<SceneObject, 'id'> {
 }
 
 // ============================================
+// Material Types and Presets
+// ============================================
+
+/**
+ * Material type options for UI dropdowns
+ */
+export const MATERIAL_TYPES: { value: MaterialType; label: string }[] = [
+  { value: 'plastic', label: 'Plastic' },
+  { value: 'metal', label: 'Metal' },
+  { value: 'glass', label: 'Glass' },
+  { value: 'light', label: 'Light' },
+];
+
+/**
+ * Preset materials for quick selection
+ */
+export const MATERIAL_PRESETS = {
+  redPlastic: {
+    type: 'plastic' as const,
+    color: [0.8, 0.2, 0.2] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  bluePlastic: {
+    type: 'plastic' as const,
+    color: [0.2, 0.4, 0.8] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  gold: {
+    type: 'metal' as const,
+    color: [1.0, 0.84, 0.0] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  silver: {
+    type: 'metal' as const,
+    color: [0.95, 0.95, 0.95] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  copper: {
+    type: 'metal' as const,
+    color: [0.72, 0.45, 0.2] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  glass: {
+    type: 'glass' as const,
+    color: [1.0, 1.0, 1.0] as [number, number, number],
+    ior: 1.5,
+    intensity: 5.0,
+  },
+  diamond: {
+    type: 'glass' as const,
+    color: [1.0, 1.0, 1.0] as [number, number, number],
+    ior: 2.4,
+    intensity: 5.0,
+  },
+  warmLight: {
+    type: 'light' as const,
+    color: [1.0, 0.95, 0.8] as [number, number, number],
+    ior: 1.5,
+    intensity: 10.0,
+  },
+  coolLight: {
+    type: 'light' as const,
+    color: [0.8, 0.9, 1.0] as [number, number, number],
+    ior: 1.5,
+    intensity: 10.0,
+  },
+};
+
+// ============================================
+// Validation
+// ============================================
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
+
+/**
+ * Validate and clamp material properties
+ */
+export function validateMaterial(mat: Partial<Material>): Material {
+  const def = createDefaultMaterial();
+  return {
+    type: mat.type ?? def.type,
+    color: mat.color ?? def.color,
+    ior: clamp(mat.ior ?? def.ior, 1.0, 2.5),
+    intensity: clamp(mat.intensity ?? def.intensity, 0.1, 20.0),
+  };
+}
+
+// ============================================
 // Render Settings
 // ============================================
 
@@ -112,4 +208,3 @@ export interface RenderSettings {
   maxBounces: number;       // Maximum ray bounces
   accumulate: boolean;      // Whether to accumulate or reset
 }
-
