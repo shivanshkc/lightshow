@@ -90,3 +90,30 @@ describe('Dynamic Scene Data (Stage 3)', () => {
     expect(raytracerShader).toContain('obj.emissionColor');
   });
 });
+
+describe('Random Number Generation (Stage 4)', () => {
+  it('has PCG hash function', () => {
+    expect(raytracerShader).toContain('fn pcg_hash');
+    expect(raytracerShader).toContain('747796405u');
+  });
+
+  it('has initRandom function', () => {
+    expect(raytracerShader).toContain('fn initRandom');
+  });
+
+  it('has randomFloat function', () => {
+    expect(raytracerShader).toContain('fn randomFloat');
+  });
+
+  it('has cosine hemisphere sampling', () => {
+    expect(raytracerShader).toContain('fn randomCosineHemisphere');
+  });
+
+  it('has PI constant', () => {
+    expect(raytracerShader).toContain('const PI');
+  });
+
+  it('has EPSILON constant', () => {
+    expect(raytracerShader).toContain('const EPSILON');
+  });
+});
