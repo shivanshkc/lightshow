@@ -1,4 +1,61 @@
 // ============================================
+// Constants
+// ============================================
+
+const PI: f32 = 3.14159265359;
+const EPSILON: f32 = 0.001;
+const MAX_FLOAT: f32 = 3.402823466e+38;
+
+// ============================================
+// Random Number Generation (PCG)
+// ============================================
+
+fn pcg_hash(input: u32) -> u32 {
+  var state = input * 747796405u + 2891336453u;
+  var word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+  return (word >> 22u) ^ word;
+}
+
+fn initRandom(pixel: vec2<u32>, frame: u32) -> u32 {
+  return pcg_hash(pixel.x + pcg_hash(pixel.y + pcg_hash(frame)));
+}
+
+fn randomFloat(state: ptr<function, u32>) -> f32 {
+  *state = pcg_hash(*state);
+  return f32(*state) / f32(0xFFFFFFFFu);
+}
+
+fn randomFloat2(state: ptr<function, u32>) -> vec2<f32> {
+  return vec2<f32>(randomFloat(state), randomFloat(state));
+}
+
+// Cosine-weighted hemisphere sampling (for diffuse surfaces)
+fn randomCosineHemisphere(state: ptr<function, u32>, normal: vec3<f32>) -> vec3<f32> {
+  let r1 = randomFloat(state);
+  let r2 = randomFloat(state);
+  
+  let phi = 2.0 * PI * r1;
+  let cosTheta = sqrt(r2);
+  let sinTheta = sqrt(1.0 - r2);
+  
+  // Create local coordinate system
+  var tangent: vec3<f32>;
+  if (abs(normal.x) > 0.9) {
+    tangent = normalize(cross(vec3<f32>(0.0, 1.0, 0.0), normal));
+  } else {
+    tangent = normalize(cross(vec3<f32>(1.0, 0.0, 0.0), normal));
+  }
+  let bitangent = cross(normal, tangent);
+  
+  // Transform to world space
+  return normalize(
+    tangent * cos(phi) * sinTheta +
+    bitangent * sin(phi) * sinTheta +
+    normal * cosTheta
+  );
+}
+
+// ============================================
 // Camera Uniforms
 // ============================================
 
