@@ -50,3 +50,43 @@ describe('Raytracer Shader', () => {
   });
 });
 
+describe('Dynamic Scene Data (Stage 3)', () => {
+  it('has SceneHeader struct', () => {
+    expect(raytracerShader).toContain('struct SceneHeader');
+    expect(raytracerShader).toContain('objectCount');
+  });
+
+  it('has SceneObject struct', () => {
+    expect(raytracerShader).toContain('struct SceneObject');
+    expect(raytracerShader).toContain('objectType');
+  });
+
+  it('has scene buffer bindings', () => {
+    expect(raytracerShader).toContain('@binding(2)');
+    expect(raytracerShader).toContain('@binding(3)');
+    expect(raytracerShader).toContain('sceneHeader');
+    expect(raytracerShader).toContain('sceneObjects');
+  });
+
+  it('reads from sceneObjects array', () => {
+    expect(raytracerShader).toContain('sceneObjects: array<SceneObject>');
+  });
+
+  it('has rotation matrix function', () => {
+    expect(raytracerShader).toContain('fn rotationMatrix');
+  });
+
+  it('has HitResult struct with objectIndex', () => {
+    expect(raytracerShader).toContain('struct HitResult');
+    expect(raytracerShader).toContain('objectIndex');
+  });
+
+  it('uses object color for shading', () => {
+    expect(raytracerShader).toContain('obj.color');
+  });
+
+  it('supports emission', () => {
+    expect(raytracerShader).toContain('obj.emission');
+    expect(raytracerShader).toContain('obj.emissionColor');
+  });
+});
