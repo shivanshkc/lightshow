@@ -29,8 +29,8 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn traceScene');
   });
 
-  it('contains shading function', () => {
-    expect(raytracerShader).toContain('fn shade');
+  it('contains path tracing function', () => {
+    expect(raytracerShader).toContain('fn trace');
   });
 
   it('defines camera uniforms struct', () => {
@@ -115,5 +115,45 @@ describe('Random Number Generation (Stage 4)', () => {
 
   it('has EPSILON constant', () => {
     expect(raytracerShader).toContain('const EPSILON');
+  });
+});
+
+describe('Path Tracing (Stage 4)', () => {
+  it('has trace function with bounce loop', () => {
+    expect(raytracerShader).toContain('fn trace');
+    expect(raytracerShader).toContain('for (var bounce');
+    expect(raytracerShader).toContain('maxBounces');
+  });
+
+  it('implements Russian roulette', () => {
+    expect(raytracerShader).toContain('Russian roulette');
+  });
+
+  it('has sky sampling function', () => {
+    expect(raytracerShader).toContain('fn sampleSky');
+  });
+
+  it('has tone mapping (Reinhard)', () => {
+    expect(raytracerShader).toContain('Reinhard');
+  });
+
+  it('has gamma correction', () => {
+    expect(raytracerShader).toContain('Gamma correction');
+    expect(raytracerShader).toContain('1.0 / 2.2');
+  });
+
+  it('uses accumulation texture', () => {
+    expect(raytracerShader).toContain('accumulationTexture');
+    expect(raytracerShader).toContain('textureLoad(accumulationTexture');
+  });
+
+  it('has jitter for anti-aliasing', () => {
+    expect(raytracerShader).toContain('jitter');
+    expect(raytracerShader).toContain('randomFloat2');
+  });
+
+  it('clamps fireflies', () => {
+    expect(raytracerShader).toContain('fireflies');
+    expect(raytracerShader).toContain('min(color, vec3<f32>(10.0))');
   });
 });
