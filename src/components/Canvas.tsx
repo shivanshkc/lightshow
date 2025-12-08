@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 import { DebugPanel } from './DebugPanel';
+import { StatusBar } from './StatusBar';
 
 interface CanvasProps {
   className?: string;
@@ -117,21 +118,24 @@ export function Canvas({ className }: CanvasProps) {
   }
 
   return (
-    <div className={`relative ${className || ''}`}>
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full"
-        tabIndex={0}
-      />
-      {status === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-base">
-          <div className="text-center">
-            <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-text-secondary">Initializing WebGPU...</p>
+    <div className={`flex flex-col ${className || ''}`}>
+      <div className="relative flex-1">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full"
+          tabIndex={0}
+        />
+        {status === 'loading' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
+              <p className="text-text-secondary">Initializing WebGPU...</p>
+            </div>
           </div>
-        </div>
-      )}
-      {status === 'ready' && <DebugPanel />}
+        )}
+        {status === 'ready' && <DebugPanel />}
+      </div>
+      {status === 'ready' && <StatusBar rendererRef={rendererRef} />}
     </div>
   );
 }
