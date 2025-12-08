@@ -6,6 +6,7 @@ import raytracerWGSL from './shaders/raytracer.wgsl?raw';
 /**
  * Manages the raytracing compute pipeline
  * Handles compute shader dispatch, camera uniforms, scene buffer, and output texture
+ * Supports progressive accumulation for path tracing
  */
 export class RaytracingPipeline {
   private device: GPUDevice;
@@ -16,11 +17,16 @@ export class RaytracingPipeline {
   private outputTexture: GPUTexture | null = null;
   private outputTextureView: GPUTextureView | null = null;
 
+  private accumulationTexture: GPUTexture | null = null;
+  private accumulationTextureView: GPUTextureView | null = null;
+
   private cameraBuffer: GPUBuffer;
+  private settingsBuffer: GPUBuffer;
   private sceneBuffer: SceneBuffer;
 
   private width: number = 0;
   private height: number = 0;
+  private frameIndex: number = 0;
 
   constructor(device: GPUDevice) {
     this.device = device;
@@ -33,29 +39,42 @@ export class RaytracingPipeline {
     // Create scene buffer
     this.sceneBuffer = new SceneBuffer(device);
 
-    // Create bind group layout (with scene buffer bindings)
+    // Create bind group layout (with accumulation and settings)
     this.bindGroupLayout = device.createBindGroupLayout({
       entries: [
         {
           binding: 0,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: 'uniform' },
+          buffer: { type: 'uniform' }, // Camera
         },
         {
           binding: 1,
           visibility: GPUShaderStage.COMPUTE,
-          storageTexture: {
-            access: 'write-only',
-            format: 'rgba8unorm',
-          },
+          buffer: { type: 'uniform' }, // Settings
         },
         {
           binding: 2,
           visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: 'read-only-storage' }, // Scene header
+          storageTexture: {
+            access: 'write-only',
+            format: 'rgba8unorm',
+          }, // Output texture
         },
         {
           binding: 3,
+          visibility: GPUShaderStage.COMPUTE,
+          storageTexture: {
+            access: 'read-write',
+            format: 'rgba32float',
+          }, // Accumulation texture
+        },
+        {
+          binding: 4,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // Scene header
+        },
+        {
+          binding: 5,
           visibility: GPUShaderStage.COMPUTE,
           buffer: { type: 'read-only-storage' }, // Scene objects
         },
@@ -81,6 +100,12 @@ export class RaytracingPipeline {
       size: 144,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+
+    // Create settings uniform buffer (16 bytes = 4 u32s)
+    this.settingsBuffer = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
   }
 
   /**
@@ -94,29 +119,42 @@ export class RaytracingPipeline {
     this.width = width;
     this.height = height;
 
-    // Destroy old texture
+    // Destroy old textures
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
+    if (this.accumulationTexture) {
+      this.accumulationTexture.destroy();
+    }
 
-    // Create new output texture
+    // Create new output texture (rgba8unorm for final display)
     this.outputTexture = this.device.createTexture({
       size: { width, height },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
-
     this.outputTextureView = this.outputTexture.createView();
 
-    // Recreate bind group with new texture and scene buffer
+    // Create new accumulation texture (rgba32float for high precision)
+    this.accumulationTexture = this.device.createTexture({
+      size: { width, height },
+      format: 'rgba32float',
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.accumulationTextureView = this.accumulationTexture.createView();
+
+    // Reset accumulation on resize
+    this.resetAccumulation();
+
+    // Recreate bind group with new textures
     this.rebuildBindGroup();
   }
 
   /**
-   * Rebuild the bind group (call after resize or scene buffer change)
+   * Rebuild the bind group (call after resize)
    */
   private rebuildBindGroup(): void {
-    if (!this.outputTextureView) return;
+    if (!this.outputTextureView || !this.accumulationTextureView) return;
 
     const sceneBuffer = this.sceneBuffer.getBuffer();
 
@@ -129,25 +167,60 @@ export class RaytracingPipeline {
         },
         {
           binding: 1,
-          resource: this.outputTextureView,
+          resource: { buffer: this.settingsBuffer },
         },
         {
           binding: 2,
-          resource: { 
+          resource: this.outputTextureView,
+        },
+        {
+          binding: 3,
+          resource: this.accumulationTextureView,
+        },
+        {
+          binding: 4,
+          resource: {
             buffer: sceneBuffer,
             offset: 0,
             size: 256, // Header size (padded to 256 bytes for WebGPU alignment)
           },
         },
         {
-          binding: 3,
-          resource: { 
+          binding: 5,
+          resource: {
             buffer: sceneBuffer,
             offset: 256, // After header (256-byte aligned)
           },
         },
       ],
     });
+  }
+
+  /**
+   * Reset accumulation (call when scene or camera changes)
+   */
+  resetAccumulation(): void {
+    this.frameIndex = 0;
+  }
+
+  /**
+   * Get current frame index (sample count)
+   */
+  getFrameIndex(): number {
+    return this.frameIndex;
+  }
+
+  /**
+   * Update settings uniform buffer
+   */
+  private updateSettings(): void {
+    const data = new Uint32Array([
+      this.frameIndex,
+      1, // samples per pixel per frame
+      8, // max bounces
+      1, // flags: bit 0 = accumulate
+    ]);
+    this.device.queue.writeBuffer(this.settingsBuffer, 0, data);
   }
 
   /**
@@ -171,6 +244,9 @@ export class RaytracingPipeline {
   dispatch(commandEncoder: GPUCommandEncoder): void {
     if (!this.bindGroup || this.width === 0 || this.height === 0) return;
 
+    // Update settings before dispatch
+    this.updateSettings();
+
     const computePass = commandEncoder.beginComputePass();
     computePass.setPipeline(this.pipeline);
     computePass.setBindGroup(0, this.bindGroup);
@@ -182,6 +258,9 @@ export class RaytracingPipeline {
     computePass.dispatchWorkgroups(workgroupsX, workgroupsY);
 
     computePass.end();
+
+    // Increment frame index after dispatch
+    this.frameIndex++;
   }
 
   /**
@@ -205,7 +284,11 @@ export class RaytracingPipeline {
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
+    if (this.accumulationTexture) {
+      this.accumulationTexture.destroy();
+    }
     this.cameraBuffer.destroy();
+    this.settingsBuffer.destroy();
     this.sceneBuffer.destroy();
   }
 }

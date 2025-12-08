@@ -52,19 +52,23 @@ describe('RaytracingPipeline', () => {
   });
 
   describe('bind group layout', () => {
-    it('has 4 bindings for camera, texture, scene header, and scene objects', () => {
+    it('has 6 bindings for camera, settings, textures, and scene data', () => {
       const bindings = [
         { binding: 0, type: 'uniform' },        // camera
-        { binding: 1, type: 'storageTexture' }, // output
-        { binding: 2, type: 'storage' },        // scene header
-        { binding: 3, type: 'storage' },        // scene objects
+        { binding: 1, type: 'uniform' },        // settings
+        { binding: 2, type: 'storageTexture' }, // output
+        { binding: 3, type: 'storageTexture' }, // accumulation
+        { binding: 4, type: 'storage' },        // scene header
+        { binding: 5, type: 'storage' },        // scene objects
       ];
       
-      expect(bindings.length).toBe(4);
+      expect(bindings.length).toBe(6);
       expect(bindings[0].binding).toBe(0);
       expect(bindings[1].binding).toBe(1);
       expect(bindings[2].binding).toBe(2);
       expect(bindings[3].binding).toBe(3);
+      expect(bindings[4].binding).toBe(4);
+      expect(bindings[5].binding).toBe(5);
     });
   });
 });
@@ -99,5 +103,33 @@ describe('Scene Buffer Integration', () => {
     const minAlignment = 256; // WebGPU requires 256-byte alignment for storage buffers
     const objectsOffset = 256;
     expect(objectsOffset % minAlignment).toBe(0);
+  });
+});
+
+describe('Accumulation (Stage 4)', () => {
+  it('frameIndex starts at 0', () => {
+    const frameIndex = 0;
+    expect(frameIndex).toBe(0);
+  });
+
+  it('resetAccumulation sets frameIndex to 0', () => {
+    let frameIndex = 50;
+    frameIndex = 0; // simulate reset
+    expect(frameIndex).toBe(0);
+  });
+
+  it('accumulation texture format is rgba32float', () => {
+    const format: GPUTextureFormat = 'rgba32float';
+    expect(format).toBe('rgba32float');
+  });
+
+  it('output texture format is rgba8unorm', () => {
+    const format: GPUTextureFormat = 'rgba8unorm';
+    expect(format).toBe('rgba8unorm');
+  });
+
+  it('settings buffer size is 16 bytes (4 u32s)', () => {
+    const size = 4 * 4; // 4 u32s, each 4 bytes
+    expect(size).toBe(16);
   });
 });

@@ -62,8 +62,8 @@ describe('Dynamic Scene Data (Stage 3)', () => {
   });
 
   it('has scene buffer bindings', () => {
-    expect(raytracerShader).toContain('@binding(2)');
-    expect(raytracerShader).toContain('@binding(3)');
+    expect(raytracerShader).toContain('@binding(4)');
+    expect(raytracerShader).toContain('@binding(5)');
     expect(raytracerShader).toContain('sceneHeader');
     expect(raytracerShader).toContain('sceneObjects');
   });

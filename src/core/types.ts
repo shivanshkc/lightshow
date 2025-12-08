@@ -99,3 +99,17 @@ export function createDefaultCuboid(): Omit<SceneObject, 'id'> {
   };
 }
 
+// ============================================
+// Render Settings
+// ============================================
+
+/**
+ * Settings for path tracing renderer
+ */
+export interface RenderSettings {
+  frameIndex: number;       // Increments each frame (reset on scene change)
+  samplesPerPixel: number;  // Samples per frame (usually 1 for interactive)
+  maxBounces: number;       // Maximum ray bounces
+  accumulate: boolean;      // Whether to accumulate or reset
+}
+
