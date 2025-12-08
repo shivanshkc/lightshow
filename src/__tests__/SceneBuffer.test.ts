@@ -16,14 +16,14 @@ describe('SceneBuffer', () => {
       expect(MAX_OBJECTS).toBe(256);
     });
 
-    it('header size is 16 bytes', () => {
-      expect(HEADER_SIZE_BYTES).toBe(16);
+    it('header size is 256 bytes (padded for WebGPU alignment)', () => {
+      expect(HEADER_SIZE_BYTES).toBe(256);
     });
 
     it('total buffer size is correct', () => {
       const totalSize = HEADER_SIZE_BYTES + MAX_OBJECTS * OBJECT_SIZE_BYTES;
-      expect(totalSize).toBe(16 + 256 * 128);
-      expect(totalSize).toBe(32784);
+      expect(totalSize).toBe(256 + 256 * 128);
+      expect(totalSize).toBe(33024);
     });
   });
 
@@ -57,9 +57,9 @@ describe('SceneBuffer', () => {
       expect(materialFloats * 4).toBe(64);
     });
 
-    it('header is 4 u32s', () => {
+    it('header is 64 u32s (256 bytes padded)', () => {
       const headerU32s = HEADER_SIZE_BYTES / 4;
-      expect(headerU32s).toBe(4);
+      expect(headerU32s).toBe(64);
     });
   });
 

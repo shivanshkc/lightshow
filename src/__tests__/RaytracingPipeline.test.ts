@@ -85,13 +85,19 @@ describe('Scene Buffer Integration', () => {
     expect(headerOffset).toBe(0);
   });
 
-  it('scene objects offset is 16 bytes (after header)', () => {
-    const objectsOffset = 16;
-    expect(objectsOffset).toBe(16);
+  it('scene objects offset is 256 bytes (after header, WebGPU aligned)', () => {
+    const objectsOffset = 256;
+    expect(objectsOffset).toBe(256);
   });
 
-  it('header size is 16 bytes', () => {
-    const headerSize = 16;
-    expect(headerSize).toBe(16);
+  it('header size is 256 bytes (padded for WebGPU alignment)', () => {
+    const headerSize = 256;
+    expect(headerSize).toBe(256);
+  });
+
+  it('offset meets WebGPU minimum alignment requirement', () => {
+    const minAlignment = 256; // WebGPU requires 256-byte alignment for storage buffers
+    const objectsOffset = 256;
+    expect(objectsOffset % minAlignment).toBe(0);
   });
 });
