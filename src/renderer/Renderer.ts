@@ -3,6 +3,7 @@ import { Camera } from '../core/Camera';
 import { RaytracingPipeline } from './RaytracingPipeline';
 import { BlitPipeline } from './BlitPipeline';
 import { useSceneStore } from '../store/sceneStore';
+import { useCameraStore } from '../store/cameraStore';
 
 export interface RendererStats {
   fps: number;
@@ -166,6 +167,11 @@ export class Renderer {
       this.animationFrameId = requestAnimationFrame(this.render);
       return;
     }
+
+    // Sync camera from store
+    const cameraState = useCameraStore.getState();
+    this.camera.setPosition(cameraState.position);
+    this.camera.setTarget(cameraState.target);
 
     // Update camera uniform buffer
     this.raytracingPipeline.updateCamera(this.camera);
