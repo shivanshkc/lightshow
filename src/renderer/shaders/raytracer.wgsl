@@ -56,6 +56,32 @@ fn randomCosineHemisphere(state: ptr<function, u32>, normal: vec3<f32>) -> vec3<
 }
 
 // ============================================
+// Material Helper Functions
+// ============================================
+
+// Schlick's approximation for Fresnel reflectance
+fn schlickReflectance(cosine: f32, refIdx: f32) -> f32 {
+  var r0 = (1.0 - refIdx) / (1.0 + refIdx);
+  r0 = r0 * r0;
+  return r0 + (1.0 - r0) * pow(1.0 - cosine, 5.0);
+}
+
+// Refract a ray using Snell's law
+// Returns (refracted direction, success flag)
+fn refractRay(incident: vec3<f32>, normal: vec3<f32>, etaRatio: f32) -> vec3<f32> {
+  let cosI = dot(-incident, normal);
+  let sin2T = etaRatio * etaRatio * (1.0 - cosI * cosI);
+  
+  // Total internal reflection check
+  if (sin2T > 1.0) {
+    return reflect(incident, normal);
+  }
+  
+  let cosT = sqrt(1.0 - sin2T);
+  return etaRatio * incident + (etaRatio * cosI - cosT) * normal;
+}
+
+// ============================================
 // Camera Uniforms
 // ============================================
 
@@ -86,15 +112,19 @@ struct SceneObject {
   
   // Material section (64 bytes)
   color: vec3<f32>,
-  roughness: f32,
-  emissionColor: vec3<f32>,
-  emission: f32,
-  transparency: f32,
-  ior: f32,
-  metallic: f32,
-  _mat_pad: f32,
-  _material_pad: vec4<f32>,
+  materialType: u32,      // 0 = plastic, 1 = metal, 2 = glass, 3 = light
+  ior: f32,               // Index of refraction (glass only)
+  intensity: f32,         // Emission intensity (light only)
+  _mat_pad2: vec2<f32>,
+  _material_pad1: vec4<f32>,
+  _material_pad2: vec4<f32>,
 }
+
+// Material type constants
+const MAT_PLASTIC: u32 = 0u;
+const MAT_METAL: u32 = 1u;
+const MAT_GLASS: u32 = 2u;
+const MAT_LIGHT: u32 = 3u;
 
 // ============================================
 // Render Settings
@@ -359,31 +389,63 @@ fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
     }
     
     let obj = sceneObjects[hit.objectIndex];
+    var newDir: vec3<f32>;
+    var newOrigin: vec3<f32>;
     
-    // Add emission from hit object
-    if (obj.emission > 0.0) {
-      radiance += throughput * obj.emissionColor * obj.emission;
+    // Handle material types
+    switch obj.materialType {
+      case MAT_LIGHT: {
+        // Emissive material - add light and terminate
+        radiance += throughput * obj.color * obj.intensity;
+        return radiance;
+      }
+      
+      case MAT_METAL: {
+        // Perfect mirror reflection with color tinting
+        newDir = reflect(ray.direction, hit.normal);
+        throughput *= obj.color;
+        newOrigin = hit.position + hit.normal * EPSILON;
+      }
+      
+      case MAT_GLASS: {
+        // Dielectric material with refraction
+        let frontFace = dot(ray.direction, hit.normal) < 0.0;
+        let surfaceNormal = select(-hit.normal, hit.normal, frontFace);
+        let etaRatio = select(obj.ior, 1.0 / obj.ior, frontFace);
+        
+        let cosTheta = min(dot(-ray.direction, surfaceNormal), 1.0);
+        let sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+        
+        // Check for total internal reflection
+        let cannotRefract = etaRatio * sinTheta > 1.0;
+        let reflectProb = schlickReflectance(cosTheta, etaRatio);
+        
+        if (cannotRefract || randomFloat(rng) < reflectProb) {
+          // Reflect
+          newDir = reflect(ray.direction, surfaceNormal);
+          newOrigin = hit.position + surfaceNormal * EPSILON;
+        } else {
+          // Refract
+          newDir = refractRay(ray.direction, surfaceNormal, etaRatio);
+          newOrigin = hit.position - surfaceNormal * EPSILON;
+        }
+        
+        // Glass is colorless by default, but can be tinted
+        throughput *= obj.color;
+      }
+      
+      case MAT_PLASTIC, default: {
+        // Diffuse with slight specular highlight
+        let diffuseDir = randomCosineHemisphere(rng, hit.normal);
+        let reflectDir = reflect(ray.direction, hit.normal);
+        
+        // 95% diffuse, 5% specular (plastic has slight sheen)
+        let isSpecular = randomFloat(rng) < 0.05;
+        newDir = select(diffuseDir, reflectDir, isSpecular);
+        throughput *= obj.color;
+        newOrigin = hit.position + hit.normal * EPSILON;
+      }
     }
-    
-    // Handle transparency (simple pass-through)
-    if (obj.transparency > 0.9 && randomFloat(rng) < obj.transparency) {
-      ray.origin = hit.position + ray.direction * EPSILON;
-      continue;
-    }
-    
-    // Diffuse bounce direction (cosine-weighted hemisphere sampling)
-    let diffuseDir = randomCosineHemisphere(rng, hit.normal);
-    
-    // Specular reflection direction
-    let reflectDir = reflect(ray.direction, hit.normal);
-    
-    // Blend between diffuse and specular based on roughness
-    // Low roughness = more specular, high roughness = more diffuse
-    let isSpecular = randomFloat(rng) > obj.roughness;
-    let newDir = select(diffuseDir, reflectDir, isSpecular);
-    
-    // Update throughput with material color
-    throughput *= obj.color;
     
     // Russian roulette for path termination (after bounce 3)
     if (bounce > 3u) {
@@ -395,7 +457,7 @@ fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
     }
     
     // Setup next ray
-    ray.origin = hit.position + hit.normal * EPSILON;
+    ray.origin = newOrigin;
     ray.direction = newDir;
   }
   
