@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
+import { CameraController } from '../core/CameraController';
 import { DebugPanel } from './DebugPanel';
 import { StatusBar } from './StatusBar';
 
@@ -13,6 +14,7 @@ export type CanvasStatus = 'loading' | 'ready' | 'error';
 export function Canvas({ className }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
+  const controllerRef = useRef<CameraController | null>(null);
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -53,6 +55,15 @@ export function Canvas({ className }: CanvasProps) {
         const renderer = new Renderer(ctx);
         rendererRef.current = renderer;
 
+        // Initialize camera controller
+        const controller = new CameraController(canvas);
+        controllerRef.current = controller;
+
+        // Reset accumulation when camera changes
+        controller.onCameraChange = () => {
+          renderer.resetAccumulation();
+        };
+
         // Initial resize
         const rect = canvas.getBoundingClientRect();
         handleResize(rect.width, rect.height);
@@ -72,6 +83,8 @@ export function Canvas({ className }: CanvasProps) {
 
     return () => {
       mounted = false;
+      controllerRef.current?.destroy();
+      controllerRef.current = null;
       rendererRef.current?.destroy();
       rendererRef.current = null;
     };
