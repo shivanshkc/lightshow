@@ -149,7 +149,9 @@ After all commits in a stage are complete:
 1. Run full test suite
 2. Run any type checking (e.g., `npx tsc --noEmit` for TypeScript)
 3. Perform manual testing if specified in the stage PRP
-4. Proceed to next stage
+4. **STOP and notify the user that the stage is complete**
+5. Allow the user to test the application
+6. **Wait for explicit user confirmation before proceeding to the next stage**
 
 ---
 
@@ -188,7 +190,16 @@ For each stage, follow this exact process:
    → Run type checking (if applicable)
    → Manual testing (if specified)
 
-5. Proceed to next stage
+5. STOP and notify user:
+   → "Stage XX complete. Ready for testing."
+   → Summarize what was implemented
+   → List any manual testing suggestions
+
+6. WAIT for user confirmation:
+   → Do NOT proceed to next stage automatically
+   → User may want to test the application
+   → User may have questions or feedback
+   → Only continue when user explicitly says to proceed
 ```
 
 ---
@@ -228,6 +239,20 @@ If tests fail:
 
 ### 6. Follow Code Style
 Match the code style shown in specifications. Use the same patterns and conventions throughout.
+
+### 7. Wait for User Confirmation Between Stages
+**NEVER proceed to the next stage automatically.** After completing a stage:
+1. Stop and clearly announce: "Stage XX is complete"
+2. Summarize what was implemented in the stage
+3. Suggest manual testing steps the user can perform
+4. Ask: "Would you like to test this stage, or should I proceed to Stage XX+1?"
+5. Wait for the user to explicitly confirm before continuing
+
+This ensures the user can:
+- Test each stage incrementally
+- Catch issues early before they compound
+- Understand what was built at each step
+- Provide feedback or request changes
 
 ---
 
@@ -298,6 +323,11 @@ Start with **Stage 1, Commit 1**.
 3. Read: prp/stages/stage-01-*.md (first stage details)
 4. Read: prp/commits/stage-01-commits.md (first stage commits)
 5. Execute Commit 1.1 (first commit of first stage)
+6. Continue until Stage 1 is complete
+7. STOP and ask user if they want to test before proceeding
+8. Only proceed to Stage 2 after user confirmation
 ```
+
+**REMEMBER:** After completing each stage, STOP and wait for user confirmation before proceeding to the next stage. Do not automatically continue through all stages.
 
 **BEGIN EXECUTION NOW**
