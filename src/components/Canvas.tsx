@@ -2,16 +2,15 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 import { CameraController } from '../core/CameraController';
-import { DebugPanel } from './DebugPanel';
-import { StatusBar } from './StatusBar';
 
 interface CanvasProps {
   className?: string;
+  onRendererReady?: (renderer: Renderer) => void;
 }
 
 export type CanvasStatus = 'loading' | 'ready' | 'error';
 
-export function Canvas({ className }: CanvasProps) {
+export function Canvas({ className, onRendererReady }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const controllerRef = useRef<CameraController | null>(null);
@@ -70,6 +69,9 @@ export function Canvas({ className }: CanvasProps) {
 
         renderer.start();
         setStatus('ready');
+
+        // Notify parent that renderer is ready
+        onRendererReady?.(renderer);
       } catch (err) {
         if (!mounted) return;
 
@@ -88,7 +90,7 @@ export function Canvas({ className }: CanvasProps) {
       rendererRef.current?.destroy();
       rendererRef.current = null;
     };
-  }, [handleResize]);
+  }, [handleResize, onRendererReady]);
 
   // Handle resize
   useEffect(() => {
@@ -110,7 +112,9 @@ export function Canvas({ className }: CanvasProps) {
 
   if (status === 'error') {
     return (
-      <div className={`flex items-center justify-center bg-base ${className || ''}`}>
+      <div
+        className={`flex items-center justify-center bg-base ${className || ''}`}
+      >
         <div className="text-center p-8 max-w-md">
           <div className="text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold mb-2 text-text-primary">
@@ -131,24 +135,16 @@ export function Canvas({ className }: CanvasProps) {
   }
 
   return (
-    <div className={`flex flex-col ${className || ''}`}>
-      <div className="relative flex-1">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-          tabIndex={0}
-        />
-        {status === 'loading' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-base">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-text-secondary">Initializing WebGPU...</p>
-            </div>
+    <div className={`relative ${className || ''}`}>
+      <canvas ref={canvasRef} className="w-full h-full" tabIndex={0} />
+      {status === 'loading' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-base">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
+            <p className="text-text-secondary">Initializing WebGPU...</p>
           </div>
-        )}
-        {status === 'ready' && <DebugPanel />}
-      </div>
-      {status === 'ready' && <StatusBar rendererRef={rendererRef} />}
+        </div>
+      )}
     </div>
   );
 }
