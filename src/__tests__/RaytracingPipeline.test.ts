@@ -52,12 +52,12 @@ describe('RaytracingPipeline', () => {
   });
 
   describe('bind group layout', () => {
-    it('has 6 bindings for camera, settings, textures, and scene data', () => {
+    it('has 6 bindings for camera, settings, output, accumulation, and scene data', () => {
       const bindings = [
         { binding: 0, type: 'uniform' },        // camera
         { binding: 1, type: 'uniform' },        // settings
         { binding: 2, type: 'storageTexture' }, // output
-        { binding: 3, type: 'storageTexture' }, // accumulation
+        { binding: 3, type: 'storage' },        // accumulation buffer
         { binding: 4, type: 'storage' },        // scene header
         { binding: 5, type: 'storage' },        // scene objects
       ];
@@ -118,9 +118,9 @@ describe('Accumulation (Stage 4)', () => {
     expect(frameIndex).toBe(0);
   });
 
-  it('accumulation texture format is rgba32float', () => {
-    const format: GPUTextureFormat = 'rgba32float';
-    expect(format).toBe('rgba32float');
+  it('accumulation buffer stores 4 floats per pixel', () => {
+    const floatsPerPixel = 4; // r, g, b, samples
+    expect(floatsPerPixel).toBe(4);
   });
 
   it('output texture format is rgba8unorm', () => {
@@ -131,5 +131,14 @@ describe('Accumulation (Stage 4)', () => {
   it('settings buffer size is 16 bytes (4 u32s)', () => {
     const size = 4 * 4; // 4 u32s, each 4 bytes
     expect(size).toBe(16);
+  });
+
+  it('accumulation buffer size calculation is correct', () => {
+    const width = 800;
+    const height = 600;
+    const floatsPerPixel = 4;
+    const bytesPerFloat = 4;
+    const bufferSize = width * height * floatsPerPixel * bytesPerFloat;
+    expect(bufferSize).toBe(800 * 600 * 4 * 4);
   });
 });

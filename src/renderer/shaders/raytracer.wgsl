@@ -108,13 +108,24 @@ struct RenderSettings {
 }
 
 // ============================================
+// Accumulation Buffer
+// ============================================
+
+struct AccumulationData {
+  r: f32,
+  g: f32,
+  b: f32,
+  samples: f32,
+}
+
+// ============================================
 // Bindings
 // ============================================
 
 @group(0) @binding(0) var<uniform> camera: CameraUniforms;
 @group(0) @binding(1) var<uniform> settings: RenderSettings;
 @group(0) @binding(2) var outputTexture: texture_storage_2d<rgba8unorm, write>;
-@group(0) @binding(3) var accumulationTexture: texture_storage_2d<rgba32float, read_write>;
+@group(0) @binding(3) var<storage, read_write> accumulationBuffer: array<AccumulationData>;
 @group(0) @binding(4) var<storage, read> sceneHeader: SceneHeader;
 @group(0) @binding(5) var<storage, read> sceneObjects: array<SceneObject>;
 
@@ -405,6 +416,10 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
     return;
   }
   
+  // Calculate buffer index
+  let width = u32(resolution.x);
+  let bufferIndex = globalId.y * width + globalId.x;
+  
   // Initialize random state from pixel position and frame index
   var rng = initRandom(globalId.xy, settings.frameIndex);
   
@@ -418,30 +433,27 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   // Clamp fireflies (extremely bright pixels from low-probability paths)
   color = min(color, vec3<f32>(10.0));
   
-  // Accumulation
-  let pixelIndex = vec2<i32>(globalId.xy);
-  var accumulated: vec4<f32>;
+  // Accumulation using buffer
+  var accumulated: vec3<f32>;
   
   if (settings.frameIndex == 0u || (settings.flags & 1u) == 0u) {
     // First frame or accumulation disabled - just use current sample
-    accumulated = vec4<f32>(color, 1.0);
+    accumulated = color;
   } else {
     // Progressive accumulation using running average
-    let previous = textureLoad(accumulationTexture, pixelIndex);
+    let prev = accumulationBuffer[bufferIndex];
+    let previous = vec3<f32>(prev.r, prev.g, prev.b);
     let totalSamples = f32(settings.frameIndex + 1u);
-    accumulated = vec4<f32>(
-      previous.rgb + (color - previous.rgb) / totalSamples,
-      1.0
-    );
+    accumulated = previous + (color - previous) / totalSamples;
   }
   
-  // Store accumulated color
-  textureStore(accumulationTexture, pixelIndex, accumulated);
+  // Store accumulated color in buffer
+  accumulationBuffer[bufferIndex] = AccumulationData(accumulated.r, accumulated.g, accumulated.b, 1.0);
   
   // Tone mapping (Reinhard) and gamma correction for output
-  var finalColor = accumulated.rgb;
+  var finalColor = accumulated;
   finalColor = finalColor / (finalColor + vec3<f32>(1.0));  // Reinhard tone mapping
   finalColor = pow(finalColor, vec3<f32>(1.0 / 2.2));       // Gamma correction
   
-  textureStore(outputTexture, pixelIndex, vec4<f32>(finalColor, 1.0));
+  textureStore(outputTexture, vec2<i32>(globalId.xy), vec4<f32>(finalColor, 1.0));
 }
