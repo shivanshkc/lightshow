@@ -1,7 +1,7 @@
 # Stage 11: Properties Panel
 
 ## Objective
-Implement the full properties panel with transform inputs (position, rotation, scale) and material controls (color picker, sliders). All inputs should have two-way binding with the scene state.
+Implement the full properties panel with transform inputs (position, rotation, scale) and material controls (type selector, color picker, type-specific sliders). All inputs should have two-way binding with the scene state.
 
 ---
 
@@ -37,20 +37,17 @@ Implement the full properties panel with transform inputs (position, rotation, s
 ┌─────────────────────────────┐
 │ Material                    │
 ├─────────────────────────────┤
-│ Color      [████████] #FFF  │
+│ Type    [▼ Plastic       ]  │
 │                             │
-│ Roughness                   │
-│ ●════════════════════ 0.50  │
+│ Color      [████████] #CCC  │
 │                             │
-│ Metallic                    │
-│ ═●═══════════════════ 0.00  │
+│ ─── Glass Only ───────────  │
+│ IOR                         │
+│ ═════●═════════════   1.50  │
 │                             │
-│ Transparency                │
-│ ═●═══════════════════ 0.00  │
-│                             │
-│ ☐ Emissive                  │
-│   Strength ══════●═══ 1.00  │
-│   Color    [████████] #FFF  │
+│ ─── Light Only ───────────  │
+│ Intensity                   │
+│ ═════════●═════════   5.00  │
 └─────────────────────────────┘
 ```
 
@@ -63,13 +60,13 @@ src/
 ├── components/
 │   └── panels/
 │       ├── TransformSection.tsx    # UPDATE: full implementation
-│       ├── MaterialSection.tsx     # UPDATE: full implementation
+│       ├── MaterialSection.tsx     # UPDATE: material type selector
 │       └── ActionSection.tsx       # NEW: delete, duplicate buttons
 │   └── ui/
 │       ├── NumberInput.tsx         # UPDATE: draggable input
 │       ├── Slider.tsx              # UPDATE: styled slider
 │       ├── ColorPicker.tsx         # UPDATE: full color picker
-│       ├── Checkbox.tsx            # NEW
+│       ├── Select.tsx              # NEW: dropdown for material type
 │       └── Vec3Input.tsx           # NEW: grouped XYZ inputs
 ```
 
@@ -209,7 +206,49 @@ export function NumberInput({
 }
 ```
 
-### 11.2 Vec3Input (XYZ grouped input)
+### 11.2 Select Component (Dropdown)
+
+```tsx
+import { MATERIAL_TYPES, MaterialType } from '../../core/types';
+
+interface SelectProps<T extends string> {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: { value: T; label: string }[];
+}
+
+export function Select<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: SelectProps<T>) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-text-secondary">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="
+          w-full px-3 py-2 bg-elevated rounded border border-border-default
+          text-sm text-text-primary
+          focus:border-accent focus:outline-none
+          cursor-pointer
+        "
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+```
+
+### 11.3 Vec3Input (XYZ grouped input)
 
 ```tsx
 import { NumberInput } from './NumberInput';
@@ -276,7 +315,7 @@ export function Vec3Input({
 }
 ```
 
-### 11.3 Slider Component
+### 11.4 Slider Component
 
 ```tsx
 import { useCallback, useRef, useState, useEffect } from 'react';
@@ -378,7 +417,7 @@ export function Slider({
 }
 ```
 
-### 11.4 Color Picker
+### 11.5 Color Picker
 
 ```tsx
 import { useState, useRef, useEffect } from 'react';
@@ -459,7 +498,7 @@ export function ColorPicker({ label, value, onChange }: ColorPickerProps) {
 }
 ```
 
-### 11.5 TransformSection
+### 11.6 TransformSection
 
 ```tsx
 import { useCallback } from 'react';
@@ -467,6 +506,7 @@ import { SceneObject } from '../../core/types';
 import { useSceneStore } from '../../store/sceneStore';
 import { Panel } from '../ui/Panel';
 import { Vec3Input } from '../ui/Vec3Input';
+import { NumberInput } from '../ui/NumberInput';
 
 interface TransformSectionProps {
   object: SceneObject;
@@ -546,16 +586,16 @@ export function TransformSection({ object }: TransformSectionProps) {
 }
 ```
 
-### 11.6 MaterialSection
+### 11.7 MaterialSection
 
 ```tsx
 import { useCallback } from 'react';
-import { SceneObject } from '../../core/types';
+import { SceneObject, MaterialType, MATERIAL_TYPES } from '../../core/types';
 import { useSceneStore } from '../../store/sceneStore';
 import { Panel } from '../ui/Panel';
+import { Select } from '../ui/Select';
 import { ColorPicker } from '../ui/ColorPicker';
 import { Slider } from '../ui/Slider';
-import { Checkbox } from '../ui/Checkbox';
 
 interface MaterialSectionProps {
   object: SceneObject;
@@ -568,44 +608,28 @@ export function MaterialSection({ object }: MaterialSectionProps) {
     updateMaterial(object.id, updates);
   }, [object.id, updateMaterial]);
   
-  const isEmissive = object.material.emission > 0;
-  
   return (
     <Panel title="Material">
       <div className="space-y-4">
+        {/* Material Type Selector */}
+        <Select
+          label="Type"
+          value={object.material.type}
+          onChange={(type: MaterialType) => handleChange({ type })}
+          options={MATERIAL_TYPES}
+        />
+        
+        {/* Color (all materials) */}
         <ColorPicker
           label="Color"
           value={object.material.color}
           onChange={(color) => handleChange({ color })}
         />
         
-        <Slider
-          label="Roughness"
-          value={object.material.roughness}
-          onChange={(roughness) => handleChange({ roughness })}
-          min={0}
-          max={1}
-        />
-        
-        <Slider
-          label="Metallic"
-          value={object.material.metallic}
-          onChange={(metallic) => handleChange({ metallic })}
-          min={0}
-          max={1}
-        />
-        
-        <Slider
-          label="Transparency"
-          value={object.material.transparency}
-          onChange={(transparency) => handleChange({ transparency })}
-          min={0}
-          max={1}
-        />
-        
-        {object.material.transparency > 0 && (
+        {/* Glass-specific: IOR */}
+        {object.material.type === 'glass' && (
           <Slider
-            label="IOR"
+            label="Index of Refraction (IOR)"
             value={object.material.ior}
             onChange={(ior) => handleChange({ ior })}
             min={1.0}
@@ -614,31 +638,24 @@ export function MaterialSection({ object }: MaterialSectionProps) {
           />
         )}
         
-        <div className="pt-2 border-t border-border-subtle">
-          <Checkbox
-            label="Emissive"
-            checked={isEmissive}
-            onChange={(checked) => handleChange({ emission: checked ? 1 : 0 })}
+        {/* Light-specific: Intensity */}
+        {object.material.type === 'light' && (
+          <Slider
+            label="Intensity"
+            value={object.material.intensity}
+            onChange={(intensity) => handleChange({ intensity })}
+            min={0.1}
+            max={20}
+            step={0.1}
           />
-          
-          {isEmissive && (
-            <div className="mt-3 ml-6 space-y-3">
-              <Slider
-                label="Strength"
-                value={object.material.emission}
-                onChange={(emission) => handleChange({ emission })}
-                min={0.1}
-                max={10}
-                step={0.1}
-              />
-              
-              <ColorPicker
-                label="Light Color"
-                value={object.material.emissionColor}
-                onChange={(emissionColor) => handleChange({ emissionColor })}
-              />
-            </div>
-          )}
+        )}
+        
+        {/* Material type descriptions */}
+        <div className="text-xs text-text-tertiary italic">
+          {object.material.type === 'plastic' && 'Matte diffuse surface'}
+          {object.material.type === 'metal' && 'Perfectly reflective mirror surface'}
+          {object.material.type === 'glass' && 'Transparent with refraction'}
+          {object.material.type === 'light' && 'Emits light, illuminates scene'}
         </div>
       </div>
     </Panel>
@@ -665,13 +682,13 @@ export function MaterialSection({ object }: MaterialSectionProps) {
 
 | Test ID | Description | Steps | Expected |
 |---------|-------------|-------|----------|
-| T11.7 | Color picker | Click swatch, pick color | Object color changes |
-| T11.8 | Roughness slider | Drag slider | Reflection sharpness changes |
-| T11.9 | Transparency slider | Increase transparency | Object becomes see-through |
-| T11.10 | IOR appears | Set transparency > 0 | IOR slider appears |
-| T11.11 | Enable emission | Check "Emissive" | Emission controls appear |
-| T11.12 | Emission strength | Increase strength | Object glows brighter |
-| T11.13 | Emission color | Change emission color | Light color changes |
+| T11.7 | Type selector | Change from Plastic to Metal | Object becomes reflective |
+| T11.8 | Color picker | Click swatch, pick color | Object color changes |
+| T11.9 | Glass IOR | Select Glass, adjust IOR | Refraction amount changes |
+| T11.10 | IOR visibility | Select non-Glass type | IOR slider hidden |
+| T11.11 | Light intensity | Select Light, adjust intensity | Brightness changes |
+| T11.12 | Intensity visibility | Select non-Light type | Intensity slider hidden |
+| T11.13 | Metal reflection | Select Metal, change color | Reflection color tints |
 
 ### Input Behavior Tests
 
@@ -690,10 +707,12 @@ export function MaterialSection({ object }: MaterialSectionProps) {
 - [ ] All transform inputs work (position, rotation, scale)
 - [ ] Two-way binding: gizmo ↔ inputs sync
 - [ ] Sphere shows radius instead of XYZ scale
+- [ ] Material type dropdown works
 - [ ] Color picker works with visual swatch
-- [ ] All sliders work and update render
-- [ ] Emission toggle shows/hides sub-controls
-- [ ] Transparency shows IOR when > 0
+- [ ] Glass shows IOR slider only
+- [ ] Light shows intensity slider only
+- [ ] Plastic and Metal show no extra sliders
+- [ ] Type changes update render immediately
 - [ ] Drag-to-adjust works on number inputs
 - [ ] Inputs validate and handle edge cases
 
@@ -703,8 +722,8 @@ export function MaterialSection({ object }: MaterialSectionProps) {
 
 Stage 11 is complete when:
 1. Full transform panel is functional
-2. Full material panel is functional
-3. Two-way binding works between gizmos and inputs
-4. All inputs have proper validation
-5. Visual feedback during interaction
-
+2. Material type selector works with all four types
+3. Type-specific controls appear/hide correctly
+4. Two-way binding works between gizmos and inputs
+5. All inputs have proper validation
+6. Visual feedback during interaction

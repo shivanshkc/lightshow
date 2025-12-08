@@ -44,10 +44,8 @@ When a new object is added to the scene, it should have sensible defaults:
 | Position | (0, 0, 0) or auto-placed in camera view | (0, 0, 0) or auto-placed in camera view |
 | Size | Radius: 1.0 unit | Dimensions: 1.0 × 1.0 × 1.0 units |
 | Rotation | (0°, 0°, 0°) | (0°, 0°, 0°) |
+| Material Type | Plastic | Plastic |
 | Color | Light gray (#CCCCCC) | Light gray (#CCCCCC) |
-| Roughness | 0.5 (semi-glossy) | 0.5 (semi-glossy) |
-| Transparency | 0.0 (fully opaque) | 0.0 (fully opaque) |
-| Emission | 0.0 (no light emission) | 0.0 (no light emission) |
 
 **Smart Placement**: New objects should be placed at a visible location within the current camera frustum, avoiding overlap with existing objects when possible.
 
@@ -114,39 +112,56 @@ When a new object is added to the scene, it should have sensible defaults:
 
 ### 2.3 Material Properties
 
-Each object has the following material properties that users can adjust:
+Each object has a **Material Type** and a **Color**. The material type determines how light interacts with the surface.
 
-#### 2.3.1 Base Color
+#### 2.3.1 Color (All Materials)
 - **Type**: RGB color picker
 - **Default**: Light gray (#CCCCCC)
 - **UI**: Color wheel/picker with hex input option
-- **Alpha channel**: Not used here (transparency is separate)
+- **Behavior**: Affects how the material appears (albedo for Plastic, tint for Glass, reflection color for Metal, light color for Light)
 
-#### 2.3.2 Roughness / Smoothness
-- **Type**: Slider (0.0 to 1.0)
-- **0.0**: Perfectly smooth (mirror-like reflections)
-- **1.0**: Completely rough (diffuse, matte surface)
-- **Default**: 0.5
-- **Label options**: Can be labeled as "Roughness" or inverted as "Smoothness"
-- **Visual preview**: Real-time update in viewport
+#### 2.3.2 Material Types
 
-#### 2.3.3 Transparency / Opacity
-- **Type**: Slider (0.0 to 1.0)
-- **0.0**: Fully opaque
-- **1.0**: Fully transparent (glass-like)
-- **Default**: 0.0
-- **Refraction**: Transparent objects should exhibit refraction
-- **IOR (Index of Refraction)**: Optional advanced setting (default: 1.5 for glass)
+| Type | Description | Properties | Visual Effect |
+|------|-------------|------------|---------------|
+| **Plastic** | Rough, diffuse surface | Color only | Matte finish, scattered reflections, no transparency |
+| **Metal** | Smooth, perfectly reflective | Color only | Mirror-like reflections tinted by color |
+| **Glass** | Transparent with refraction | Color + IOR | See-through, refracts light, Fresnel reflections |
+| **Light** | Emissive surface | Color + Intensity | Glows and illuminates scene |
 
-#### 2.3.4 Emission (Light Source)
-- **Emission Strength**: Slider (0.0 to 10.0+)
-  - 0.0: No emission (default)
-  - Higher values: Brighter light emission
-- **Emission Color**: RGB color picker
-  - Default: White (#FFFFFF)
-  - Allows any color of light
-- **Behavior**: Objects with emission > 0 act as area lights in the scene
-- **Self-illumination**: Emissive objects appear bright regardless of scene lighting
+#### 2.3.3 Material Type Details
+
+**Plastic (Default)**
+- Diffuse material with rough surface
+- Light scatters in random directions (Lambertian reflection)
+- Color determines the surface color
+- No additional parameters
+
+**Metal**
+- Perfectly smooth, mirror-like surface
+- Light reflects at the same angle it hits
+- Color tints the reflection (gold, copper, silver, etc.)
+- No additional parameters
+
+**Glass**
+- Transparent material with refraction
+- **IOR (Index of Refraction)**: Slider (1.0 to 2.5)
+  - 1.0: No refraction (like air)
+  - 1.33: Water
+  - 1.5: Standard glass (default)
+  - 2.0: Dense crystal
+  - 2.5: Diamond
+- Exhibits Fresnel effect (more reflective at grazing angles)
+- Color tints light passing through
+
+**Light**
+- Emissive material that illuminates the scene
+- **Intensity**: Slider (0.1 to 20.0)
+  - Higher values = brighter light
+  - Default: 5.0
+- Color determines the light color
+- Acts as an area light source
+- Self-illuminated (always visible regardless of scene lighting)
 
 ---
 
@@ -180,7 +195,7 @@ Each object has the following material properties that users can adjust:
 #### 2.5.3 Default Lighting
 - Scene should have reasonable default lighting so objects are visible
 - At minimum: ambient light + one directional or point light
-- Users can add emissive objects for additional lighting
+- Users can add emissive objects (Light material type) for additional lighting
 
 ---
 
@@ -271,15 +286,13 @@ Each object has the following material properties that users can adjust:
 ┌─────────────────────────────┐
 │ Material                    │
 ├─────────────────────────────┤
+│ Type     [▼ Plastic      ]  │
+│                             │
 │ Color      [■■■■■] #CCCCCC  │
 │                             │
-│ Roughness  ════●════  0.50  │
-│                             │
-│ Transparency ●══════  0.00  │
-│                             │
-│ ☐ Emissive                  │
-│   Strength ══●════   1.00   │
-│   Color    [■■■■■] #FFFFFF  │
+│ ─── Type-specific ────────  │
+│ (Glass: IOR slider)         │
+│ (Light: Intensity slider)   │
 └─────────────────────────────┘
 ```
 
@@ -373,8 +386,8 @@ Each object has the following material properties that users can adjust:
 #### Rendering Features:
 - Global illumination (indirect lighting)
 - Soft shadows
-- Reflections (based on roughness)
-- Refractions (for transparent objects)
+- Reflections (Metal materials)
+- Refractions (Glass materials)
 - Anti-aliasing (progressive)
 
 ### 4.2 Browser Support
@@ -433,21 +446,30 @@ WebGPU is required. Supported browsers:
 ```
 1. User clicks on existing object in viewport
 2. Object becomes selected, properties panel shows its settings
-3. User adjusts roughness slider from 0.5 to 0.1
-4. Viewport updates in real-time showing shinier surface
-5. User clicks emission checkbox to enable emission
-6. User sets emission strength to 2.0 and color to orange
-7. Object now glows orange and illuminates nearby objects
+3. User changes material type from "Plastic" to "Metal"
+4. Viewport updates in real-time showing mirror reflections
+5. User changes color to gold (#FFD700)
+6. Object now shows golden metallic reflections
 ```
 
 ### 6.3 Creating a Glass Object
 
 ```
 1. User adds a new sphere
-2. User sets transparency to 0.9
-3. User sets roughness to 0.0
+2. User changes material type to "Glass"
+3. IOR slider appears, user adjusts to 1.5
 4. Sphere now appears glass-like with visible refraction
 5. Objects behind the sphere appear distorted through it
+```
+
+### 6.4 Creating a Light Source
+
+```
+1. User adds a new sphere
+2. User changes material type to "Light"
+3. Intensity slider appears, user sets to 10
+4. User changes color to warm white (#FFF5E6)
+5. Sphere now glows and illuminates nearby objects
 ```
 
 ---
@@ -518,10 +540,10 @@ WebGPU is required. Supported browsers:
 - [ ] Rotation gizmo with all three axes working
 - [ ] Scale gizmo (uniform and per-axis)
 - [ ] Delete selected object
-- [ ] Material: Base color picker
-- [ ] Material: Roughness slider
-- [ ] Material: Transparency slider
-- [ ] Material: Emission toggle, strength, and color
+- [ ] Material type selector (Plastic, Metal, Glass, Light)
+- [ ] Color picker for all materials
+- [ ] Glass: IOR slider with refraction
+- [ ] Light: Intensity slider with scene illumination
 - [ ] Real-time raytraced viewport
 - [ ] Working camera orbit controls
 - [ ] Clean, dark-themed UI
@@ -546,13 +568,15 @@ WebGPU is required. Supported browsers:
 | **Raytracing** | Rendering technique that simulates light rays to produce realistic images |
 | **Primitive** | Basic 3D shape (sphere, cube, etc.) |
 | **Gizmo** | Interactive 3D control widget for transforming objects |
-| **Roughness** | Material property controlling how scattered reflections are |
-| **Emission** | Material property making an object emit light |
-| **IOR** | Index of Refraction - how much light bends through transparent materials |
+| **Material Type** | Category of surface behavior: Plastic, Metal, Glass, or Light |
+| **Plastic** | Diffuse material with rough, scattered reflections |
+| **Metal** | Smooth material with perfect mirror reflections |
+| **Glass** | Transparent material that refracts light |
+| **Light** | Emissive material that illuminates the scene |
+| **IOR** | Index of Refraction - how much light bends through Glass materials |
 | **Progressive rendering** | Technique where image quality improves over multiple passes |
 
 ---
 
 *Document Version: 1.0*  
 *Last Updated: December 2025*
-

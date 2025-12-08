@@ -100,15 +100,16 @@ feat(ui): create draggable NumberInput component
 
 ---
 
-## Commit 11.2: Create Slider and ColorPicker components
+## Commit 11.2: Create Slider, ColorPicker, and Select components
 
 ### Description
-Styled slider and color picker for material properties.
+Styled slider, color picker, and dropdown select for material properties.
 
 ### Files to Create
 ```
 src/components/ui/Slider.tsx
 src/components/ui/ColorPicker.tsx
+src/components/ui/Select.tsx
 src/__tests__/ui/Slider.test.tsx
 ```
 
@@ -158,6 +159,24 @@ export function ColorPicker({ label, value, onChange }: { label: string; value: 
     </div>
   );
 }
+
+// Select.tsx
+export function Select<T extends string>({ label, value, onChange, options }: SelectProps<T>) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs text-text-secondary">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="w-full px-3 py-2 bg-elevated rounded border border-border-default text-sm cursor-pointer"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 ```
 
 ### Test Cases
@@ -169,8 +188,8 @@ describe('Slider', () => {
   });
   
   it('displays label', () => {
-    render(<Slider label="Roughness" value={0} onChange={() => {}} />);
-    expect(screen.getByText('Roughness')).toBeDefined();
+    render(<Slider label="IOR" value={1.5} onChange={() => {}} />);
+    expect(screen.getByText('IOR')).toBeDefined();
   });
 });
 
@@ -180,11 +199,20 @@ describe('ColorPicker', () => {
     expect(screen.getByDisplayValue('#FF0000')).toBeDefined();
   });
 });
+
+describe('Select', () => {
+  it('displays all options', () => {
+    const options = [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }];
+    render(<Select label="Test" value="a" onChange={() => {}} options={options} />);
+    expect(screen.getByText('A')).toBeDefined();
+    expect(screen.getByText('B')).toBeDefined();
+  });
+});
 ```
 
 ### Commit Message
 ```
-feat(ui): create Slider and ColorPicker components
+feat(ui): create Slider, ColorPicker, and Select components
 ```
 
 ---
@@ -262,7 +290,7 @@ feat(panels): create TransformSection with position/rotation/scale
 ## Commit 11.4: Create MaterialSection panel
 
 ### Description
-Color, roughness, metallic, transparency, emission controls.
+Material type selector, color picker, and type-specific controls (IOR for Glass, Intensity for Light).
 
 ### Files to Create
 ```
@@ -276,33 +304,47 @@ export function MaterialSection({ object }: { object: SceneObject }) {
   const updateMaterial = useSceneStore(s => s.updateMaterial);
   const change = (updates: Partial<Material>) => updateMaterial(object.id, updates);
   
-  const isEmissive = object.material.emission > 0;
-  
   return (
     <Panel title="Material">
       <div className="space-y-4">
-        <ColorPicker label="Color" value={object.material.color} onChange={color => change({ color })} />
-        <Slider label="Roughness" value={object.material.roughness} onChange={roughness => change({ roughness })} />
-        <Slider label="Metallic" value={object.material.metallic} onChange={metallic => change({ metallic })} />
-        <Slider label="Transparency" value={object.material.transparency} onChange={transparency => change({ transparency })} />
+        {/* Material Type Dropdown */}
+        <Select
+          label="Type"
+          value={object.material.type}
+          onChange={(type: MaterialType) => change({ type })}
+          options={MATERIAL_TYPES}
+        />
         
-        {object.material.transparency > 0 && (
-          <Slider label="IOR" value={object.material.ior} onChange={ior => change({ ior })} min={1} max={2.5} step={0.05} />
+        {/* Color (all materials) */}
+        <ColorPicker
+          label="Color"
+          value={object.material.color}
+          onChange={(color) => change({ color })}
+        />
+        
+        {/* Glass: IOR slider */}
+        {object.material.type === 'glass' && (
+          <Slider
+            label="IOR"
+            value={object.material.ior}
+            onChange={(ior) => change({ ior })}
+            min={1.0}
+            max={2.5}
+            step={0.05}
+          />
         )}
         
-        <div className="pt-2 border-t border-border-subtle">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={isEmissive} onChange={e => change({ emission: e.target.checked ? 1 : 0 })} />
-            <span className="text-sm">Emissive</span>
-          </label>
-          
-          {isEmissive && (
-            <div className="mt-3 ml-6 space-y-3">
-              <Slider label="Strength" value={object.material.emission} onChange={emission => change({ emission })} min={0.1} max={10} />
-              <ColorPicker label="Light Color" value={object.material.emissionColor} onChange={emissionColor => change({ emissionColor })} />
-            </div>
+        {/* Light: Intensity slider */}
+        {object.material.type === 'light' && (
+          <Slider
+            label="Intensity"
+            value={object.material.intensity}
+            onChange={(intensity) => change({ intensity })}
+            min={0.1}
+            max={20}
+            step={0.1}
+          />
           )}
-        </div>
       </div>
     </Panel>
   );
@@ -312,43 +354,60 @@ export function MaterialSection({ object }: { object: SceneObject }) {
 ### Test Cases
 ```typescript
 describe('MaterialSection', () => {
-  const mockObj = { id: '1', material: createDefaultMaterial() } as SceneObject;
+  const createMockObj = (type: MaterialType) => ({
+    id: '1',
+    material: { type, color: [0.8, 0.8, 0.8], ior: 1.5, intensity: 5 }
+  } as SceneObject);
   
-  it('renders color picker', () => {
-    render(<MaterialSection object={mockObj} />);
+  it('renders type selector with all options', () => {
+    render(<MaterialSection object={createMockObj('plastic')} />);
+    expect(screen.getByText('Type')).toBeDefined();
+    expect(screen.getByText('Plastic')).toBeDefined();
+  });
+  
+  it('renders color picker for all types', () => {
+    render(<MaterialSection object={createMockObj('plastic')} />);
     expect(screen.getByText('Color')).toBeDefined();
   });
   
-  it('shows IOR when transparency > 0', () => {
-    const obj = { ...mockObj, material: { ...mockObj.material, transparency: 0.5 } };
-    render(<MaterialSection object={obj as SceneObject} />);
+  it('shows IOR slider for glass only', () => {
+    const { rerender } = render(<MaterialSection object={createMockObj('glass')} />);
     expect(screen.getByText('IOR')).toBeDefined();
-  });
   
-  it('hides IOR when transparency = 0', () => {
-    render(<MaterialSection object={mockObj} />);
+    rerender(<MaterialSection object={createMockObj('plastic')} />);
     expect(screen.queryByText('IOR')).toBeNull();
   });
   
-  it('shows emission controls when emissive checked', () => {
-    const obj = { ...mockObj, material: { ...mockObj.material, emission: 2 } };
-    render(<MaterialSection object={obj as SceneObject} />);
-    expect(screen.getByText('Strength')).toBeDefined();
-    expect(screen.getByText('Light Color')).toBeDefined();
+  it('shows Intensity slider for light only', () => {
+    const { rerender } = render(<MaterialSection object={createMockObj('light')} />);
+    expect(screen.getByText('Intensity')).toBeDefined();
+    
+    rerender(<MaterialSection object={createMockObj('metal')} />);
+    expect(screen.queryByText('Intensity')).toBeNull();
+  });
+  
+  it('hides extra controls for plastic and metal', () => {
+    render(<MaterialSection object={createMockObj('plastic')} />);
+    expect(screen.queryByText('IOR')).toBeNull();
+    expect(screen.queryByText('Intensity')).toBeNull();
   });
 });
 ```
 
 ### Manual Testing
 1. Select object → right panel shows properties
-2. Change color → object updates in real-time
-3. Adjust roughness slider → reflection changes
-4. Enable emission → object glows
-5. Move with gizmo → input values update
+2. Change material type dropdown → object appearance changes
+3. Change color → object updates in real-time
+4. Select Glass → IOR slider appears
+5. Adjust IOR → refraction changes
+6. Select Light → Intensity slider appears
+7. Adjust Intensity → brightness changes
+8. Select Plastic/Metal → only color picker visible
+9. Move with gizmo → input values update
 
 ### Commit Message
 ```
-feat(panels): create MaterialSection with all properties
+feat(panels): create MaterialSection with type selector
 
 Stage 11 complete: Full properties panel
 ```
@@ -360,7 +419,6 @@ Stage 11 complete: Full properties panel
 | Commit | Description | Key Tests |
 |--------|-------------|-----------|
 | 11.1 | NumberInput | Drag-to-adjust |
-| 11.2 | Slider, ColorPicker | UI controls |
+| 11.2 | Slider, ColorPicker, Select | UI controls |
 | 11.3 | TransformSection | Position/rotation/scale |
-| 11.4 | MaterialSection | All material props |
-
+| 11.4 | MaterialSection | Type selector, conditional controls |
