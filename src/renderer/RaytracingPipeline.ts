@@ -17,8 +17,7 @@ export class RaytracingPipeline {
   private outputTexture: GPUTexture | null = null;
   private outputTextureView: GPUTextureView | null = null;
 
-  private accumulationTexture: GPUTexture | null = null;
-  private accumulationTextureView: GPUTextureView | null = null;
+  private accumulationBuffer: GPUBuffer | null = null;
 
   private cameraBuffer: GPUBuffer;
   private settingsBuffer: GPUBuffer;
@@ -39,7 +38,7 @@ export class RaytracingPipeline {
     // Create scene buffer
     this.sceneBuffer = new SceneBuffer(device);
 
-    // Create bind group layout (with accumulation and settings)
+    // Create bind group layout (with accumulation buffer and settings)
     this.bindGroupLayout = device.createBindGroupLayout({
       entries: [
         {
@@ -63,10 +62,7 @@ export class RaytracingPipeline {
         {
           binding: 3,
           visibility: GPUShaderStage.COMPUTE,
-          storageTexture: {
-            access: 'read-write',
-            format: 'rgba32float',
-          }, // Accumulation texture
+          buffer: { type: 'storage' }, // Accumulation buffer (read-write)
         },
         {
           binding: 4,
@@ -119,12 +115,12 @@ export class RaytracingPipeline {
     this.width = width;
     this.height = height;
 
-    // Destroy old textures
+    // Destroy old resources
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
-    if (this.accumulationTexture) {
-      this.accumulationTexture.destroy();
+    if (this.accumulationBuffer) {
+      this.accumulationBuffer.destroy();
     }
 
     // Create new output texture (rgba8unorm for final display)
@@ -135,18 +131,17 @@ export class RaytracingPipeline {
     });
     this.outputTextureView = this.outputTexture.createView();
 
-    // Create new accumulation texture (rgba32float for high precision)
-    this.accumulationTexture = this.device.createTexture({
-      size: { width, height },
-      format: 'rgba32float',
-      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    // Create new accumulation buffer (4 floats per pixel: RGB + sample count)
+    const bufferSize = width * height * 4 * 4; // width * height * 4 components * 4 bytes
+    this.accumulationBuffer = this.device.createBuffer({
+      size: bufferSize,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-    this.accumulationTextureView = this.accumulationTexture.createView();
 
     // Reset accumulation on resize
     this.resetAccumulation();
 
-    // Recreate bind group with new textures
+    // Recreate bind group with new resources
     this.rebuildBindGroup();
   }
 
@@ -154,7 +149,7 @@ export class RaytracingPipeline {
    * Rebuild the bind group (call after resize)
    */
   private rebuildBindGroup(): void {
-    if (!this.outputTextureView || !this.accumulationTextureView) return;
+    if (!this.outputTextureView || !this.accumulationBuffer) return;
 
     const sceneBuffer = this.sceneBuffer.getBuffer();
 
@@ -175,7 +170,7 @@ export class RaytracingPipeline {
         },
         {
           binding: 3,
-          resource: this.accumulationTextureView,
+          resource: { buffer: this.accumulationBuffer },
         },
         {
           binding: 4,
@@ -284,8 +279,8 @@ export class RaytracingPipeline {
     if (this.outputTexture) {
       this.outputTexture.destroy();
     }
-    if (this.accumulationTexture) {
-      this.accumulationTexture.destroy();
+    if (this.accumulationBuffer) {
+      this.accumulationBuffer.destroy();
     }
     this.cameraBuffer.destroy();
     this.settingsBuffer.destroy();

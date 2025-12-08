@@ -142,9 +142,9 @@ describe('Path Tracing (Stage 4)', () => {
     expect(raytracerShader).toContain('1.0 / 2.2');
   });
 
-  it('uses accumulation texture', () => {
-    expect(raytracerShader).toContain('accumulationTexture');
-    expect(raytracerShader).toContain('textureLoad(accumulationTexture');
+  it('uses accumulation buffer', () => {
+    expect(raytracerShader).toContain('accumulationBuffer');
+    expect(raytracerShader).toContain('AccumulationData');
   });
 
   it('has jitter for anti-aliasing', () => {
