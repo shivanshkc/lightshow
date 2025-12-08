@@ -8,6 +8,7 @@ export interface RendererStats {
   fps: number;
   frameTime: number;
   frameCount: number;
+  sampleCount: number;
 }
 
 export class Renderer {
@@ -29,6 +30,7 @@ export class Renderer {
   private fpsUpdateTime: number = 0;
 
   private unsubscribeStore: (() => void) | null = null;
+  private lastObjectsRef: unknown = null;
 
   constructor(ctx: WebGPUContext) {
     this.device = ctx.device;
@@ -44,12 +46,20 @@ export class Renderer {
 
     // Subscribe to scene store changes
     this.unsubscribeStore = useSceneStore.subscribe((state) => {
+      // Update scene data
       this.raytracingPipeline.updateScene(state.objects);
+      
+      // Reset accumulation if objects array reference changed (add/remove/modify)
+      if (this.lastObjectsRef !== null && state.objects !== this.lastObjectsRef) {
+        this.raytracingPipeline.resetAccumulation();
+      }
+      this.lastObjectsRef = state.objects;
     });
 
     // Initial scene sync
     const initialState = useSceneStore.getState();
     this.raytracingPipeline.updateScene(initialState.objects);
+    this.lastObjectsRef = initialState.objects;
   }
 
   /**
@@ -65,7 +75,7 @@ export class Renderer {
     // Update camera aspect ratio
     this.camera.setAspect(width / height);
 
-    // Resize raytracing output
+    // Resize raytracing output (this also resets accumulation)
     this.raytracingPipeline.resizeOutput(width, height);
   }
 
@@ -98,6 +108,20 @@ export class Renderer {
   }
 
   /**
+   * Get current sample count (frame index)
+   */
+  getSampleCount(): number {
+    return this.raytracingPipeline.getFrameIndex();
+  }
+
+  /**
+   * Reset accumulation (e.g., when camera moves)
+   */
+  resetAccumulation(): void {
+    this.raytracingPipeline.resetAccumulation();
+  }
+
+  /**
    * Get current renderer statistics
    */
   getStats(): RendererStats {
@@ -105,6 +129,7 @@ export class Renderer {
       fps: this.fps,
       frameTime: performance.now() - this.lastFrameTime,
       frameCount: this.frameCount,
+      sampleCount: this.raytracingPipeline.getFrameIndex(),
     };
   }
 
