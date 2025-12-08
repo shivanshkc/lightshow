@@ -1,4 +1,4 @@
-import { SceneObject } from './types';
+import { SceneObject, MaterialType } from './types';
 
 /**
  * GPU buffer layout constants
@@ -8,6 +8,16 @@ import { SceneObject } from './types';
 const OBJECT_SIZE_BYTES = 128; // 32 floats per object
 const MAX_OBJECTS = 256;
 const HEADER_SIZE_BYTES = 256; // Padded to 256 bytes for WebGPU alignment
+
+/**
+ * Material type to GPU index mapping
+ */
+const MATERIAL_TYPE_MAP: Record<MaterialType, number> = {
+  plastic: 0,
+  metal: 1,
+  glass: 2,
+  light: 3,
+};
 
 /**
  * Manages GPU buffer for scene objects
@@ -69,7 +79,7 @@ export class SceneBuffer {
    * 
    * Transform section (64 bytes = 16 floats):
    *   [0-2]   position (vec3)
-   *   [3]     objectType (u32 as f32 bit pattern)
+   *   [3]     objectType (u32: 0=sphere, 1=cuboid)
    *   [4-6]   scale (vec3)
    *   [7]     padding
    *   [8-10]  rotation (vec3)
@@ -78,14 +88,11 @@ export class SceneBuffer {
    * 
    * Material section (64 bytes = 16 floats):
    *   [16-18] color (vec3)
-   *   [19]    roughness
-   *   [20-22] emissionColor (vec3)
-   *   [23]    emission
-   *   [24]    transparency
-   *   [25]    ior
-   *   [26]    metallic
-   *   [27]    padding
-   *   [28-31] padding (vec4)
+   *   [19]    materialType (u32: 0=plastic, 1=metal, 2=glass, 3=light)
+   *   [20]    ior (f32)
+   *   [21]    intensity (f32)
+   *   [22-23] padding (vec2)
+   *   [24-31] padding (vec4 + vec4)
    */
   private writeObject(obj: SceneObject, offset: number): void {
     const buf = this.stagingData;
@@ -129,27 +136,21 @@ export class SceneBuffer {
     buf[matOffset + 1] = obj.material.color[1];
     buf[matOffset + 2] = obj.material.color[2];
 
-    // Roughness
-    buf[matOffset + 3] = obj.material.roughness;
+    // Material type (u32): 0=plastic, 1=metal, 2=glass, 3=light
+    uint32View[matOffset + 3] = MATERIAL_TYPE_MAP[obj.material.type];
 
-    // Emission color (vec3)
-    buf[matOffset + 4] = obj.material.emissionColor[0];
-    buf[matOffset + 5] = obj.material.emissionColor[1];
-    buf[matOffset + 6] = obj.material.emissionColor[2];
+    // IOR (Index of Refraction) - used by glass
+    buf[matOffset + 4] = obj.material.ior;
 
-    // Emission strength
-    buf[matOffset + 7] = obj.material.emission;
-
-    // Transparency
-    buf[matOffset + 8] = obj.material.transparency;
-
-    // IOR (Index of Refraction)
-    buf[matOffset + 9] = obj.material.ior;
-
-    // Metallic
-    buf[matOffset + 10] = obj.material.metallic;
+    // Intensity - used by light
+    buf[matOffset + 5] = obj.material.intensity;
 
     // Padding (to reach 64 bytes for material)
+    buf[matOffset + 6] = 0;
+    buf[matOffset + 7] = 0;
+    buf[matOffset + 8] = 0;
+    buf[matOffset + 9] = 0;
+    buf[matOffset + 10] = 0;
     buf[matOffset + 11] = 0;
     buf[matOffset + 12] = 0;
     buf[matOffset + 13] = 0;
@@ -173,5 +174,4 @@ export class SceneBuffer {
 }
 
 // Export constants for testing
-export { OBJECT_SIZE_BYTES, MAX_OBJECTS, HEADER_SIZE_BYTES };
-
+export { OBJECT_SIZE_BYTES, MAX_OBJECTS, HEADER_SIZE_BYTES, MATERIAL_TYPE_MAP };
