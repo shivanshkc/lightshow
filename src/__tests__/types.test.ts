@@ -4,8 +4,6 @@ import {
   createDefaultMaterial,
   createDefaultSphere,
   createDefaultCuboid,
-  type Transform,
-  type Material,
   type SceneObject,
   type PrimitiveType,
 } from '../core/types';

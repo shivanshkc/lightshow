@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
+import { DebugPanel } from './DebugPanel';
 
 interface CanvasProps {
   className?: string;
@@ -130,6 +131,7 @@ export function Canvas({ className }: CanvasProps) {
           </div>
         </div>
       )}
+      {status === 'ready' && <DebugPanel />}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   MAX_OBJECTS,
   HEADER_SIZE_BYTES,
 } from '../core/SceneBuffer';
+import { PrimitiveType } from '../core/types';
 
 describe('SceneBuffer', () => {
   describe('buffer layout constants', () => {
@@ -34,7 +35,7 @@ describe('SceneBuffer', () => {
     });
 
     it('cuboid type encodes to 1', () => {
-      const type = 'cuboid';
+      const type = 'cuboid' as PrimitiveType;
       const encoded = type === 'sphere' ? 0 : 1;
       expect(encoded).toBe(1);
     });

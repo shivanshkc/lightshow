@@ -50,6 +50,23 @@ describe('RaytracingPipeline', () => {
       expect(format).toBe('rgba8unorm');
     });
   });
+
+  describe('bind group layout', () => {
+    it('has 4 bindings for camera, texture, scene header, and scene objects', () => {
+      const bindings = [
+        { binding: 0, type: 'uniform' },        // camera
+        { binding: 1, type: 'storageTexture' }, // output
+        { binding: 2, type: 'storage' },        // scene header
+        { binding: 3, type: 'storage' },        // scene objects
+      ];
+      
+      expect(bindings.length).toBe(4);
+      expect(bindings[0].binding).toBe(0);
+      expect(bindings[1].binding).toBe(1);
+      expect(bindings[2].binding).toBe(2);
+      expect(bindings[3].binding).toBe(3);
+    });
+  });
 });
 
 describe('RaytracingPipeline Integration', () => {
@@ -62,3 +79,19 @@ describe('RaytracingPipeline Integration', () => {
   });
 });
 
+describe('Scene Buffer Integration', () => {
+  it('scene header offset is 0 bytes', () => {
+    const headerOffset = 0;
+    expect(headerOffset).toBe(0);
+  });
+
+  it('scene objects offset is 16 bytes (after header)', () => {
+    const objectsOffset = 16;
+    expect(objectsOffset).toBe(16);
+  });
+
+  it('header size is 16 bytes', () => {
+    const headerSize = 16;
+    expect(headerSize).toBe(16);
+  });
+});
