@@ -135,10 +135,10 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   }
 
   return (
-    <div className={`relative ${className || ''}`}>
-      <canvas ref={canvasRef} className="w-full h-full" tabIndex={0} />
+    <div className={`relative w-full h-full ${className || ''}`}>
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" tabIndex={0} />
       {status === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-base">
+        <div className="absolute inset-0 flex items-center justify-center bg-base z-10">
           <div className="text-center">
             <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-text-secondary">Initializing WebGPU...</p>
