@@ -501,10 +501,19 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   // Clamp fireflies (extremely bright pixels from low-probability paths)
   color = min(color, vec3<f32>(10.0));
   
-  // Apply selection highlight
+  // Apply selection highlight using Fresnel-based rim glow
   if (isSelectedHit) {
-    // Subtle blue-cyan tint for selected object
-    color = mix(color, color + vec3<f32>(0.1, 0.2, 0.4), 0.3);
+    // Calculate rim factor based on viewing angle (Fresnel-like effect)
+    let viewDir = -ray.direction; // View direction is opposite of ray direction
+    let rimFactor = 1.0 - abs(dot(viewDir, firstHit.normal));
+    
+    // Create bright rim glow that's stronger at edges
+    let rimPower = pow(rimFactor, 2.5); // Sharper falloff for cleaner edge
+    let rimColor = vec3<f32>(0.3, 0.7, 1.0); // Bright cyan-blue
+    let rimGlow = rimColor * rimPower * 1.5;
+    
+    // Add rim glow to the color
+    color += rimGlow;
   }
   
   // Accumulation using buffer
