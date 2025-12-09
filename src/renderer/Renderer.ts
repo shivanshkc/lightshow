@@ -2,8 +2,11 @@ import { WebGPUContext } from './webgpu';
 import { Camera } from '../core/Camera';
 import { RaytracingPipeline } from './RaytracingPipeline';
 import { BlitPipeline } from './BlitPipeline';
+import { GizmoRenderer } from '../gizmos/GizmoRenderer';
 import { useSceneStore } from '../store/sceneStore';
 import { useCameraStore } from '../store/cameraStore';
+import { useGizmoStore, axisToId } from '../store/gizmoStore';
+import { mat4Multiply, mat4Perspective } from '../core/math';
 
 export interface RendererStats {
   fps: number;
@@ -19,6 +22,7 @@ export class Renderer {
 
   private raytracingPipeline: RaytracingPipeline;
   private blitPipeline: BlitPipeline;
+  private gizmoRenderer: GizmoRenderer;
   private camera: Camera;
 
   private width: number = 0;
@@ -44,6 +48,7 @@ export class Renderer {
     // Create pipelines
     this.raytracingPipeline = new RaytracingPipeline(this.device);
     this.blitPipeline = new BlitPipeline(this.device, this.format);
+    this.gizmoRenderer = new GizmoRenderer(this.device, this.format);
 
     // Subscribe to scene store changes
     this.unsubscribeStore = useSceneStore.subscribe((state) => {
@@ -148,6 +153,7 @@ export class Renderer {
 
     this.raytracingPipeline.destroy();
     this.blitPipeline.destroy();
+    this.gizmoRenderer.destroy();
   }
 
   private render = (): void => {
@@ -188,6 +194,42 @@ export class Renderer {
 
     if (sourceView) {
       this.blitPipeline.render(commandEncoder, targetView, sourceView);
+    }
+
+    // 3. Render gizmo if object is selected
+    const sceneState = useSceneStore.getState();
+    const gizmoState = useGizmoStore.getState();
+    
+    if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
+      const selectedObject = sceneState.objects.find(
+        (obj) => obj.id === sceneState.selectedObjectId
+      );
+      
+      if (selectedObject) {
+        // Calculate view-projection matrix
+        const viewMatrix = this.camera.getViewMatrix();
+        const projMatrix = mat4Perspective(
+          cameraState.fovY,
+          this.width / this.height,
+          0.1,
+          1000
+        );
+        const viewProjection = mat4Multiply(projMatrix, viewMatrix);
+        
+        // Get hovered and active axis IDs
+        const hoveredAxis = axisToId(gizmoState.hoveredAxis);
+        const activeAxis = axisToId(gizmoState.activeAxis);
+        
+        this.gizmoRenderer.render(
+          commandEncoder,
+          targetView,
+          viewProjection,
+          selectedObject.position,
+          cameraState.distance,
+          hoveredAxis,
+          activeAxis
+        );
+      }
     }
 
     // Submit commands

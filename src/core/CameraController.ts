@@ -27,6 +27,7 @@ export class CameraController {
   private lastMouseX = 0;
   private lastMouseY = 0;
   private isShiftDown = false;
+  private enabled = true;
 
   private boundHandlers: {
     mousedown: (e: MouseEvent) => void;
@@ -100,9 +101,21 @@ export class CameraController {
     }
   }
 
+  /**
+   * Enable or disable camera controls
+   */
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) {
+      this.isDragging = false;
+      this.dragButton = -1;
+      this.canvas.style.cursor = 'default';
+    }
+  }
+
   private onMouseDown(e: MouseEvent): void {
-    // Don't capture if clicking on UI elements
-    if (e.target !== this.canvas) return;
+    // Don't capture if disabled or clicking on UI elements
+    if (!this.enabled || e.target !== this.canvas) return;
 
     this.isDragging = true;
     this.dragButton = e.button;
@@ -118,7 +131,7 @@ export class CameraController {
   }
 
   private onMouseMove(e: MouseEvent): void {
-    if (!this.isDragging) return;
+    if (!this.enabled || !this.isDragging) return;
 
     const deltaX = e.clientX - this.lastMouseX;
     const deltaY = e.clientY - this.lastMouseY;
@@ -151,6 +164,7 @@ export class CameraController {
   }
 
   private onWheel(e: WheelEvent): void {
+    if (!this.enabled) return;
     e.preventDefault();
     const camera = useCameraStore.getState();
     camera.zoom(e.deltaY * this.options.zoomSensitivity);

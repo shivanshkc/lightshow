@@ -3,9 +3,19 @@ import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 import { CameraController } from '../core/CameraController';
 import { raycaster } from '../core/Raycaster';
+import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
+import { TranslateGizmo } from '../gizmos/TranslateGizmo';
 import { useSceneStore } from '../store/sceneStore';
 import { useCameraStore } from '../store/cameraStore';
-import { mat4Inverse, mat4Perspective } from '../core/math';
+import { useGizmoStore } from '../store/gizmoStore';
+import {
+  mat4Inverse,
+  mat4Perspective,
+  screenToWorldRay,
+  normalize,
+  sub,
+  Vec3,
+} from '../core/math';
 
 interface CanvasProps {
   className?: string;
@@ -114,16 +124,213 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     return () => observer.disconnect();
   }, [handleResize]);
 
-  // Click-to-select handling
+  // Click-to-select and gizmo interaction handling
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const DRAG_THRESHOLD = 5;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    mouseDownPos.current = { x: e.clientX, y: e.clientY };
+  // Helper to get camera vectors
+  const getCameraVectors = useCallback(() => {
+    const cameraState = useCameraStore.getState();
+    const target = cameraState.target;
+    const position = cameraState.position;
+    
+    // Forward direction (from camera to target)
+    const forward = normalize(sub(target, position));
+    
+    // Right vector (cross product of forward and up)
+    const worldUp: Vec3 = [0, 1, 0];
+    const right = normalize([
+      forward[2] * worldUp[1] - forward[1] * worldUp[2],
+      forward[0] * worldUp[2] - forward[2] * worldUp[0],
+      forward[1] * worldUp[0] - forward[0] * worldUp[1],
+    ]) as Vec3;
+    
+    // Camera up vector (cross product of right and forward)
+    const up: Vec3 = [
+      right[1] * forward[2] - right[2] * forward[1],
+      right[2] * forward[0] - right[0] * forward[2],
+      right[0] * forward[1] - right[1] * forward[0],
+    ];
+    
+    return { right, up, forward };
   }, []);
+
+  // Handle mouse move for gizmo hover and drag
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const gizmoState = useGizmoStore.getState();
+      const sceneState = useSceneStore.getState();
+
+      // If dragging gizmo, update object position
+      if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartPosition && gizmoState.dragStartMousePosition) {
+        const selectedObject = sceneState.objects.find(
+          (obj) => obj.id === sceneState.selectedObjectId
+        );
+
+        if (selectedObject) {
+          const cameraState = useCameraStore.getState();
+          const { right, up } = getCameraVectors();
+          
+          // Calculate screen scale based on camera distance
+          const screenScale = cameraState.distance * 0.003;
+
+          // Calculate new position
+          let newPosition = TranslateGizmo.calculateDragPosition(
+            gizmoState.activeAxis,
+            gizmoState.dragStartPosition,
+            gizmoState.dragStartMousePosition,
+            [e.clientX, e.clientY],
+            right,
+            up,
+            screenScale
+          );
+
+          // Apply grid snapping if Ctrl is held
+          if (e.ctrlKey || e.metaKey) {
+            newPosition = TranslateGizmo.snapToGrid(newPosition, 0.5);
+          }
+
+          // Apply precision mode if Shift is held
+          if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
+            const movement = sub(newPosition, gizmoState.dragStartPosition);
+            const preciseMovement = TranslateGizmo.applyPrecision(movement, true, 0.1);
+            newPosition = [
+              gizmoState.dragStartPosition[0] + preciseMovement[0],
+              gizmoState.dragStartPosition[1] + preciseMovement[1],
+              gizmoState.dragStartPosition[2] + preciseMovement[2],
+            ];
+          }
+
+          // Update object position
+          sceneState.updateObject(sceneState.selectedObjectId!, {
+            position: newPosition,
+          });
+        }
+        return;
+      }
+
+      // Check gizmo hover if object is selected
+      if (sceneState.selectedObjectId && gizmoState.mode === 'translate') {
+        const selectedObject = sceneState.objects.find(
+          (obj) => obj.id === sceneState.selectedObjectId
+        );
+
+        if (selectedObject) {
+          const cameraState = useCameraStore.getState();
+          const viewMatrix = cameraState.getViewMatrix();
+          const aspect = rect.width / rect.height;
+          const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+          const inverseView = mat4Inverse(viewMatrix);
+          const inverseProjection = mat4Inverse(projMatrix);
+
+          // Create ray for gizmo picking
+          const ray = screenToWorldRay(
+            x,
+            y,
+            rect.width,
+            rect.height,
+            inverseProjection,
+            inverseView,
+            cameraState.position
+          );
+
+          // Calculate gizmo scale
+          const gizmoScale = cameraState.distance * 0.12;
+
+          // Check if ray hits gizmo
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.position, gizmoScale);
+          gizmoState.setHoveredAxis(hitAxis);
+        }
+      }
+    },
+    [getCameraVectors]
+  );
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      mouseDownPos.current = { x: e.clientX, y: e.clientY };
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const gizmoState = useGizmoStore.getState();
+      const sceneState = useSceneStore.getState();
+
+      // Check if clicking on gizmo
+      if (sceneState.selectedObjectId && gizmoState.mode === 'translate') {
+        const selectedObject = sceneState.objects.find(
+          (obj) => obj.id === sceneState.selectedObjectId
+        );
+
+        if (selectedObject) {
+          const cameraState = useCameraStore.getState();
+          const viewMatrix = cameraState.getViewMatrix();
+          const aspect = rect.width / rect.height;
+          const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+          const inverseView = mat4Inverse(viewMatrix);
+          const inverseProjection = mat4Inverse(projMatrix);
+
+          // Create ray for gizmo picking
+          const ray = screenToWorldRay(
+            x,
+            y,
+            rect.width,
+            rect.height,
+            inverseProjection,
+            inverseView,
+            cameraState.position
+          );
+
+          // Calculate gizmo scale
+          const gizmoScale = cameraState.distance * 0.12;
+
+          // Check if ray hits gizmo
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.position, gizmoScale);
+
+          if (hitAxis) {
+            // Start gizmo drag
+            gizmoState.startDrag(hitAxis, selectedObject.position, [e.clientX, e.clientY]);
+            
+            // Disable camera controller during gizmo drag
+            if (controllerRef.current) {
+              controllerRef.current.setEnabled(false);
+            }
+            return;
+          }
+        }
+      }
+    },
+    []
+  );
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
+      const gizmoState = useGizmoStore.getState();
+
+      // End gizmo drag
+      if (gizmoState.isDragging) {
+        gizmoState.endDrag();
+        
+        // Re-enable camera controller
+        if (controllerRef.current) {
+          controllerRef.current.setEnabled(true);
+        }
+        
+        mouseDownPos.current = null;
+        return;
+      }
+
       if (!mouseDownPos.current) return;
 
       const dx = e.clientX - mouseDownPos.current.x;
@@ -174,6 +381,11 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     []
   );
 
+  // Handle mouse leave to clear hover
+  const handleMouseLeave = useCallback(() => {
+    useGizmoStore.getState().setHoveredAxis(null);
+  }, []);
+
   if (status === 'error') {
     return (
       <div
@@ -206,6 +418,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         tabIndex={0}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       />
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-base z-10">
