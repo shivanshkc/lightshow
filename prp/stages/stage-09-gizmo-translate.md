@@ -521,92 +521,122 @@ export class GizmoRenderer {
 
 ### 9.5 Translation Drag Logic (TranslateGizmo.ts)
 
+Use **ray-plane intersection** for accurate straight-line movement. This approach casts a ray from the mouse position and finds where it intersects with a constraint plane, giving consistent movement regardless of perspective foreshortening.
+
+**Why Ray-Plane Intersection?**
+- Screen-space delta projection causes curved movement paths due to perspective
+- Ray-plane intersection gives perfectly straight movement matching user expectations
+- This is the approach used by professional 3D software (Blender, Maya, etc.)
+
 ```typescript
-import { Vec3, sub, add, mul, dot, normalize, cross } from '../core/math';
-import { useGizmoStore, GizmoAxis } from '../store/gizmoStore';
-import { useSceneStore } from '../store/sceneStore';
+import { Vec3, Ray, sub, add, dot, normalize, cross, screenToWorldRay } from '../core/math';
+import { GizmoAxis } from '../store/gizmoStore';
 
 export class TranslateGizmo {
-  // Calculate new position during drag
-  static calculateDragPosition(
+  /**
+   * Calculate new position using ray-plane intersection
+   * For single-axis: intersect with plane containing the axis (perpendicular to best view)
+   * For plane handles: intersect directly with that plane
+   */
+  static calculateDragPositionRayPlane(
     axis: GizmoAxis,
     startPosition: Vec3,
-    startMousePos: [number, number],
-    currentMousePos: [number, number],
-    cameraPosition: Vec3,
-    cameraRight: Vec3,
-    cameraUp: Vec3,
-    screenScale: number
+    startRay: Ray,
+    currentRay: Ray,
+    cameraForward: Vec3
   ): Vec3 {
-    const deltaX = (currentMousePos[0] - startMousePos[0]) * screenScale;
-    const deltaY = (currentMousePos[1] - startMousePos[1]) * screenScale;
-    
-    // Project mouse movement onto the constrained axis/plane
-    let movement: Vec3 = [0, 0, 0];
-    
+    if (!axis) return startPosition;
+
+    // Determine constraint plane based on axis
+    const { planeNormal, planePoint } = this.getConstraintPlane(axis, startPosition, cameraForward);
+
+    // Find intersection points on the plane
+    const startHit = this.rayPlaneIntersect(startRay, planePoint, planeNormal);
+    const currentHit = this.rayPlaneIntersect(currentRay, planePoint, planeNormal);
+
+    if (!startHit || !currentHit) return startPosition;
+
+    // Calculate movement delta on the plane
+    let delta = sub(currentHit, startHit);
+
+    // For single-axis constraints, project onto that axis
+    if (axis === 'x' || axis === 'y' || axis === 'z') {
+      const axisDir: Vec3 = axis === 'x' ? [1, 0, 0] : axis === 'y' ? [0, 1, 0] : [0, 0, 1];
+      const projected = dot(delta, axisDir);
+      delta = [axisDir[0] * projected, axisDir[1] * projected, axisDir[2] * projected];
+    }
+
+    return add(startPosition, delta);
+  }
+
+  /**
+   * Get the constraint plane for a given axis
+   * For single-axis: choose plane that's most perpendicular to view
+   * For plane handles: use that plane directly
+   */
+  private static getConstraintPlane(
+    axis: GizmoAxis,
+    objectPosition: Vec3,
+    cameraForward: Vec3
+  ): { planeNormal: Vec3; planePoint: Vec3 } {
+    let planeNormal: Vec3;
+
     switch (axis) {
       case 'x': {
-        // Project onto X axis
-        const xDir: Vec3 = [1, 0, 0];
-        const screenX = dot(xDir, cameraRight);
-        const screenY = dot(xDir, cameraUp);
-        const projected = deltaX * screenX - deltaY * screenY;
-        movement = [projected, 0, 0];
+        // For X axis, choose YZ or XZ plane based on view angle
+        const useYZ = Math.abs(cameraForward[0]) > Math.abs(cameraForward[2]);
+        planeNormal = useYZ ? [1, 0, 0] : [0, 0, 1];
         break;
       }
       case 'y': {
-        const yDir: Vec3 = [0, 1, 0];
-        const screenX = dot(yDir, cameraRight);
-        const screenY = dot(yDir, cameraUp);
-        const projected = deltaX * screenX - deltaY * screenY;
-        movement = [0, projected, 0];
+        // For Y axis, choose XY or YZ plane based on view angle
+        const useXY = Math.abs(cameraForward[2]) > Math.abs(cameraForward[0]);
+        planeNormal = useXY ? [0, 0, 1] : [1, 0, 0];
         break;
       }
       case 'z': {
-        const zDir: Vec3 = [0, 0, 1];
-        const screenX = dot(zDir, cameraRight);
-        const screenY = dot(zDir, cameraUp);
-        const projected = deltaX * screenX - deltaY * screenY;
-        movement = [0, 0, projected];
+        // For Z axis, choose XZ or YZ plane based on view angle
+        const useXZ = Math.abs(cameraForward[1]) > Math.abs(cameraForward[0]);
+        planeNormal = useXZ ? [0, 1, 0] : [1, 0, 0];
         break;
       }
-      case 'xy': {
-        movement = [
-          deltaX * cameraRight[0] - deltaY * cameraUp[0],
-          deltaX * cameraRight[1] - deltaY * cameraUp[1],
-          0,
-        ];
+      case 'xy':
+        planeNormal = [0, 0, 1];
         break;
-      }
-      case 'xz': {
-        movement = [
-          deltaX * cameraRight[0],
-          0,
-          -deltaY,  // Approximate - proper implementation uses plane intersection
-        ];
+      case 'xz':
+        planeNormal = [0, 1, 0];
         break;
-      }
-      case 'yz': {
-        movement = [
-          0,
-          -deltaY * cameraUp[1],
-          deltaX * cameraRight[2],
-        ];
+      case 'yz':
+        planeNormal = [1, 0, 0];
         break;
-      }
-      case 'xyz': {
-        movement = [
-          deltaX * cameraRight[0] - deltaY * cameraUp[0],
-          deltaX * cameraRight[1] - deltaY * cameraUp[1],
-          deltaX * cameraRight[2] - deltaY * cameraUp[2],
-        ];
+      case 'xyz':
+      default:
+        // Free movement: use plane perpendicular to camera
+        planeNormal = normalize(cameraForward);
         break;
-      }
     }
-    
-    return add(startPosition, movement);
+
+    return { planeNormal, planePoint: objectPosition };
   }
-  
+
+  /**
+   * Ray-plane intersection
+   * Returns intersection point or null if parallel
+   */
+  private static rayPlaneIntersect(ray: Ray, planePoint: Vec3, planeNormal: Vec3): Vec3 | null {
+    const denom = dot(ray.direction, planeNormal);
+    if (Math.abs(denom) < 0.0001) return null; // Ray parallel to plane
+
+    const t = dot(sub(planePoint, ray.origin), planeNormal) / denom;
+    if (t < 0) return null; // Plane behind ray
+
+    return add(ray.origin, [
+      ray.direction[0] * t,
+      ray.direction[1] * t,
+      ray.direction[2] * t,
+    ]);
+  }
+
   // Snap position to grid
   static snapToGrid(position: Vec3, gridSize: number): Vec3 {
     return [
@@ -614,6 +644,12 @@ export class TranslateGizmo {
       Math.round(position[1] / gridSize) * gridSize,
       Math.round(position[2] / gridSize) * gridSize,
     ];
+  }
+
+  // Apply precision modifier (slower movement when Shift is held)
+  static applyPrecision(movement: Vec3, isPrecision: boolean, factor: number = 0.1): Vec3 {
+    if (!isPrecision) return movement;
+    return [movement[0] * factor, movement[1] * factor, movement[2] * factor];
   }
 }
 ```

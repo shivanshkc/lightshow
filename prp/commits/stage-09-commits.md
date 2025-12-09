@@ -238,10 +238,10 @@ feat(gizmos): create GizmoRenderer with WebGPU pipeline
 
 ---
 
-## Commit 9.4: Implement translation drag logic
+## Commit 9.4: Implement translation drag logic with ray-plane intersection
 
 ### Description
-Calculate object position during axis/plane drag.
+Calculate object position using ray-plane intersection for accurate straight-line movement.
 
 ### Files to Create
 ```
@@ -250,37 +250,65 @@ src/__tests__/TranslateGizmo.test.ts
 ```
 
 ### Key Implementation
+
+**Why ray-plane intersection?**
+Screen-space delta projection causes curved movement due to perspective foreshortening. Ray-plane intersection gives perfectly straight movement matching professional 3D software.
+
 ```typescript
 export class TranslateGizmo {
-  static calculateDragPosition(
+  /**
+   * Calculate position using ray-plane intersection
+   * Casts ray from mouse, intersects with constraint plane
+   */
+  static calculateDragPositionRayPlane(
     axis: GizmoAxis,
-    startPos: Vec3,
-    startMouse: [number, number],
-    currentMouse: [number, number],
-    camRight: Vec3,
-    camUp: Vec3,
-    screenScale: number
+    startPosition: Vec3,
+    startRay: Ray,
+    currentRay: Ray,
+    cameraForward: Vec3
   ): Vec3 {
-    const dx = (currentMouse[0] - startMouse[0]) * screenScale;
-    const dy = (currentMouse[1] - startMouse[1]) * screenScale;
-    
-    let movement: Vec3 = [0, 0, 0];
-    
-    switch (axis) {
-      case 'x':
-        const xProj = dx * dot([1,0,0], camRight) - dy * dot([1,0,0], camUp);
-        movement = [xProj, 0, 0];
-        break;
-      case 'y':
-        const yProj = dx * dot([0,1,0], camRight) - dy * dot([0,1,0], camUp);
-        movement = [0, yProj, 0];
-        break;
-      // ... z, xy, xz, yz, xyz
+    if (!axis) return startPosition;
+
+    // Get constraint plane (axis-aligned or camera-facing)
+    const { planeNormal, planePoint } = this.getConstraintPlane(axis, startPosition, cameraForward);
+
+    // Find intersections
+    const startHit = this.rayPlaneIntersect(startRay, planePoint, planeNormal);
+    const currentHit = this.rayPlaneIntersect(currentRay, planePoint, planeNormal);
+
+    if (!startHit || !currentHit) return startPosition;
+
+    let delta = sub(currentHit, startHit);
+
+    // Project onto axis for single-axis constraints
+    if (axis === 'x' || axis === 'y' || axis === 'z') {
+      const axisDir: Vec3 = axis === 'x' ? [1,0,0] : axis === 'y' ? [0,1,0] : [0,0,1];
+      const projected = dot(delta, axisDir);
+      delta = [axisDir[0] * projected, axisDir[1] * projected, axisDir[2] * projected];
     }
-    
-    return add(startPos, movement);
+
+    return add(startPosition, delta);
   }
-  
+
+  private static getConstraintPlane(axis: GizmoAxis, pos: Vec3, camFwd: Vec3) {
+    // Choose plane most perpendicular to view for best interaction
+    let planeNormal: Vec3;
+    switch (axis) {
+      case 'xy': planeNormal = [0, 0, 1]; break;
+      case 'xz': planeNormal = [0, 1, 0]; break;
+      case 'yz': planeNormal = [1, 0, 0]; break;
+      default: planeNormal = normalize(camFwd); break;
+    }
+    return { planeNormal, planePoint: pos };
+  }
+
+  private static rayPlaneIntersect(ray: Ray, point: Vec3, normal: Vec3): Vec3 | null {
+    const denom = dot(ray.direction, normal);
+    if (Math.abs(denom) < 0.0001) return null;
+    const t = dot(sub(point, ray.origin), normal) / denom;
+    return t < 0 ? null : add(ray.origin, mul(ray.direction, t));
+  }
+
   static snapToGrid(pos: Vec3, gridSize: number): Vec3 {
     return [
       Math.round(pos[0] / gridSize) * gridSize,
@@ -295,12 +323,19 @@ export class TranslateGizmo {
 ```typescript
 describe('TranslateGizmo', () => {
   it('X axis movement only affects X', () => {
-    const result = TranslateGizmo.calculateDragPosition(
-      'x', [0,0,0], [0,0], [100,0], [1,0,0], [0,1,0], 0.01
+    const startRay: Ray = { origin: [0,0,5], direction: [0,0,-1] };
+    const currentRay: Ray = { origin: [1,0,5], direction: [0,0,-1] };
+    
+    const result = TranslateGizmo.calculateDragPositionRayPlane(
+      'x', [0,0,0], startRay, currentRay, [0,0,-1]
     );
     expect(result[0]).not.toBe(0);
     expect(result[1]).toBe(0);
     expect(result[2]).toBe(0);
+  });
+  
+  it('movement is straight line regardless of perspective', () => {
+    // Multiple drag steps should produce linear movement
   });
   
   it('snapToGrid rounds to grid', () => {
@@ -312,7 +347,7 @@ describe('TranslateGizmo', () => {
 
 ### Commit Message
 ```
-feat(gizmos): implement translation drag calculation
+feat(gizmos): implement ray-plane intersection for translation drag
 ```
 
 ---
