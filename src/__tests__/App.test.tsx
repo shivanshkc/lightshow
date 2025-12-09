@@ -52,9 +52,9 @@ describe('App', () => {
 
   it('shows initial scene objects', () => {
     render(<App />);
-    // Initial scene includes various objects like Ground, Sun Light, etc.
-    expect(screen.getByText('Ground')).toBeDefined();
-    expect(screen.getByText('Sun Light')).toBeDefined();
+    // Initial scene includes procedurally generated spheres
+    expect(screen.getByText('Sphere 1')).toBeDefined();
+    expect(screen.getByText('Key Light')).toBeDefined();
   });
 
   it('shows properties placeholder when nothing selected', () => {
