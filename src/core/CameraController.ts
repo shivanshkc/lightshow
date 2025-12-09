@@ -182,6 +182,11 @@ export class CameraController {
         this.notifyCameraChange();
       }
     }
+
+    if (e.key === 'Escape') {
+      useSceneStore.getState().selectObject(null);
+      this.notifyCameraChange();
+    }
   }
 
   private onKeyUp(e: KeyboardEvent): void {
