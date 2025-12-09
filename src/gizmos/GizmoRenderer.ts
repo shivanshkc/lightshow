@@ -1,8 +1,12 @@
 import { createTranslateGizmoGeometry, GizmoMesh } from './GizmoGeometry';
+import { createRotateGizmoGeometry } from './RotateGizmoGeometry';
+import { createScaleGizmoGeometry } from './ScaleGizmoGeometry';
+import { GizmoMode } from '../store/gizmoStore';
 import gizmoShaderWGSL from './gizmoShader.wgsl?raw';
 
 /**
  * Renders gizmos using WebGPU
+ * Supports translate, rotate, and scale modes
  * Gizmos are rendered on top of the scene (no depth test)
  */
 export class GizmoRenderer {
@@ -11,9 +15,19 @@ export class GizmoRenderer {
   private bindGroupLayout: GPUBindGroupLayout;
   private bindGroup: GPUBindGroup;
   private uniformBuffer: GPUBuffer;
-  private vertexBuffer: GPUBuffer;
-  private indexBuffer: GPUBuffer;
-  private indexCount: number;
+
+  // Geometry for each mode
+  private translateGeometry: GizmoMesh;
+  private rotateGeometry: GizmoMesh;
+  private scaleGeometry: GizmoMesh;
+
+  // Buffers for each mode
+  private translateVertexBuffer: GPUBuffer;
+  private translateIndexBuffer: GPUBuffer;
+  private rotateVertexBuffer: GPUBuffer;
+  private rotateIndexBuffer: GPUBuffer;
+  private scaleVertexBuffer: GPUBuffer;
+  private scaleIndexBuffer: GPUBuffer;
 
   constructor(device: GPUDevice, outputFormat: GPUTextureFormat) {
     this.device = device;
@@ -102,23 +116,73 @@ export class GizmoRenderer {
       ],
     });
 
-    // Create geometry
-    const geometry = createTranslateGizmoGeometry();
-    this.indexCount = geometry.indexCount;
+    // Create geometry for all modes
+    this.translateGeometry = createTranslateGizmoGeometry();
+    this.rotateGeometry = createRotateGizmoGeometry();
+    this.scaleGeometry = createScaleGizmoGeometry();
 
-    // Create vertex buffer
-    this.vertexBuffer = device.createBuffer({
-      size: geometry.vertices.byteLength,
+    // Create buffers for translate gizmo
+    this.translateVertexBuffer = device.createBuffer({
+      size: this.translateGeometry.vertices.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(this.vertexBuffer, 0, geometry.vertices);
+    device.queue.writeBuffer(
+      this.translateVertexBuffer,
+      0,
+      this.translateGeometry.vertices
+    );
 
-    // Create index buffer
-    this.indexBuffer = device.createBuffer({
-      size: geometry.indices.byteLength,
+    this.translateIndexBuffer = device.createBuffer({
+      size: this.translateGeometry.indices.byteLength,
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(this.indexBuffer, 0, geometry.indices);
+    device.queue.writeBuffer(
+      this.translateIndexBuffer,
+      0,
+      this.translateGeometry.indices
+    );
+
+    // Create buffers for rotate gizmo
+    this.rotateVertexBuffer = device.createBuffer({
+      size: this.rotateGeometry.vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.rotateVertexBuffer,
+      0,
+      this.rotateGeometry.vertices
+    );
+
+    this.rotateIndexBuffer = device.createBuffer({
+      size: this.rotateGeometry.indices.byteLength,
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.rotateIndexBuffer,
+      0,
+      this.rotateGeometry.indices
+    );
+
+    // Create buffers for scale gizmo
+    this.scaleVertexBuffer = device.createBuffer({
+      size: this.scaleGeometry.vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.scaleVertexBuffer,
+      0,
+      this.scaleGeometry.vertices
+    );
+
+    this.scaleIndexBuffer = device.createBuffer({
+      size: this.scaleGeometry.indices.byteLength,
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.scaleIndexBuffer,
+      0,
+      this.scaleGeometry.indices
+    );
   }
 
   /**
@@ -132,8 +196,35 @@ export class GizmoRenderer {
     gizmoPosition: [number, number, number],
     cameraDistance: number,
     hoveredAxis: number,
-    activeAxis: number
+    activeAxis: number,
+    mode: GizmoMode = 'translate'
   ): void {
+    if (mode === 'none') return;
+
+    // Select geometry based on mode
+    let vertexBuffer: GPUBuffer;
+    let indexBuffer: GPUBuffer;
+    let indexCount: number;
+
+    switch (mode) {
+      case 'rotate':
+        vertexBuffer = this.rotateVertexBuffer;
+        indexBuffer = this.rotateIndexBuffer;
+        indexCount = this.rotateGeometry.indexCount;
+        break;
+      case 'scale':
+        vertexBuffer = this.scaleVertexBuffer;
+        indexBuffer = this.scaleIndexBuffer;
+        indexCount = this.scaleGeometry.indexCount;
+        break;
+      case 'translate':
+      default:
+        vertexBuffer = this.translateVertexBuffer;
+        indexBuffer = this.translateIndexBuffer;
+        indexCount = this.translateGeometry.indexCount;
+        break;
+    }
+
     // Calculate gizmo scale to maintain constant screen size
     const gizmoScale = cameraDistance * 0.12;
 
@@ -176,9 +267,9 @@ export class GizmoRenderer {
 
     renderPass.setPipeline(this.pipeline);
     renderPass.setBindGroup(0, this.bindGroup);
-    renderPass.setVertexBuffer(0, this.vertexBuffer);
-    renderPass.setIndexBuffer(this.indexBuffer, 'uint16');
-    renderPass.drawIndexed(this.indexCount);
+    renderPass.setVertexBuffer(0, vertexBuffer);
+    renderPass.setIndexBuffer(indexBuffer, 'uint16');
+    renderPass.drawIndexed(indexCount);
     renderPass.end();
   }
 
@@ -187,8 +278,11 @@ export class GizmoRenderer {
    */
   destroy(): void {
     this.uniformBuffer.destroy();
-    this.vertexBuffer.destroy();
-    this.indexBuffer.destroy();
+    this.translateVertexBuffer.destroy();
+    this.translateIndexBuffer.destroy();
+    this.rotateVertexBuffer.destroy();
+    this.rotateIndexBuffer.destroy();
+    this.scaleVertexBuffer.destroy();
+    this.scaleIndexBuffer.destroy();
   }
 }
-

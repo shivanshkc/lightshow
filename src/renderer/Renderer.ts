@@ -227,7 +227,8 @@ export class Renderer {
           selectedObject.transform.position,
           cameraState.distance,
           hoveredAxis,
-          activeAxis
+          activeAxis,
+          gizmoState.mode
         );
       }
     }

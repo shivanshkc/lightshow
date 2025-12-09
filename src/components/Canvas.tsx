@@ -5,6 +5,8 @@ import { CameraController } from '../core/CameraController';
 import { raycaster } from '../core/Raycaster';
 import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
 import { TranslateGizmo } from '../gizmos/TranslateGizmo';
+import { RotateGizmo } from '../gizmos/RotateGizmo';
+import { ScaleGizmo } from '../gizmos/ScaleGizmo';
 import { useSceneStore } from '../store/sceneStore';
 import { useCameraStore } from '../store/cameraStore';
 import { useGizmoStore } from '../store/gizmoStore';
@@ -129,6 +131,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   // Click-to-select and gizmo interaction handling
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const dragStartRay = useRef<Ray | null>(null);
+  const dragStartRotation = useRef<[number, number, number] | null>(null);
+  const dragStartScale = useRef<Vec3 | null>(null);
   const DRAG_THRESHOLD = 5;
 
   // Helper to get camera vectors
@@ -163,68 +167,119 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const gizmoState = useGizmoStore.getState();
       const sceneState = useSceneStore.getState();
 
-      // If dragging gizmo, update object position using ray-plane intersection
-      if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartPosition && dragStartRay.current) {
+      // If dragging gizmo, update object transform
+      if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartMousePosition) {
         const selectedObject = sceneState.objects.find(
           (obj) => obj.id === sceneState.selectedObjectId
         );
 
         if (selectedObject) {
           const cameraState = useCameraStore.getState();
-          const { forward } = getCameraVectors();
-          
-          // Create current ray from mouse position
-          const viewMatrix = cameraState.getViewMatrix();
-          const aspect = rect.width / rect.height;
-          const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
-          const inverseView = mat4Inverse(viewMatrix);
-          const inverseProjection = mat4Inverse(projMatrix);
-          
-          const currentRay = screenToWorldRay(
-            x,
-            y,
-            rect.width,
-            rect.height,
-            inverseProjection,
-            inverseView,
-            cameraState.position
-          );
 
-          // Calculate new position using ray-plane intersection
-          let newPosition = TranslateGizmo.calculateDragPositionRayPlane(
-            gizmoState.activeAxis,
-            gizmoState.dragStartPosition,
-            dragStartRay.current,
-            currentRay,
-            forward
-          );
+          if (gizmoState.mode === 'translate' && gizmoState.dragStartPosition && dragStartRay.current) {
+            // Translation using ray-plane intersection
+            const { forward } = getCameraVectors();
+            
+            // Create current ray from mouse position
+            const viewMatrix = cameraState.getViewMatrix();
+            const aspect = rect.width / rect.height;
+            const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+            const inverseView = mat4Inverse(viewMatrix);
+            const inverseProjection = mat4Inverse(projMatrix);
+            
+            const currentRay = screenToWorldRay(
+              x,
+              y,
+              rect.width,
+              rect.height,
+              inverseProjection,
+              inverseView,
+              cameraState.position
+            );
 
-          // Apply grid snapping if Ctrl is held
-          if (e.ctrlKey || e.metaKey) {
-            newPosition = TranslateGizmo.snapToGrid(newPosition, 0.5);
+            let newPosition = TranslateGizmo.calculateDragPositionRayPlane(
+              gizmoState.activeAxis,
+              gizmoState.dragStartPosition,
+              dragStartRay.current,
+              currentRay,
+              forward
+            );
+
+            // Apply grid snapping if Ctrl is held
+            if (e.ctrlKey || e.metaKey) {
+              newPosition = TranslateGizmo.snapToGrid(newPosition, 0.5);
+            }
+
+            // Apply precision mode if Shift is held
+            if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
+              const movement = sub(newPosition, gizmoState.dragStartPosition);
+              const preciseMovement = TranslateGizmo.applyPrecision(movement, true, 0.1);
+              newPosition = [
+                gizmoState.dragStartPosition[0] + preciseMovement[0],
+                gizmoState.dragStartPosition[1] + preciseMovement[1],
+                gizmoState.dragStartPosition[2] + preciseMovement[2],
+              ];
+            }
+
+            sceneState.updateTransform(sceneState.selectedObjectId!, {
+              position: newPosition,
+            });
+          } else if (gizmoState.mode === 'rotate' && dragStartRotation.current) {
+            // Rotation
+            const axis = gizmoState.activeAxis as 'x' | 'y' | 'z' | 'trackball';
+            if (axis === 'x' || axis === 'y' || axis === 'z' || axis === 'xyz') {
+              const rotationAxis = axis === 'xyz' ? 'trackball' : axis;
+              let rotationDelta = RotateGizmo.calculateRotation(
+                rotationAxis,
+                selectedObject.transform.position,
+                gizmoState.dragStartMousePosition,
+                [e.clientX, e.clientY],
+                cameraState.position
+              );
+
+              // Apply snapping if Ctrl is held (15 degree increments)
+              if (e.ctrlKey || e.metaKey) {
+                rotationDelta = [
+                  RotateGizmo.snapAngle(rotationDelta[0]),
+                  RotateGizmo.snapAngle(rotationDelta[1]),
+                  RotateGizmo.snapAngle(rotationDelta[2]),
+                ];
+              }
+
+              const newRotation = RotateGizmo.addRotation(dragStartRotation.current, rotationDelta);
+
+              sceneState.updateTransform(sceneState.selectedObjectId!, {
+                rotation: newRotation,
+              });
+            }
+          } else if (gizmoState.mode === 'scale' && dragStartScale.current) {
+            // Scale
+            const axis = gizmoState.activeAxis as 'x' | 'y' | 'z' | 'uniform';
+            const scaleAxis = axis === 'xyz' ? 'uniform' : (axis === 'xy' || axis === 'xz' || axis === 'yz') ? 'uniform' : axis;
+            
+            let newScale = ScaleGizmo.calculateScale(
+              scaleAxis,
+              dragStartScale.current,
+              gizmoState.dragStartMousePosition,
+              [e.clientX, e.clientY],
+              selectedObject.type
+            );
+
+            // Apply snapping if Ctrl is held
+            if (e.ctrlKey || e.metaKey) {
+              newScale = ScaleGizmo.snapScale(newScale);
+            }
+
+            sceneState.updateTransform(sceneState.selectedObjectId!, {
+              scale: newScale,
+            });
           }
-
-          // Apply precision mode if Shift is held
-          if (e.shiftKey && !e.ctrlKey && !e.metaKey) {
-            const movement = sub(newPosition, gizmoState.dragStartPosition);
-            const preciseMovement = TranslateGizmo.applyPrecision(movement, true, 0.1);
-            newPosition = [
-              gizmoState.dragStartPosition[0] + preciseMovement[0],
-              gizmoState.dragStartPosition[1] + preciseMovement[1],
-              gizmoState.dragStartPosition[2] + preciseMovement[2],
-            ];
-          }
-
-          // Update object position
-          sceneState.updateTransform(sceneState.selectedObjectId!, {
-            position: newPosition,
-          });
         }
         return;
       }
 
-      // Check gizmo hover if object is selected
-      if (sceneState.selectedObjectId && gizmoState.mode === 'translate') {
+      // Check gizmo hover if object is selected (for all modes)
+      if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
         const selectedObject = sceneState.objects.find(
           (obj) => obj.id === sceneState.selectedObjectId
         );
@@ -251,7 +306,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           // Calculate gizmo scale
           const gizmoScale = cameraState.distance * 0.12;
 
-          // Check if ray hits gizmo
+          // Check if ray hits gizmo (same picking logic for all modes)
           const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
           gizmoState.setHoveredAxis(hitAxis);
         }
@@ -274,8 +329,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const gizmoState = useGizmoStore.getState();
       const sceneState = useSceneStore.getState();
 
-      // Check if clicking on gizmo
-      if (sceneState.selectedObjectId && gizmoState.mode === 'translate') {
+      // Check if clicking on gizmo (for all modes)
+      if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
         const selectedObject = sceneState.objects.find(
           (obj) => obj.id === sceneState.selectedObjectId
         );
@@ -306,8 +361,14 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
 
           if (hitAxis) {
-            // Store start ray for ray-plane intersection during drag
-            dragStartRay.current = ray;
+            // Store start values based on mode
+            if (gizmoState.mode === 'translate') {
+              dragStartRay.current = ray;
+            } else if (gizmoState.mode === 'rotate') {
+              dragStartRotation.current = [...selectedObject.transform.rotation] as [number, number, number];
+            } else if (gizmoState.mode === 'scale') {
+              dragStartScale.current = [...selectedObject.transform.scale] as Vec3;
+            }
             
             // Start gizmo drag
             gizmoState.startDrag(hitAxis, selectedObject.transform.position, [e.clientX, e.clientY]);
@@ -332,6 +393,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       if (gizmoState.isDragging) {
         gizmoState.endDrag();
         dragStartRay.current = null;
+        dragStartRotation.current = null;
+        dragStartScale.current = null;
         
         // Re-enable camera controller
         if (controllerRef.current) {
