@@ -1,5 +1,6 @@
 import { useCameraStore } from '../store/cameraStore';
 import { useSceneStore } from '../store/sceneStore';
+import { useGizmoStore } from '../store/gizmoStore';
 
 interface ControllerOptions {
   orbitSensitivity?: number;
@@ -200,6 +201,16 @@ export class CameraController {
     if (e.key === 'Escape') {
       useSceneStore.getState().selectObject(null);
       this.notifyCameraChange();
+    }
+
+    // Gizmo mode switching
+    const key = e.key.toLowerCase();
+    if (key === 'w' || key === 'g') {
+      useGizmoStore.getState().setMode('translate');
+    } else if (key === 'e') {
+      useGizmoStore.getState().setMode('rotate');
+    } else if (key === 'r') {
+      useGizmoStore.getState().setMode('scale');
     }
   }
 
