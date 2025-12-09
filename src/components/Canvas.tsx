@@ -14,6 +14,7 @@ import {
   screenToWorldRay,
   normalize,
   sub,
+  cross,
   Vec3,
 } from '../core/math';
 
@@ -137,20 +138,12 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     // Forward direction (from camera to target)
     const forward = normalize(sub(target, position));
     
-    // Right vector (cross product of forward and up)
+    // Right vector: cross(forward, worldUp)
     const worldUp: Vec3 = [0, 1, 0];
-    const right = normalize([
-      forward[2] * worldUp[1] - forward[1] * worldUp[2],
-      forward[0] * worldUp[2] - forward[2] * worldUp[0],
-      forward[1] * worldUp[0] - forward[0] * worldUp[1],
-    ]) as Vec3;
+    const right = normalize(cross(forward, worldUp));
     
-    // Camera up vector (cross product of right and forward)
-    const up: Vec3 = [
-      right[1] * forward[2] - right[2] * forward[1],
-      right[2] * forward[0] - right[0] * forward[2],
-      right[0] * forward[1] - right[1] * forward[0],
-    ];
+    // Camera up vector: cross(right, forward)
+    const up = cross(right, forward);
     
     return { right, up, forward };
   }, []);
