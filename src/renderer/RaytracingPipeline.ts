@@ -98,9 +98,9 @@ export class RaytracingPipeline {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Create settings uniform buffer (32 bytes = 8 values: 4 u32 + 1 i32 + 3 u32 padding)
+    // Create settings uniform buffer (48 bytes due to WGSL alignment: vec3 needs 16-byte alignment)
     this.settingsBuffer = device.createBuffer({
-      size: 32,
+      size: 48,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
   }
@@ -208,6 +208,15 @@ export class RaytracingPipeline {
 
   /**
    * Update settings uniform buffer
+   * WGSL struct layout (48 bytes due to vec3 alignment):
+   *   frameIndex: u32        offset 0
+   *   samplesPerPixel: u32   offset 4
+   *   maxBounces: u32        offset 8
+   *   flags: u32             offset 12
+   *   selectedObjectIndex: i32  offset 16
+   *   (implicit padding)     offset 20-31
+   *   _pad: vec3<u32>        offset 32-43 (16-byte aligned)
+   *   (struct padding)       offset 44-47
    */
   private updateSettings(): void {
     // Find the index of the selected object
@@ -217,8 +226,8 @@ export class RaytracingPipeline {
       ? visibleObjects.findIndex((o) => o.id === selectedObjectId)
       : -1;
 
-    // Create buffer: 4 u32 + 1 i32 + 3 u32 padding
-    const buffer = new ArrayBuffer(32);
+    // Create buffer: 48 bytes to match WGSL struct alignment
+    const buffer = new ArrayBuffer(48);
     const uint32View = new Uint32Array(buffer);
     const int32View = new Int32Array(buffer);
 
@@ -227,9 +236,9 @@ export class RaytracingPipeline {
     uint32View[2] = 8; // max bounces
     uint32View[3] = 1; // flags: bit 0 = accumulate
     int32View[4] = selectedIndex; // selected object index (-1 if none)
-    uint32View[5] = 0; // padding
-    uint32View[6] = 0; // padding
-    uint32View[7] = 0; // padding
+    // uint32View[5-7] = implicit padding (already 0)
+    // uint32View[8-10] = _pad vec3 (already 0)
+    // uint32View[11] = struct padding (already 0)
 
     this.device.queue.writeBuffer(this.settingsBuffer, 0, buffer);
   }
