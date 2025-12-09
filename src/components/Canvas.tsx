@@ -16,6 +16,7 @@ import {
   sub,
   cross,
   Vec3,
+  Ray,
 } from '../core/math';
 
 interface CanvasProps {
@@ -127,6 +128,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
   // Click-to-select and gizmo interaction handling
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+  const dragStartRay = useRef<Ray | null>(null);
   const DRAG_THRESHOLD = 5;
 
   // Helper to get camera vectors
@@ -161,28 +163,40 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const gizmoState = useGizmoStore.getState();
       const sceneState = useSceneStore.getState();
 
-      // If dragging gizmo, update object position
-      if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartPosition && gizmoState.dragStartMousePosition) {
+      // If dragging gizmo, update object position using ray-plane intersection
+      if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartPosition && dragStartRay.current) {
         const selectedObject = sceneState.objects.find(
           (obj) => obj.id === sceneState.selectedObjectId
         );
 
         if (selectedObject) {
           const cameraState = useCameraStore.getState();
-          const { right, up } = getCameraVectors();
+          const { forward } = getCameraVectors();
           
-          // Calculate screen scale based on camera distance
-          const screenScale = cameraState.distance * 0.003;
+          // Create current ray from mouse position
+          const viewMatrix = cameraState.getViewMatrix();
+          const aspect = rect.width / rect.height;
+          const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+          const inverseView = mat4Inverse(viewMatrix);
+          const inverseProjection = mat4Inverse(projMatrix);
+          
+          const currentRay = screenToWorldRay(
+            x,
+            y,
+            rect.width,
+            rect.height,
+            inverseProjection,
+            inverseView,
+            cameraState.position
+          );
 
-          // Calculate new position
-          let newPosition = TranslateGizmo.calculateDragPosition(
+          // Calculate new position using ray-plane intersection
+          let newPosition = TranslateGizmo.calculateDragPositionRayPlane(
             gizmoState.activeAxis,
             gizmoState.dragStartPosition,
-            gizmoState.dragStartMousePosition,
-            [e.clientX, e.clientY],
-            right,
-            up,
-            screenScale
+            dragStartRay.current,
+            currentRay,
+            forward
           );
 
           // Apply grid snapping if Ctrl is held
@@ -292,6 +306,9 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
 
           if (hitAxis) {
+            // Store start ray for ray-plane intersection during drag
+            dragStartRay.current = ray;
+            
             // Start gizmo drag
             gizmoState.startDrag(hitAxis, selectedObject.transform.position, [e.clientX, e.clientY]);
             
@@ -314,6 +331,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       // End gizmo drag
       if (gizmoState.isDragging) {
         gizmoState.endDrag();
+        dragStartRay.current = null;
         
         // Re-enable camera controller
         if (controllerRef.current) {
