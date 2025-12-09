@@ -306,8 +306,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           // Calculate gizmo scale
           const gizmoScale = cameraState.distance * 0.12;
 
-          // Check if ray hits gizmo (same picking logic for all modes)
-          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
+          // Check if ray hits gizmo (mode-aware picking)
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale, gizmoState.mode);
           gizmoState.setHoveredAxis(hitAxis);
         }
       }
@@ -357,8 +357,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           // Calculate gizmo scale
           const gizmoScale = cameraState.distance * 0.12;
 
-          // Check if ray hits gizmo
-          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
+          // Check if ray hits gizmo (mode-aware picking)
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale, gizmoState.mode);
 
           if (hitAxis) {
             // Store start values based on mode
