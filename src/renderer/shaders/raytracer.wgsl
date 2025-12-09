@@ -367,34 +367,16 @@ fn traceScene(ray: Ray) -> HitResult {
 // ============================================
 
 fn sampleSky(direction: vec3<f32>) -> vec3<f32> {
-  let t = 0.5 * (direction.y + 1.0);  // 0 at bottom, 1 at top
+  // Clean neutral grey studio backdrop - lets the spheres shine
+  // Subtle gradient from slightly darker at bottom to lighter at top
+  let t = 0.5 * (direction.y + 1.0);
   
-  // Beautiful sunset/twilight gradient
-  let horizonColor = vec3<f32>(1.0, 0.55, 0.35);  // Warm coral orange
-  let midColor = vec3<f32>(0.6, 0.45, 0.7);       // Soft purple/lavender  
-  let zenithColor = vec3<f32>(0.12, 0.15, 0.35);  // Deep night blue
+  let bottomGrey = vec3<f32>(0.75, 0.76, 0.78);  // Slightly cooler grey
+  let topGrey = vec3<f32>(0.88, 0.89, 0.90);     // Light warm grey
   
-  // Smooth blending using smoothstep for better transitions
-  var skyColor: vec3<f32>;
-  if (t < 0.4) {
-    // Lower portion: horizon to mid (wider horizon band)
-    let blend = smoothstep(0.0, 0.4, t);
-    skyColor = mix(horizonColor, midColor, blend);
-  } else {
-    // Upper portion: mid to zenith
-    let blend = smoothstep(0.4, 1.0, t);
-    skyColor = mix(midColor, zenithColor, blend);
-  }
+  let skyColor = mix(bottomGrey, topGrey, smoothstep(0.0, 1.0, t));
   
-  // Add warm glow at horizon for sunset feel
-  let horizonGlow = exp(-abs(direction.y) * 3.0) * 0.4;
-  skyColor += vec3<f32>(1.0, 0.5, 0.2) * horizonGlow;
-  
-  // Add subtle star-like brightness boost at zenith
-  let zenithBoost = pow(max(0.0, direction.y), 4.0) * 0.1;
-  skyColor += vec3<f32>(0.3, 0.4, 0.8) * zenithBoost;
-  
-  return skyColor * 0.85;  // Good brightness level
+  return skyColor;
 }
 
 // ============================================
