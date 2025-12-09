@@ -50,9 +50,11 @@ describe('App', () => {
     expect(screen.getByText('Scene Objects')).toBeDefined();
   });
 
-  it('shows empty state when no objects', () => {
+  it('shows initial scene objects', () => {
     render(<App />);
-    expect(screen.getByText('No objects in scene')).toBeDefined();
+    // Initial scene includes various objects like Ground, Sun Light, etc.
+    expect(screen.getByText('Ground')).toBeDefined();
+    expect(screen.getByText('Sun Light')).toBeDefined();
   });
 
   it('shows properties placeholder when nothing selected', () => {
