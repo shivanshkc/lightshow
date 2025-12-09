@@ -302,11 +302,15 @@ export const raycaster = new Raycaster();
 
 ### 8.3 Selection Visual Feedback
 
-Add selection outline/highlight in the shader. Option A: Render selected object with outline in a separate pass. Option B: Tint selected object slightly.
+Add selection highlight in the shader using a **Fresnel-based rim glow**. This approach creates a bright edge highlight that's visible on any surface color (unlike a simple tint which can be invisible on blue/white surfaces).
 
-**For Stage 8, use simple tint (Option B):**
+**Why Fresnel Rim Glow?**
+- Visible on any material color (white, blue, black, emissive)
+- Creates a professional "selected object" look similar to 3D software
+- Uses viewing angle to highlight edges naturally
+- Brighter at silhouette edges, subtle at center
 
-Update raytracer.wgsl to accept selected object ID:
+Update raytracer.wgsl to accept selected object ID and apply rim highlight:
 
 ```wgsl
 struct RenderSettings {
@@ -318,17 +322,34 @@ struct RenderSettings {
   _pad: vec3<u32>,
 }
 
-// In shade function, add highlight for selected object
-fn shade(hit: HitResult, ray: Ray) -> vec3<f32> {
-  // ... existing shading code ...
+// In main function, after path tracing but before tone mapping:
+@compute @workgroup_size(8, 8)
+fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
+  // ... ray generation and path tracing ...
   
-  // Add selection highlight
-  if (hit.objectIndex == settings.selectedObjectIndex) {
-    // Subtle blue tint for selected object
-    color = mix(color, vec3<f32>(0.4, 0.6, 1.0), 0.15);
+  // Check if first hit is selected object
+  let firstHit = traceScene(ray);
+  let isSelectedHit = firstHit.hit && firstHit.objectIndex == settings.selectedObjectIndex;
+  
+  // Path trace
+  var color = trace(ray, &rng);
+  
+  // Apply selection highlight using Fresnel-based rim glow
+  if (isSelectedHit) {
+    // Calculate rim factor based on viewing angle (Fresnel-like effect)
+    let viewDir = -ray.direction;
+    let rimFactor = 1.0 - abs(dot(viewDir, firstHit.normal));
+    
+    // Create bright rim glow that's stronger at edges
+    let rimPower = pow(rimFactor, 2.5);  // Sharper falloff for cleaner edge
+    let rimColor = vec3<f32>(0.3, 0.7, 1.0);  // Bright cyan-blue
+    let rimGlow = rimColor * rimPower * 1.5;
+    
+    // Add rim glow to the color
+    color += rimGlow;
   }
   
-  return color;
+  // ... tone mapping and output ...
 }
 ```
 

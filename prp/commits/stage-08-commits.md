@@ -298,12 +298,13 @@ feat(canvas): implement click-to-select via raycasting
 ## Commit 8.4: Add Escape to deselect and selection highlight
 
 ### Description
-Escape key deselects, shader highlights selected object.
+Escape key deselects, shader highlights selected object with Fresnel-based rim glow.
 
 ### Files to Modify
 ```
 src/core/CameraController.ts  # Add Escape handler
 src/renderer/shaders/raytracer.wgsl  # Selection highlight
+src/renderer/RaytracingPipeline.ts  # Pass selectedObjectIndex to GPU
 ```
 
 ### Key Implementation
@@ -312,22 +313,30 @@ src/renderer/shaders/raytracer.wgsl  # Selection highlight
 if (e.key === 'Escape') {
   useSceneStore.getState().selectObject(null);
 }
+```
 
-// raytracer.wgsl
+```wgsl
+// raytracer.wgsl - Fresnel-based rim highlight
 struct RenderSettings {
   // ... existing fields
   selectedObjectIndex: i32,
+  _pad: vec3<u32>,
 }
 
-fn shade(hit: HitResult, ray: Ray) -> vec3<f32> {
-  // ... existing shading
-  
-  // Selection highlight
-  if (hit.objectIndex == settings.selectedObjectIndex) {
-    color = mix(color, vec3<f32>(0.4, 0.6, 1.0), 0.15);
-  }
-  
-  return color;
+// In main(), after path tracing:
+// Check if first hit is selected object
+let firstHit = traceScene(ray);
+let isSelectedHit = firstHit.hit && firstHit.objectIndex == settings.selectedObjectIndex;
+
+var color = trace(ray, &rng);
+
+// Apply Fresnel-based rim glow for selection
+if (isSelectedHit) {
+  let viewDir = -ray.direction;
+  let rimFactor = 1.0 - abs(dot(viewDir, firstHit.normal));
+  let rimPower = pow(rimFactor, 2.5);
+  let rimColor = vec3<f32>(0.3, 0.7, 1.0);
+  color += rimColor * rimPower * 1.5;
 }
 ```
 
