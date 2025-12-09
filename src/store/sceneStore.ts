@@ -9,6 +9,174 @@ import {
   createDefaultCuboid,
 } from '../core/types';
 
+/**
+ * Create an attractive default scene showcasing all material types
+ */
+function createInitialScene(): SceneObject[] {
+  return [
+    // Ground plane - large flat cuboid
+    {
+      id: nanoid(),
+      name: 'Ground',
+      type: 'cuboid',
+      transform: {
+        position: [0, -1.5, 0],
+        rotation: [0, 0, 0],
+        scale: [8, 0.2, 8],
+      },
+      material: {
+        type: 'plastic',
+        color: [0.15, 0.15, 0.18],
+        roughness: 0.8,
+        metalness: 0,
+        ior: 1.5,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Main light source - warm orange sphere above
+    {
+      id: nanoid(),
+      name: 'Sun Light',
+      type: 'sphere',
+      transform: {
+        position: [2, 4, -2],
+        rotation: [0, 0, 0],
+        scale: [0.8, 0.8, 0.8],
+      },
+      material: {
+        type: 'light',
+        color: [1.0, 0.9, 0.7],
+        roughness: 0,
+        metalness: 0,
+        ior: 1.5,
+        intensity: 12,
+      },
+      visible: true,
+    },
+    // Glass sphere - center-left, showcasing refraction
+    {
+      id: nanoid(),
+      name: 'Crystal Ball',
+      type: 'sphere',
+      transform: {
+        position: [-1.2, 0, 0.5],
+        rotation: [0, 0, 0],
+        scale: [1.0, 1.0, 1.0],
+      },
+      material: {
+        type: 'glass',
+        color: [0.95, 0.98, 1.0],
+        roughness: 0,
+        metalness: 0,
+        ior: 1.52,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Gold metal sphere - center-right
+    {
+      id: nanoid(),
+      name: 'Gold Sphere',
+      type: 'sphere',
+      transform: {
+        position: [1.3, 0.2, 0],
+        rotation: [0, 0, 0],
+        scale: [1.2, 1.2, 1.2],
+      },
+      material: {
+        type: 'metal',
+        color: [1.0, 0.76, 0.33],
+        roughness: 0,
+        metalness: 1,
+        ior: 1.5,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Small red plastic sphere
+    {
+      id: nanoid(),
+      name: 'Red Marble',
+      type: 'sphere',
+      transform: {
+        position: [0.3, -0.8, 1.5],
+        rotation: [0, 0, 0],
+        scale: [0.5, 0.5, 0.5],
+      },
+      material: {
+        type: 'plastic',
+        color: [0.9, 0.2, 0.25],
+        roughness: 0.3,
+        metalness: 0,
+        ior: 1.5,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Small cyan plastic sphere
+    {
+      id: nanoid(),
+      name: 'Cyan Marble',
+      type: 'sphere',
+      transform: {
+        position: [-0.5, -0.9, 1.8],
+        rotation: [0, 0, 0],
+        scale: [0.4, 0.4, 0.4],
+      },
+      material: {
+        type: 'plastic',
+        color: [0.2, 0.8, 0.85],
+        roughness: 0.2,
+        metalness: 0,
+        ior: 1.5,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Tall mirror cuboid - back left
+    {
+      id: nanoid(),
+      name: 'Mirror Pillar',
+      type: 'cuboid',
+      transform: {
+        position: [-2.5, 0.5, -1.5],
+        rotation: [0, 0.3, 0],
+        scale: [0.4, 2.5, 0.4],
+      },
+      material: {
+        type: 'metal',
+        color: [0.9, 0.9, 0.95],
+        roughness: 0,
+        metalness: 1,
+        ior: 1.5,
+        intensity: 1,
+      },
+      visible: true,
+    },
+    // Small accent light - adds color interest
+    {
+      id: nanoid(),
+      name: 'Accent Light',
+      type: 'sphere',
+      transform: {
+        position: [-3, 1, 2],
+        rotation: [0, 0, 0],
+        scale: [0.3, 0.3, 0.3],
+      },
+      material: {
+        type: 'light',
+        color: [0.4, 0.6, 1.0],
+        roughness: 0,
+        metalness: 0,
+        ior: 1.5,
+        intensity: 8,
+      },
+      visible: true,
+    },
+  ];
+}
+
 interface SceneState {
   objects: SceneObject[];
   selectedObjectId: ObjectId | null;
@@ -34,7 +202,7 @@ interface SceneState {
 }
 
 export const useSceneStore = create<SceneState>((set, get) => ({
-  objects: [],
+  objects: createInitialScene(),
   selectedObjectId: null,
 
   addSphere: () => {
