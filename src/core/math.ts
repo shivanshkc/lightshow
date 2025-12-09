@@ -214,3 +214,201 @@ export function mat4Inverse(m: Mat4): Mat4 {
   return inv;
 }
 
+// ============================================
+// Ray and Intersection Types
+// ============================================
+
+export interface Ray {
+  origin: Vec3;
+  direction: Vec3;
+}
+
+export interface HitResult {
+  hit: boolean;
+  t: number;
+  point: Vec3;
+  normal: Vec3;
+}
+
+// ============================================
+// Matrix-Vector Operations
+// ============================================
+
+/**
+ * Multiply a 4x4 matrix by a Vec4
+ */
+export function mat4MultiplyVec4(m: Mat4, v: Vec4): Vec4 {
+  return [
+    m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * v[3],
+    m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] * v[3],
+    m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14] * v[3],
+    m[3] * v[0] + m[7] * v[1] + m[11] * v[2] + m[15] * v[3],
+  ];
+}
+
+// ============================================
+// 3x3 Matrix Operations (for rotation)
+// ============================================
+
+export type Mat3 = [
+  number, number, number,
+  number, number, number,
+  number, number, number
+];
+
+/**
+ * Create a 3x3 rotation matrix from Euler angles (ZYX order)
+ */
+export function mat3FromRotation(euler: Vec3): Mat3 {
+  const cx = Math.cos(euler[0]);
+  const sx = Math.sin(euler[0]);
+  const cy = Math.cos(euler[1]);
+  const sy = Math.sin(euler[1]);
+  const cz = Math.cos(euler[2]);
+  const sz = Math.sin(euler[2]);
+
+  return [
+    cy * cz,                      cy * sz,                     -sy,
+    sx * sy * cz - cx * sz,       sx * sy * sz + cx * cz,      sx * cy,
+    cx * sy * cz + sx * sz,       cx * sy * sz - sx * cz,      cx * cy,
+  ];
+}
+
+/**
+ * Transpose a 3x3 matrix
+ */
+export function mat3Transpose(m: Mat3): Mat3 {
+  return [
+    m[0], m[3], m[6],
+    m[1], m[4], m[7],
+    m[2], m[5], m[8],
+  ];
+}
+
+/**
+ * Multiply a 3x3 matrix by a Vec3
+ */
+export function mat3MultiplyVec3(m: Mat3, v: Vec3): Vec3 {
+  return [
+    m[0] * v[0] + m[3] * v[1] + m[6] * v[2],
+    m[1] * v[0] + m[4] * v[1] + m[7] * v[2],
+    m[2] * v[0] + m[5] * v[1] + m[8] * v[2],
+  ];
+}
+
+// ============================================
+// Ray Generation
+// ============================================
+
+/**
+ * Create a ray from screen coordinates through the camera
+ */
+export function screenToWorldRay(
+  screenX: number,
+  screenY: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  inverseProjection: Mat4,
+  inverseView: Mat4,
+  cameraPosition: Vec3
+): Ray {
+  // Convert to NDC (-1 to 1)
+  const ndcX = (screenX / canvasWidth) * 2 - 1;
+  const ndcY = 1 - (screenY / canvasHeight) * 2; // Flip Y
+
+  // Create clip space point
+  const clipPoint: Vec4 = [ndcX, ndcY, -1, 1];
+
+  // Transform to eye space
+  let eyePoint = mat4MultiplyVec4(inverseProjection, clipPoint);
+  eyePoint = [eyePoint[0], eyePoint[1], -1, 0];
+
+  // Transform to world space
+  const worldDir = mat4MultiplyVec4(inverseView, eyePoint);
+  const direction = normalize([worldDir[0], worldDir[1], worldDir[2]]);
+
+  return {
+    origin: cameraPosition,
+    direction,
+  };
+}
+
+// ============================================
+// Ray-Object Intersections
+// ============================================
+
+/**
+ * Ray-sphere intersection
+ */
+export function intersectRaySphere(
+  ray: Ray,
+  center: Vec3,
+  radius: number
+): { hit: boolean; t: number } {
+  const oc = sub(ray.origin, center);
+  const a = dot(ray.direction, ray.direction);
+  const b = 2 * dot(oc, ray.direction);
+  const c = dot(oc, oc) - radius * radius;
+  const discriminant = b * b - 4 * a * c;
+
+  if (discriminant < 0) {
+    return { hit: false, t: Infinity };
+  }
+
+  const sqrtD = Math.sqrt(discriminant);
+  let t = (-b - sqrtD) / (2 * a);
+
+  if (t < 0.001) {
+    t = (-b + sqrtD) / (2 * a);
+  }
+
+  if (t < 0.001) {
+    return { hit: false, t: Infinity };
+  }
+
+  return { hit: true, t };
+}
+
+/**
+ * Ray-box intersection (AABB)
+ */
+export function intersectRayBox(
+  ray: Ray,
+  center: Vec3,
+  halfExtents: Vec3
+): { hit: boolean; t: number } {
+  const invDir: Vec3 = [
+    1 / ray.direction[0],
+    1 / ray.direction[1],
+    1 / ray.direction[2],
+  ];
+
+  const t1 = (center[0] - halfExtents[0] - ray.origin[0]) * invDir[0];
+  const t2 = (center[0] + halfExtents[0] - ray.origin[0]) * invDir[0];
+  const t3 = (center[1] - halfExtents[1] - ray.origin[1]) * invDir[1];
+  const t4 = (center[1] + halfExtents[1] - ray.origin[1]) * invDir[1];
+  const t5 = (center[2] - halfExtents[2] - ray.origin[2]) * invDir[2];
+  const t6 = (center[2] + halfExtents[2] - ray.origin[2]) * invDir[2];
+
+  const tmin = Math.max(
+    Math.max(Math.min(t1, t2), Math.min(t3, t4)),
+    Math.min(t5, t6)
+  );
+  const tmax = Math.min(
+    Math.min(Math.max(t1, t2), Math.max(t3, t4)),
+    Math.max(t5, t6)
+  );
+
+  if (tmax < 0 || tmin > tmax) {
+    return { hit: false, t: Infinity };
+  }
+
+  const t = tmin < 0 ? tmax : tmin;
+
+  if (t < 0.001) {
+    return { hit: false, t: Infinity };
+  }
+
+  return { hit: true, t };
+}
+

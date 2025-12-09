@@ -2,6 +2,10 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 import { CameraController } from '../core/CameraController';
+import { raycaster } from '../core/Raycaster';
+import { useSceneStore } from '../store/sceneStore';
+import { useCameraStore } from '../store/cameraStore';
+import { mat4Inverse, mat4Perspective } from '../core/math';
 
 interface CanvasProps {
   className?: string;
@@ -110,6 +114,66 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     return () => observer.disconnect();
   }, [handleResize]);
 
+  // Click-to-select handling
+  const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+  const DRAG_THRESHOLD = 5;
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    mouseDownPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseUp = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!mouseDownPos.current) return;
+
+      const dx = e.clientX - mouseDownPos.current.x;
+      const dy = e.clientY - mouseDownPos.current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Only select if this was a click, not a drag
+      if (distance < DRAG_THRESHOLD) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Get camera state
+        const cameraState = useCameraStore.getState();
+        const viewMatrix = cameraState.getViewMatrix();
+        const aspect = canvas.width / canvas.height;
+        const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+        const inverseView = mat4Inverse(viewMatrix);
+        const inverseProjection = mat4Inverse(projMatrix);
+
+        // Get scene objects
+        const objects = useSceneStore.getState().objects;
+
+        // Perform picking
+        const result = raycaster.pick(
+          x,
+          y,
+          rect.width,
+          rect.height,
+          cameraState.position,
+          inverseProjection,
+          inverseView,
+          objects
+        );
+
+        // Update selection
+        useSceneStore.getState().selectObject(result.objectId);
+
+        // Reset accumulation when selection changes
+        rendererRef.current?.resetAccumulation();
+      }
+
+      mouseDownPos.current = null;
+    },
+    []
+  );
+
   if (status === 'error') {
     return (
       <div
@@ -136,7 +200,13 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
   return (
     <div className={`relative w-full h-full ${className || ''}`}>
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" tabIndex={0} />
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        tabIndex={0}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+      />
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-base z-10">
           <div className="text-center">

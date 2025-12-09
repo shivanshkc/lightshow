@@ -135,6 +135,8 @@ struct RenderSettings {
   samplesPerPixel: u32,
   maxBounces: u32,
   flags: u32,  // bit 0: accumulate
+  selectedObjectIndex: i32,  // -1 if none selected
+  _pad: vec3<u32>,
 }
 
 // ============================================
@@ -489,11 +491,21 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   let jitter = randomFloat2(&rng) - 0.5;
   let ray = generateRay(pixelCoord + 0.5 + jitter, resolution);
   
+  // Check if first hit is selected object (for highlight)
+  let firstHit = traceScene(ray);
+  let isSelectedHit = firstHit.hit && firstHit.objectIndex == settings.selectedObjectIndex;
+  
   // Path trace
   var color = trace(ray, &rng);
   
   // Clamp fireflies (extremely bright pixels from low-probability paths)
   color = min(color, vec3<f32>(10.0));
+  
+  // Apply selection highlight
+  if (isSelectedHit) {
+    // Subtle blue-cyan tint for selected object
+    color = mix(color, color + vec3<f32>(0.1, 0.2, 0.4), 0.3);
+  }
   
   // Accumulation using buffer
   var accumulated: vec3<f32>;

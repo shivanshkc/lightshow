@@ -14,7 +14,13 @@ import {
   mat4LookAt,
   mat4Inverse,
   mat4Multiply,
+  intersectRaySphere,
+  intersectRayBox,
+  mat3FromRotation,
+  mat3Transpose,
+  mat3MultiplyVec3,
   type Vec3,
+  type Ray,
 } from '../core/math';
 
 describe('Vector Operations', () => {
@@ -160,6 +166,119 @@ describe('Matrix Operations', () => {
       expect(result[5]).toBeCloseTo(1, 4);
       expect(result[10]).toBeCloseTo(1, 4);
       expect(result[15]).toBeCloseTo(1, 4);
+    });
+  });
+});
+
+describe('Mat3 Operations', () => {
+  describe('mat3FromRotation', () => {
+    it('creates identity for zero rotation', () => {
+      const m = mat3FromRotation([0, 0, 0]);
+      expect(m[0]).toBeCloseTo(1);
+      expect(m[4]).toBeCloseTo(1);
+      expect(m[8]).toBeCloseTo(1);
+    });
+  });
+
+  describe('mat3Transpose', () => {
+    it('transposes a matrix', () => {
+      const m = mat3FromRotation([0.5, 0.3, 0.1]);
+      const t = mat3Transpose(m);
+      expect(t[1]).toBeCloseTo(m[3]);
+      expect(t[3]).toBeCloseTo(m[1]);
+    });
+  });
+
+  describe('mat3MultiplyVec3', () => {
+    it('multiplies identity by vector', () => {
+      const identity = mat3FromRotation([0, 0, 0]);
+      const v: Vec3 = [1, 2, 3];
+      const result = mat3MultiplyVec3(identity, v);
+      expect(result[0]).toBeCloseTo(1);
+      expect(result[1]).toBeCloseTo(2);
+      expect(result[2]).toBeCloseTo(3);
+    });
+  });
+});
+
+describe('Ray Intersections', () => {
+  describe('intersectRaySphere', () => {
+    it('hits sphere in front of ray', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRaySphere(ray, [0, 0, 0], 1);
+      expect(result.hit).toBe(true);
+      expect(result.t).toBeCloseTo(4);
+    });
+
+    it('misses sphere not in path', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRaySphere(ray, [10, 0, 0], 1);
+      expect(result.hit).toBe(false);
+    });
+
+    it('misses sphere behind ray', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, 1], // pointing away
+      };
+      const result = intersectRaySphere(ray, [0, 0, 0], 1);
+      expect(result.hit).toBe(false);
+    });
+
+    it('handles larger radius', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRaySphere(ray, [0, 0, 0], 2);
+      expect(result.hit).toBe(true);
+      expect(result.t).toBeCloseTo(3);
+    });
+  });
+
+  describe('intersectRayBox', () => {
+    it('hits box in front of ray', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRayBox(ray, [0, 0, 0], [1, 1, 1]);
+      expect(result.hit).toBe(true);
+      expect(result.t).toBeCloseTo(4);
+    });
+
+    it('misses box not in path', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRayBox(ray, [10, 0, 0], [1, 1, 1]);
+      expect(result.hit).toBe(false);
+    });
+
+    it('misses box behind ray', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, 1], // pointing away
+      };
+      const result = intersectRayBox(ray, [0, 0, 0], [1, 1, 1]);
+      expect(result.hit).toBe(false);
+    });
+
+    it('handles different half-extents', () => {
+      const ray: Ray = {
+        origin: [0, 0, 5],
+        direction: [0, 0, -1],
+      };
+      const result = intersectRayBox(ray, [0, 0, 0], [0.5, 0.5, 0.5]);
+      expect(result.hit).toBe(true);
+      expect(result.t).toBeCloseTo(4.5);
     });
   });
 });

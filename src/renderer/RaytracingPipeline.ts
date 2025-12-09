@@ -1,6 +1,7 @@
 import { Camera } from '../core/Camera';
 import { SceneBuffer } from '../core/SceneBuffer';
 import { SceneObject } from '../core/types';
+import { useSceneStore } from '../store/sceneStore';
 import raytracerWGSL from './shaders/raytracer.wgsl?raw';
 
 /**
@@ -97,9 +98,9 @@ export class RaytracingPipeline {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Create settings uniform buffer (16 bytes = 4 u32s)
+    // Create settings uniform buffer (32 bytes = 8 values: 4 u32 + 1 i32 + 3 u32 padding)
     this.settingsBuffer = device.createBuffer({
-      size: 16,
+      size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
   }
@@ -209,13 +210,28 @@ export class RaytracingPipeline {
    * Update settings uniform buffer
    */
   private updateSettings(): void {
-    const data = new Uint32Array([
-      this.frameIndex,
-      1, // samples per pixel per frame
-      8, // max bounces
-      1, // flags: bit 0 = accumulate
-    ]);
-    this.device.queue.writeBuffer(this.settingsBuffer, 0, data);
+    // Find the index of the selected object
+    const { objects, selectedObjectId } = useSceneStore.getState();
+    const visibleObjects = objects.filter((o) => o.visible);
+    const selectedIndex = selectedObjectId
+      ? visibleObjects.findIndex((o) => o.id === selectedObjectId)
+      : -1;
+
+    // Create buffer: 4 u32 + 1 i32 + 3 u32 padding
+    const buffer = new ArrayBuffer(32);
+    const uint32View = new Uint32Array(buffer);
+    const int32View = new Int32Array(buffer);
+
+    uint32View[0] = this.frameIndex;
+    uint32View[1] = 1; // samples per pixel per frame
+    uint32View[2] = 8; // max bounces
+    uint32View[3] = 1; // flags: bit 0 = accumulate
+    int32View[4] = selectedIndex; // selected object index (-1 if none)
+    uint32View[5] = 0; // padding
+    uint32View[6] = 0; // padding
+    uint32View[7] = 0; // padding
+
+    this.device.queue.writeBuffer(this.settingsBuffer, 0, buffer);
   }
 
   /**
