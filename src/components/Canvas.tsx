@@ -209,7 +209,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           }
 
           // Update object position
-          sceneState.updateObject(sceneState.selectedObjectId!, {
+          sceneState.updateTransform(sceneState.selectedObjectId!, {
             position: newPosition,
           });
         }
@@ -245,7 +245,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           const gizmoScale = cameraState.distance * 0.12;
 
           // Check if ray hits gizmo
-          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.position, gizmoScale);
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
           gizmoState.setHoveredAxis(hitAxis);
         }
       }
@@ -296,11 +296,11 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           const gizmoScale = cameraState.distance * 0.12;
 
           // Check if ray hits gizmo
-          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.position, gizmoScale);
+          const hitAxis = GizmoRaycaster.pick(ray, selectedObject.transform.position, gizmoScale);
 
           if (hitAxis) {
             // Start gizmo drag
-            gizmoState.startDrag(hitAxis, selectedObject.position, [e.clientX, e.clientY]);
+            gizmoState.startDrag(hitAxis, selectedObject.transform.position, [e.clientX, e.clientY]);
             
             // Disable camera controller during gizmo drag
             if (controllerRef.current) {

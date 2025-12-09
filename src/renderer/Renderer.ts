@@ -224,7 +224,7 @@ export class Renderer {
           commandEncoder,
           targetView,
           viewProjection,
-          selectedObject.position,
+          selectedObject.transform.position,
           cameraState.distance,
           hoveredAxis,
           activeAxis
