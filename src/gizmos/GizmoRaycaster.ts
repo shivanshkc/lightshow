@@ -204,75 +204,115 @@ export class GizmoRaycaster {
 
   /**
    * Test ray against a torus (ring)
-   * Uses a simplified approach: find closest point on circle and check tube distance
+   * Simplified approach: intersect ray with the ring's plane, then check if
+   * the intersection is at the correct radius (on the ring)
    */
   private static rayTorusDistance(
     ray: Ray,
     center: Vec3,
-    normal: Vec3, // Axis the ring is perpendicular to
+    normal: Vec3, // Axis the ring is perpendicular to (ring lies in plane with this normal)
     ringRadius: number,
     tubeRadius: number
   ): number | null {
-    // Transform ray to local space where the torus is centered at origin
-    // and the ring lies in the plane perpendicular to 'normal'
-    const localOrigin = sub(ray.origin, center);
+    // The ring lies in a plane passing through 'center' with the given 'normal'
+    // First, find where ray intersects this plane
+    
+    const denom = dot(ray.direction, normal);
+    
+    // If ray is nearly parallel to the plane, use a different approach
+    if (Math.abs(denom) < 0.1) {
+      // Ray is nearly parallel to the ring's plane
+      // Check if ray passes through the torus tube
+      return this.rayTorusParallel(ray, center, normal, ringRadius, tubeRadius);
+    }
+    
+    // Find intersection with the plane
+    const toCenter = sub(center, ray.origin);
+    const t = dot(toCenter, normal) / denom;
+    
+    if (t < 0) {
+      return null; // Plane behind ray
+    }
+    
+    // Calculate intersection point
+    const hitPoint: Vec3 = [
+      ray.origin[0] + ray.direction[0] * t,
+      ray.origin[1] + ray.direction[1] * t,
+      ray.origin[2] + ray.direction[2] * t,
+    ];
+    
+    // Distance from center in the plane (perpendicular to normal)
+    const toHit = sub(hitPoint, center);
+    // Project onto plane
+    const distAlongNormal = dot(toHit, normal);
+    const inPlane: Vec3 = [
+      toHit[0] - normal[0] * distAlongNormal,
+      toHit[1] - normal[1] * distAlongNormal,
+      toHit[2] - normal[2] * distAlongNormal,
+    ];
+    const distFromCenter = length(inPlane);
+    
+    // Check if this distance is close to ringRadius (within tubeRadius)
+    const ringDist = Math.abs(distFromCenter - ringRadius);
+    
+    if (ringDist <= tubeRadius * 2) { // Give some extra tolerance for picking
+      return t;
+    }
+    
+    return null;
+  }
 
-    // We'll sample multiple points along the ray and check if any are within
-    // tube radius of the ring circle
-    const maxDist = ringRadius * 4;
-    const steps = 50;
-
-    let closestT: number | null = null;
-    let minDistance = tubeRadius;
-
+  /**
+   * Handle case where ray is nearly parallel to the ring's plane
+   */
+  private static rayTorusParallel(
+    ray: Ray,
+    center: Vec3,
+    normal: Vec3,
+    ringRadius: number,
+    tubeRadius: number
+  ): number | null {
+    // Check how far the ray is from the ring's plane
+    const toCenter = sub(center, ray.origin);
+    const distToPlane = Math.abs(dot(toCenter, normal));
+    
+    // If ray is too far from the plane, no hit
+    if (distToPlane > tubeRadius * 2) {
+      return null;
+    }
+    
+    // Sample along the ray to find if it passes through the torus
+    const maxDist = ringRadius * 3;
+    const steps = 40;
+    
     for (let i = 0; i <= steps; i++) {
       const t = (i / steps) * maxDist;
       const point: Vec3 = [
-        localOrigin[0] + ray.direction[0] * t,
-        localOrigin[1] + ray.direction[1] * t,
-        localOrigin[2] + ray.direction[2] * t,
+        ray.origin[0] + ray.direction[0] * t,
+        ray.origin[1] + ray.direction[1] * t,
+        ray.origin[2] + ray.direction[2] * t,
       ];
-
-      // Project point onto the ring's plane
-      const distAlongNormal = dot(point, normal);
-      const pointOnPlane: Vec3 = [
-        point[0] - normal[0] * distAlongNormal,
-        point[1] - normal[1] * distAlongNormal,
-        point[2] - normal[2] * distAlongNormal,
+      
+      // Calculate torus distance: distance from point to the ring circle
+      const toPoint = sub(point, center);
+      const alongNormal = dot(toPoint, normal);
+      const inPlane: Vec3 = [
+        toPoint[0] - normal[0] * alongNormal,
+        toPoint[1] - normal[1] * alongNormal,
+        toPoint[2] - normal[2] * alongNormal,
       ];
-
-      // Distance from origin in the plane
-      const distFromAxis = length(pointOnPlane);
-
-      // Closest point on the ring circle
-      let closestOnRing: Vec3;
-      if (distFromAxis < 0.0001) {
-        // Point is on the axis, pick any point on ring
-        closestOnRing = [ringRadius, 0, 0];
-        // Adjust based on normal direction
-        if (Math.abs(normal[0]) > 0.9) {
-          closestOnRing = [0, ringRadius, 0];
-        }
-      } else {
-        const scale = ringRadius / distFromAxis;
-        closestOnRing = [
-          pointOnPlane[0] * scale,
-          pointOnPlane[1] * scale,
-          pointOnPlane[2] * scale,
-        ];
-      }
-
-      // Distance from ray point to closest point on ring
-      const toRing = sub(point, closestOnRing);
-      const distToRing = length(toRing);
-
-      if (distToRing < minDistance) {
-        minDistance = distToRing;
-        closestT = t;
+      const distInPlane = length(inPlane);
+      
+      // Distance from the ring circle
+      const ringCircleDist = Math.abs(distInPlane - ringRadius);
+      const totalDist = Math.sqrt(ringCircleDist * ringCircleDist + alongNormal * alongNormal);
+      
+      if (totalDist <= tubeRadius * 2) {
+        return t;
       }
     }
-
-    return closestT;
+    
+    return null;
   }
 
   /**
