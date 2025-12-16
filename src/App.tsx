@@ -5,11 +5,13 @@ import { StatusBar } from './components/layout/StatusBar';
 import { Canvas } from './components/Canvas';
 import { Renderer } from './renderer/Renderer';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useBeforeUnloadWarning } from './hooks/useBeforeUnloadWarning';
 
 export function App() {
   const rendererRef = useRef<Renderer | null>(null);
 
   useKeyboardShortcuts();
+  useBeforeUnloadWarning(true);
 
   const handleRendererReady = useCallback((renderer: Renderer) => {
     rendererRef.current = renderer;
