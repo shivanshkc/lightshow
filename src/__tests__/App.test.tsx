@@ -47,9 +47,9 @@ describe('App', () => {
 
   it('shows initial scene objects', () => {
     render(<App />);
-    // Initial scene includes procedurally generated spheres
-    expect(screen.getByText('Chrome Hero')).toBeDefined();
-    expect(screen.getByText('Key Light')).toBeDefined();
+    // Initial scene includes Cornell Box fixtures
+    expect(screen.getByText('Cornell Floor')).toBeDefined();
+    expect(screen.getByText('Ceiling Light')).toBeDefined();
   });
 
   it('shows properties placeholder when nothing selected', () => {
