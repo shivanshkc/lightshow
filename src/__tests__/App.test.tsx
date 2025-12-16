@@ -13,8 +13,6 @@ vi.mock('../components/Canvas', () => ({
 
 // Mock lucide-react icons
 vi.mock('lucide-react', () => ({
-  Settings: () => <span data-testid="settings-icon">Settings</span>,
-  HelpCircle: () => <span data-testid="help-icon">Help</span>,
   Circle: () => <span data-testid="circle-icon">Circle</span>,
   Box: () => <span data-testid="box-icon">Box</span>,
   Eye: () => <span data-testid="eye-icon">Eye</span>,
@@ -35,11 +33,6 @@ describe('App', () => {
     const rootDiv = container.firstChild as HTMLElement;
     expect(rootDiv.className).toContain('w-screen');
     expect(rootDiv.className).toContain('h-screen');
-  });
-
-  it('renders header with Lightshow title', () => {
-    render(<App />);
-    expect(screen.getByText('Lightshow')).toBeDefined();
   });
 
   it('renders Add Object section', () => {

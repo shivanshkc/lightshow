@@ -1,5 +1,4 @@
 import { useRef, useCallback } from 'react';
-import { Header } from './components/layout/Header';
 import { LeftPanel } from './components/layout/LeftPanel';
 import { RightPanel } from './components/layout/RightPanel';
 import { StatusBar } from './components/layout/StatusBar';
@@ -18,8 +17,6 @@ export function App() {
 
   return (
     <div className="w-screen h-screen flex flex-col bg-base text-text-primary overflow-hidden font-sans">
-      <Header />
-
       <div className="flex-1 flex min-h-0">
         <LeftPanel />
 
