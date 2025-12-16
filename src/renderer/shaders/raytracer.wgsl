@@ -136,7 +136,9 @@ struct RenderSettings {
   maxBounces: u32,
   flags: u32,  // bit 0: accumulate
   selectedObjectIndex: i32,  // -1 if none selected
-  _pad: vec3<u32>,
+  // 16-byte aligned padding + render settings extension space.
+  // bgData.x packs RGB as 0xRRGGBB (8 bits per channel).
+  bgData: vec3<u32>,
 }
 
 // ============================================
@@ -366,24 +368,17 @@ fn traceScene(ray: Ray) -> HitResult {
 // Sky/Environment
 // ============================================
 
+fn unpackRgb8(packed: u32) -> vec3<f32> {
+  let r = f32((packed >> 16u) & 255u) / 255.0;
+  let g = f32((packed >> 8u) & 255u) / 255.0;
+  let b = f32(packed & 255u) / 255.0;
+  return vec3<f32>(r, g, b);
+}
+
 fn sampleSky(direction: vec3<f32>) -> vec3<f32> {
-  // Blue sky gradient with gentle haze — bright, friendly, and readable.
-  let t = clamp(0.5 * (direction.y + 1.0), 0.0, 1.0);
-
-  let horizon = vec3<f32>(0.86, 0.93, 1.00);
-  let mid = vec3<f32>(0.48, 0.72, 0.98);
-  let zenith = vec3<f32>(0.18, 0.36, 0.78);
-
-  var sky = mix(horizon, mid, smoothstep(0.0, 0.35, t));
-  sky = mix(sky, zenith, smoothstep(0.35, 1.0, t));
-
-  // Subtle sun bloom for nicer highlights in reflections (directional-ish).
-  let sunDir = normalize(vec3<f32>(0.25, 0.65, -0.72));
-  let sun = pow(max(0.0, dot(normalize(direction), sunDir)), 256.0);
-  sky += vec3<f32>(1.0, 0.98, 0.92) * sun * 2.0;
-
-  // Slightly dim so emissives still pop.
-  return sky * 0.75;
+  _ = direction;
+  // Solid background color (no gradient for now).
+  return unpackRgb8(settings.bgData.x);
 }
 
 // ============================================
