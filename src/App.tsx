@@ -5,9 +5,12 @@ import { RightPanel } from './components/layout/RightPanel';
 import { StatusBar } from './components/layout/StatusBar';
 import { Canvas } from './components/Canvas';
 import { Renderer } from './renderer/Renderer';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 export function App() {
   const rendererRef = useRef<Renderer | null>(null);
+
+  useKeyboardShortcuts();
 
   const handleRendererReady = useCallback((renderer: Renderer) => {
     rendererRef.current = renderer;

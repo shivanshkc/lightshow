@@ -205,15 +205,6 @@ export class CameraController {
       this.notifyCameraChange();
     }
 
-    // Delete selected object
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      const selectedId = useSceneStore.getState().selectedObjectId;
-      if (selectedId) {
-        useSceneStore.getState().removeObject(selectedId);
-        this.notifyCameraChange();
-      }
-    }
-
     // Gizmo mode switching (WER only)
     const key = e.key.toLowerCase();
     if (key === 'w') {
