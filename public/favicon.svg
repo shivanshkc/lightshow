@@ -21,6 +21,9 @@
     </radialGradient>
   </defs>
 
+  <!-- Black background -->
+  <rect x="0" y="0" width="64" height="64" fill="#000000"/>
+
   <!-- Glassy sphere -->
   <circle cx="32" cy="32" r="28" fill="url(#glass)"/>
 
@@ -29,16 +32,6 @@
 
   <!-- Specular highlight -->
   <circle cx="32" cy="32" r="28" fill="url(#spec)"/>
-
-  <!-- Subtle shadow at bottom-right to increase depth -->
-  <path
-    d="M20 44c6 7 20 7 26 0"
-    fill="none"
-    stroke="#0B1020"
-    stroke-opacity="0.20"
-    stroke-width="4"
-    stroke-linecap="round"
-  />
 </svg>
 
 
