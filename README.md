@@ -2,6 +2,8 @@
 
 Lightshow is a browser-based real-time raytracing playground built with **WebGPU**, **React**, **TypeScript**, and **Vite**.
 
+![Lightshow screenshot](./showcase/screenshot.png)
+
 ## Requirements
 
 - A WebGPU-capable browser (latest Chrome/Edge recommended).
