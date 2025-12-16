@@ -3,10 +3,15 @@ import { create } from 'zustand';
 import { historyMiddleware } from '../store/historyMiddleware';
 
 describe('historyMiddleware', () => {
-  const useTestStore = create(
-    historyMiddleware((set) => ({
+  type TestState = {
+    count: number;
+    increment: () => void;
+  };
+
+  const useTestStore = create<TestState & { past: TestState[]; future: TestState[]; undo: () => void; redo: () => void; canUndo: () => boolean; canRedo: () => boolean }>()(
+    historyMiddleware<TestState>((set) => ({
       count: 0,
-      increment: () => set((s) => ({ count: (s as any).count + 1 })),
+      increment: () => set((s) => ({ count: s.count + 1 })),
     }))
   );
 

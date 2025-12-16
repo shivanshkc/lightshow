@@ -2,7 +2,7 @@ import { StateCreator } from 'zustand';
 
 const MAX_HISTORY = 30;
 
-type HistoryFields<T> = {
+export type HistoryFields<T> = {
   past: T[];
   future: T[];
   undo: () => void;
@@ -11,12 +11,11 @@ type HistoryFields<T> = {
   canRedo: () => boolean;
 };
 
-function getStateWithoutHistory<T extends Record<string, unknown>>(
-  state: T & Partial<HistoryFields<T>>
-): T {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { past, future, undo, redo, canUndo, canRedo, ...rest } =
-    state as T & HistoryFields<T>;
+export type WithHistory<T> = T & HistoryFields<T>;
+
+function getStateWithoutHistory<T extends object>(state: WithHistory<T>): T {
+  const { past: _past, future: _future, undo: _undo, redo: _redo, canUndo: _canUndo, canRedo: _canRedo, ...rest } =
+    state as any;
   return rest as T;
 }
 
@@ -25,24 +24,21 @@ function getStateWithoutHistory<T extends Record<string, unknown>>(
  * Stores snapshots of the state (excluding history fields) in `past` / `future`.
  */
 export const historyMiddleware =
-  <T extends Record<string, unknown>>(
+  <T extends object>(
     config: StateCreator<T, [], []>,
     options: { limit?: number } = {}
-  ): StateCreator<T & HistoryFields<T>, [], []> =>
+  ): StateCreator<WithHistory<T>, [], []> =>
   (set, get, api) => {
     const limit = options.limit ?? MAX_HISTORY;
 
     const historySet: typeof set = (partial, replace) => {
-      const currentState = getStateWithoutHistory(get() as T & HistoryFields<T>);
+      const currentState = getStateWithoutHistory(get() as WithHistory<T>);
       set(
         (state) => ({
           ...(typeof partial === 'function'
-            ? (partial as (s: T & HistoryFields<T>) => Partial<T & HistoryFields<T>>)(state)
+            ? (partial as (s: WithHistory<T>) => Partial<WithHistory<T>>)(state as WithHistory<T>)
             : partial),
-          past: [
-            ...(state as T & HistoryFields<T>).past.slice(-limit + 1),
-            currentState,
-          ],
+          past: [...(state as WithHistory<T>).past.slice(-limit + 1), currentState],
           future: [],
         }),
         replace
@@ -52,36 +48,36 @@ export const historyMiddleware =
     const initialState = config(historySet, get as unknown as () => T, api);
 
     return {
-      ...initialState,
+      ...(initialState as T),
       past: [] as T[],
       future: [] as T[],
 
       undo: () => {
-        const { past, future } = get() as T & HistoryFields<T>;
+        const { past, future } = get() as WithHistory<T>;
         if (past.length === 0) return;
         const prev = past[past.length - 1];
-        const current = getStateWithoutHistory(get() as T & HistoryFields<T>);
+        const current = getStateWithoutHistory(get() as WithHistory<T>);
         set({
-          ...(prev as unknown as T & HistoryFields<T>),
+          ...(prev as any),
           past: past.slice(0, -1),
           future: [current, ...future],
-        });
+        } as any);
       },
 
       redo: () => {
-        const { past, future } = get() as T & HistoryFields<T>;
+        const { past, future } = get() as WithHistory<T>;
         if (future.length === 0) return;
         const next = future[0];
-        const current = getStateWithoutHistory(get() as T & HistoryFields<T>);
+        const current = getStateWithoutHistory(get() as WithHistory<T>);
         set({
-          ...(next as unknown as T & HistoryFields<T>),
+          ...(next as any),
           past: [...past, current],
           future: future.slice(1),
-        });
+        } as any);
       },
 
-      canUndo: () => (get() as T & HistoryFields<T>).past.length > 0,
-      canRedo: () => (get() as T & HistoryFields<T>).future.length > 0,
+      canUndo: () => (get() as WithHistory<T>).past.length > 0,
+      canRedo: () => (get() as WithHistory<T>).future.length > 0,
     };
   };
 

@@ -9,7 +9,7 @@ import {
   createDefaultSphere,
   createDefaultCuboid,
 } from '../core/types';
-import { historyMiddleware } from './historyMiddleware';
+import { historyMiddleware, type WithHistory } from './historyMiddleware';
 
 /**
  * Seeded random number generator for reproducible scenes
@@ -351,8 +351,8 @@ interface SceneState {
   clear: () => void;
 }
 
-export const useSceneStore = create<SceneState>()(
-  historyMiddleware(
+export const useSceneStore = create<WithHistory<SceneState>>()(
+  historyMiddleware<SceneState>(
     (set, get) => ({
       objects: createInitialScene(),
       selectedObjectId: null,
