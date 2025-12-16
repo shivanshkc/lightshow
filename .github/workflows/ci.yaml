@@ -1,10 +1,11 @@
 name: CI
+
 on:
-  # Runs on all pull-request events on all branches.
   pull_request:
+    branches:
+      - "**"
 
 permissions:
-  # Can only read the source code.
   contents: read
 
 jobs:
@@ -12,21 +13,36 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/lint
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
 
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/build
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          application-name: lightshow
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm test -- --run
+
+
