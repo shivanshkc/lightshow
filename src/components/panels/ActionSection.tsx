@@ -8,34 +8,33 @@ export function ActionSection() {
   const deleteSelected = useSceneStore((s) => s.deleteSelected);
   const updateTransform = useSceneStore((s) => s.updateTransform);
 
-  const undo = useSceneStore((s: any) => s.undo);
-  const redo = useSceneStore((s: any) => s.redo);
-  const canUndo = useSceneStore((s: any) => s.canUndo);
-  const canRedo = useSceneStore((s: any) => s.canRedo);
-
   const hasSelection = selectedObjectId !== null;
 
   return (
     <Panel title="Actions">
-      <div className="space-y-3">
+      <div className="mx-auto w-full max-w-[260px] space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-center"
+            disabled={!hasSelection}
+            onClick={() => duplicateSelected()}
+          >
+            Duplicate
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full justify-center text-accent-error border border-border-default"
+            disabled={!hasSelection}
+            onClick={() => deleteSelected()}
+          >
+            Delete
+          </Button>
+        </div>
+
         <Button
           variant="secondary"
-          disabled={!hasSelection}
-          onClick={() => duplicateSelected()}
-        >
-          Duplicate
-        </Button>
-        <Button
-          variant="secondary"
-          className="text-accent-error border border-border-default"
-          disabled={!hasSelection}
-          onClick={() => deleteSelected()}
-        >
-          Delete
-        </Button>
-        <Button
-          variant="secondary"
-          className="col-span-2"
+          className="w-full justify-center"
           disabled={!hasSelection}
           onClick={() =>
             updateTransform(selectedObjectId!, {
@@ -47,15 +46,6 @@ export function ActionSection() {
         >
           Reset Transform
         </Button>
-
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-subtle">
-          <Button variant="ghost" disabled={!canUndo()} onClick={() => undo()}>
-            Undo
-          </Button>
-          <Button variant="ghost" disabled={!canRedo()} onClick={() => redo()}>
-            Redo
-          </Button>
-        </div>
       </div>
     </Panel>
   );

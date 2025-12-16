@@ -2,12 +2,14 @@ import { useSceneStore } from '../../store/sceneStore';
 import { TransformSection } from '../panels/TransformSection';
 import { MaterialSection } from '../panels/MaterialSection';
 import { ActionSection } from '../panels/ActionSection';
+import { HistorySection } from '../panels/HistorySection';
 
 export function RightPanel() {
   const selectedObject = useSceneStore((state) => state.getSelectedObject());
 
   return (
     <aside className="w-72 bg-panel border-l border-border-subtle overflow-y-auto">
+      <HistorySection />
       {selectedObject ? (
         <>
           <TransformSection object={selectedObject} />
