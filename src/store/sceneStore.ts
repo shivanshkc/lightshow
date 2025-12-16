@@ -474,6 +474,7 @@ function createInitialScene_GalleryStudy(): SceneObject[] {
 interface SceneState {
   objects: SceneObject[];
   selectedObjectId: ObjectId | null;
+  backgroundColor: [number, number, number]; // RGB 0-1 (scene-wide)
 
   // Object management
   addSphere: () => ObjectId | null;
@@ -497,6 +498,10 @@ interface SceneState {
   // Utilities
   getObject: (id: ObjectId) => SceneObject | undefined;
   clear: () => void;
+
+  // Environment (scene-wide)
+  setBackgroundColor: (color: [number, number, number]) => void;
+  applyBackgroundPreset: (preset: 'day' | 'dusk' | 'night') => void;
 }
 
 export const useSceneStore = create<WithHistory<SceneState>>()(
@@ -504,6 +509,8 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
     (set, get) => ({
       objects: createInitialScene(),
       selectedObjectId: null,
+      // Default environment background: Night
+      backgroundColor: [0.04, 0.05, 0.1],
 
       addSphere: () => {
         if (get().objects.length >= LIMITS.maxObjects) return null;
@@ -626,6 +633,19 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
 
       getObject: (id) => {
         return get().objects.find((o) => o.id === id);
+      },
+
+      setBackgroundColor: (color) => {
+        set({ backgroundColor: color });
+      },
+
+      applyBackgroundPreset: (preset) => {
+        const presets: Record<'day' | 'dusk' | 'night', [number, number, number]> = {
+          day: [0.5, 0.7, 1.0],
+          dusk: [0.18, 0.22, 0.35],
+          night: [0.04, 0.05, 0.1],
+        };
+        set({ backgroundColor: presets[preset] });
       },
 
       clear: () => {
