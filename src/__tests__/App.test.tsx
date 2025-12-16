@@ -20,6 +20,8 @@ vi.mock('lucide-react', () => ({
   Eye: () => <span data-testid="eye-icon">Eye</span>,
   EyeOff: () => <span data-testid="eyeoff-icon">EyeOff</span>,
   Trash2: () => <span data-testid="trash-icon">Trash</span>,
+  RotateCcw: () => <span data-testid="undo-icon">Undo</span>,
+  RotateCw: () => <span data-testid="redo-icon">Redo</span>,
 }));
 
 describe('App', () => {
