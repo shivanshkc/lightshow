@@ -493,6 +493,13 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
             WebGPU Not Available
           </h2>
           <p className="text-text-secondary mb-4">{errorMessage}</p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-accent rounded hover:bg-accent-hover text-white"
+            >
+              Reload
+            </button>
           <a
             href="https://caniuse.com/webgpu"
             target="_blank"
@@ -501,6 +508,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           >
             Check browser compatibility →
           </a>
+          </div>
         </div>
       </div>
     );
