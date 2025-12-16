@@ -127,9 +127,12 @@ function createCornellBoxScene(): SceneObject[] {
       name: 'Glass Sphere',
       type: 'sphere',
       transform: {
-        position: [-1.6, yFloor + 0.55, -5.0],
+        // Place on top of the Short Box (box top + sphere radius), with a tiny lift to avoid z-fighting.
+        // Short Box: center = [-0.9, yFloor + 0.6, -2.6], half-height = 0.6
+        // Sphere radius = 0.4 (so short box height 1.2 + sphere diameter 0.8 = tall box height 2.0)
+        position: [-0.88, yFloor + 1.61, -2.58],
         rotation: [0, 0, 0],
-        scale: [0.55, 0.55, 0.55],
+        scale: [0.4, 0.4, 0.4],
       },
       material: {
         type: 'glass',
