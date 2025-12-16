@@ -110,4 +110,14 @@ describe('Canvas Error Handling', () => {
       expect(screen.getByText(/not supported/i)).toBeDefined();
     }, { timeout: 2000 });
   });
+
+  it('shows reload action in error state', async () => {
+    vi.stubGlobal('navigator', { gpu: undefined });
+
+    render(<Canvas />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Reload')).toBeDefined();
+    }, { timeout: 2000 });
+  });
 });
