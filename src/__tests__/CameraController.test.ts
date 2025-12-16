@@ -83,6 +83,41 @@ describe('CameraController', () => {
       
       expect(callback).toHaveBeenCalled();
     });
+
+    it('handles one-finger touch orbit', () => {
+      const initialAzimuth = useCameraStore.getState().azimuth;
+
+      const touchStart = new Event('touchstart', { bubbles: true, cancelable: true }) as any;
+      touchStart.touches = [{ clientX: 100, clientY: 100, identifier: 1 }];
+      canvas.dispatchEvent(touchStart);
+
+      const touchMove = new Event('touchmove', { bubbles: true, cancelable: true }) as any;
+      touchMove.touches = [{ clientX: 120, clientY: 100, identifier: 1 }];
+      canvas.dispatchEvent(touchMove);
+
+      expect(useCameraStore.getState().azimuth).not.toBe(initialAzimuth);
+    });
+
+    it('handles two-finger pinch zoom', () => {
+      const initialDistance = useCameraStore.getState().distance;
+
+      const touchStart = new Event('touchstart', { bubbles: true, cancelable: true }) as any;
+      touchStart.touches = [
+        { clientX: 100, clientY: 100, identifier: 1 },
+        { clientX: 200, clientY: 100, identifier: 2 },
+      ];
+      canvas.dispatchEvent(touchStart);
+
+      const touchMove = new Event('touchmove', { bubbles: true, cancelable: true }) as any;
+      // Increase distance between touches (pinch out => zoom in => camera distance should decrease)
+      touchMove.touches = [
+        { clientX: 90, clientY: 100, identifier: 1 },
+        { clientX: 210, clientY: 100, identifier: 2 },
+      ];
+      canvas.dispatchEvent(touchMove);
+
+      expect(useCameraStore.getState().distance).toBeLessThan(initialDistance);
+    });
   });
 
   describe('keyboard shortcuts', () => {

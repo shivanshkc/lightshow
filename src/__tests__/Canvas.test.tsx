@@ -64,6 +64,12 @@ describe('Canvas Component', () => {
     expect(canvas).not.toBeNull();
   });
 
+  it('disables default touch gestures on canvas', () => {
+    const { container } = render(<Canvas />);
+    const canvas = container.querySelector('canvas') as HTMLCanvasElement;
+    expect(canvas.className).toContain('touch-none');
+  });
+
   it('hides loading overlay when WebGPU initializes', async () => {
     render(<Canvas />);
     

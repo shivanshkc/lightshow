@@ -148,10 +148,14 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
   // Click-to-select and gizmo interaction handling
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
+  const touchStartPos = useRef<{ x: number; y: number; t: number } | null>(
+    null
+  );
   const dragStartRay = useRef<Ray | null>(null);
   const dragStartRotation = useRef<[number, number, number] | null>(null);
   const dragStartScale = useRef<Vec3 | null>(null);
   const DRAG_THRESHOLD = 5;
+  const TAP_MAX_MS = 250;
 
   // Helper to get camera vectors
   const getCameraVectors = useCallback(() => {
@@ -477,6 +481,61 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     []
   );
 
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length !== 1) {
+      touchStartPos.current = null;
+      return;
+    }
+    const t = e.touches[0]!;
+    touchStartPos.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const start = touchStartPos.current;
+    touchStartPos.current = null;
+    if (!start) return;
+
+    // Only treat as tap if it was short and didn't move much.
+    const dt = Date.now() - start.t;
+    if (dt > TAP_MAX_MS) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    // Use the last known end position from the changed touch
+    const t = e.changedTouches[0];
+    if (!t) return;
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) return;
+
+    const x = t.clientX - rect.left;
+    const y = t.clientY - rect.top;
+
+    const cameraState = useCameraStore.getState();
+    const viewMatrix = cameraState.getViewMatrix();
+    const aspect = rect.width / rect.height;
+    const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+    const inverseView = mat4Inverse(viewMatrix);
+    const inverseProjection = mat4Inverse(projMatrix);
+
+    const objects = useSceneStore.getState().objects;
+    const result = raycaster.pick(
+      x,
+      y,
+      rect.width,
+      rect.height,
+      cameraState.position,
+      inverseProjection,
+      inverseView,
+      objects
+    );
+
+    useSceneStore.getState().selectObject(result.objectId);
+    rendererRef.current?.resetAccumulation();
+  }, []);
+
   // Handle mouse leave to clear hover
   const handleMouseLeave = useCallback(() => {
     useGizmoStore.getState().setHoveredAxis(null);
@@ -521,12 +580,14 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     <div className={`relative w-full h-full ${className || ''}`}>
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full touch-none"
         tabIndex={0}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       />
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-base z-10">
