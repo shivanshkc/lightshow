@@ -27,6 +27,7 @@ export class RaytracingPipeline {
   private width: number = 0;
   private height: number = 0;
   private frameIndex: number = 0;
+  private lastBgColorPacked: number | null = null;
 
   constructor(device: GPUDevice) {
     this.device = device;
@@ -215,16 +216,29 @@ export class RaytracingPipeline {
    *   flags: u32             offset 12
    *   selectedObjectIndex: i32  offset 16
    *   (implicit padding)     offset 20-31
-   *   _pad: vec3<u32>        offset 32-43 (16-byte aligned)
+   *   bgData: vec3<u32>      offset 32-43 (16-byte aligned)
    *   (struct padding)       offset 44-47
    */
   private updateSettings(): void {
     // Find the index of the selected object
-    const { objects, selectedObjectId } = useSceneStore.getState();
+    const { objects, selectedObjectId, backgroundColor } = useSceneStore.getState();
     const visibleObjects = objects.filter((o) => o.visible);
     const selectedIndex = selectedObjectId
       ? visibleObjects.findIndex((o) => o.id === selectedObjectId)
       : -1;
+
+    // Pack background color (RGB 0..1) into 0xRRGGBB
+    const bg = backgroundColor ?? [0.5, 0.7, 1.0];
+    const r = Math.max(0, Math.min(255, Math.round(bg[0] * 255)));
+    const g = Math.max(0, Math.min(255, Math.round(bg[1] * 255)));
+    const b = Math.max(0, Math.min(255, Math.round(bg[2] * 255)));
+    const bgPacked = (r << 16) | (g << 8) | b;
+
+    // If background changed, reset accumulation so the update is visible immediately.
+    if (this.lastBgColorPacked !== null && bgPacked !== this.lastBgColorPacked) {
+      this.resetAccumulation();
+    }
+    this.lastBgColorPacked = bgPacked;
 
     // Create buffer: 48 bytes to match WGSL struct alignment
     const buffer = new ArrayBuffer(48);
@@ -237,7 +251,8 @@ export class RaytracingPipeline {
     uint32View[3] = 1; // flags: bit 0 = accumulate
     int32View[4] = selectedIndex; // selected object index (-1 if none)
     // uint32View[5-7] = implicit padding (already 0)
-    // uint32View[8-10] = _pad vec3 (already 0)
+    uint32View[8] = bgPacked >>> 0;
+    // uint32View[9-10] = unused (already 0)
     // uint32View[11] = struct padding (already 0)
 
     this.device.queue.writeBuffer(this.settingsBuffer, 0, buffer);

@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid';
 import {
   SceneObject,
   ObjectId,
-  MaterialType,
   Transform,
   Material,
   createDefaultSphere,
@@ -13,42 +12,167 @@ import { historyMiddleware, type WithHistory } from './historyMiddleware';
 import { LIMITS } from '../utils/limits';
 
 /**
- * Seeded random number generator for reproducible scenes
+ * Default landing scene: Cornell Box
+ * - Classic lighting test scene (white box with red/green walls + ceiling light)
+ * - Designed to immediately showcase: global illumination, soft shadows, glossy reflections, refraction
+ * - Open front face (camera looks in from +Z)
  */
-function seededRandom(seed: number): () => number {
-  return () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
+function createCornellBoxScene(): SceneObject[] {
+  const objects: SceneObject[] = [];
+
+  // Box dimensions (interior).
+  // We place the box so the OPENING is centered at the origin (0,0,0),
+  // i.e. front face lies on the Z=0 plane and the interior extends into -Z.
+  const halfX = 3.0;
+  const halfY = 1.5; // interior height = 3.0
+  const halfZ = 3.0; // interior depth = 6.0 (from z=0 to z=-6)
+  const wallT = 0.06; // wall half-thickness (actual thickness = 2*wallT)
+
+  const white: [number, number, number] = [0.83, 0.83, 0.83];
+  const red: [number, number, number] = [0.82, 0.18, 0.2];
+  const green: [number, number, number] = [0.18, 0.78, 0.26];
+
+  // Interior planes (useful for “flush” placement)
+  const yFloor = -halfY;
+  const yCeil = halfY;
+  const zBack = -2 * halfZ;
+  const zCenter = -halfZ;
+
+  const mkWall = (
+    name: string,
+    pos: [number, number, number],
+    scale: [number, number, number],
+    color: [number, number, number]
+  ): SceneObject => ({
+    id: nanoid(),
+    name,
+    type: 'cuboid',
+    transform: { position: pos, rotation: [0, 0, 0], scale },
+    material: { type: 'plastic', color, ior: 1.5, intensity: 5 },
+    visible: true,
+  });
+
+  // Cornell box (open front at z=zFront). Walls overlap slightly to avoid visible seams.
+  objects.push(
+    // Floor slab: top surface aligns with y=yFloor
+    mkWall('Cornell Floor', [0, yFloor - wallT, zCenter], [halfX + wallT, wallT, halfZ + wallT], white),
+    // Ceiling slab: bottom surface aligns with y=yCeil (same dimensions as the floor)
+    mkWall('Cornell Ceiling', [0, yCeil + wallT, zCenter], [halfX + wallT, wallT, halfZ + wallT], white),
+    // Back wall: front surface aligns with z=zBack
+    mkWall('Cornell Back Wall', [0, 0, zBack - wallT], [halfX + wallT, halfY + wallT, wallT], white),
+    // Side walls: inner surfaces align with x=±halfX
+    mkWall('Cornell Left Wall', [-halfX - wallT, 0, zCenter], [wallT, halfY + wallT, halfZ + wallT], red),
+    mkWall('Cornell Right Wall', [halfX + wallT, 0, zCenter], [wallT, halfY + wallT, halfZ + wallT], green)
+  );
+
+  const lightHalfX = 1.05;
+  const lightHalfZ = 0.85;
+
+  // Ceiling light: thin emissive panel that sits “flush” with the interior ceiling plane,
+  // and protrudes slightly into the box so it can illuminate without a ceiling cutout.
+  const lightT = 0.03; // half-thickness; must be < wallT
+  const lightProtrude = 0.015; // how much the panel dips below the interior ceiling plane
+  objects.push({
+    id: nanoid(),
+    name: 'Ceiling Light',
+    type: 'cuboid',
+    transform: {
+      // bottom face at y=yCeil - lightProtrude, top face inside ceiling slab (overlap for polish)
+      position: [0.0, yCeil - lightProtrude + lightT, zCenter],
+      rotation: [0, 0, 0],
+      scale: [lightHalfX, lightT, lightHalfZ],
+    },
+    material: {
+      type: 'light',
+      color: [1.0, 0.98, 0.95],
+      ior: 1.5,
+      intensity: 10,
+    },
+    visible: true,
+  });
+
+  // Classic Cornell boxes (renderer treats cuboid scale as half-extents)
+  objects.push(
+    {
+      id: nanoid(),
+      name: 'Tall Box',
+      type: 'cuboid',
+      transform: {
+        position: [1.1, yFloor + 1.0, -4.4],
+        rotation: [0, 0.35, 0],
+        scale: [0.55, 1.0, 0.55],
+      },
+      material: { type: 'plastic', color: white, ior: 1.5, intensity: 5 },
+      visible: true,
+    },
+    {
+      id: nanoid(),
+      name: 'Short Box',
+      type: 'cuboid',
+      transform: {
+        position: [-0.9, yFloor + 0.6, -2.6],
+        rotation: [0, -0.25, 0],
+        scale: [0.65, 0.6, 0.65],
+      },
+      material: { type: 'plastic', color: white, ior: 1.5, intensity: 5 },
+      visible: true,
+    }
+  );
+
+  // Hero objects for extra raytracing "wow"
+  objects.push(
+    {
+      id: nanoid(),
+      name: 'Glass Sphere',
+      type: 'sphere',
+      transform: {
+        // Place on top of the Short Box (box top + sphere radius), with a tiny lift to avoid z-fighting.
+        // Short Box: center = [-0.9, yFloor + 0.6, -2.6], half-height = 0.6
+        // Sphere radius = 0.4 (so short box height 1.2 + sphere diameter 0.8 = tall box height 2.0)
+        position: [-0.88, yFloor + 1.61, -2.58],
+        rotation: [0, 0, 0],
+        scale: [0.4, 0.4, 0.4],
+      },
+      material: {
+        type: 'glass',
+        color: [0.95, 0.98, 1.0],
+        ior: 1.52,
+        intensity: 5,
+      },
+      visible: true,
+    },
+    {
+      id: nanoid(),
+      name: 'Chrome Sphere',
+      type: 'sphere',
+      transform: {
+        position: [0.6, yFloor + 0.5, -2.0],
+        rotation: [0, 0, 0],
+        scale: [0.5, 0.5, 0.5],
+      },
+      material: {
+        type: 'metal',
+        color: [0.96, 0.97, 0.99],
+        ior: 1.5,
+        intensity: 5,
+      },
+      visible: true,
+    }
+  );
+
+  return objects;
 }
 
 /**
- * Convert HSL to RGB (h: 0-360, s: 0-1, l: 0-1)
- */
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  
-  let r = 0, g = 0, b = 0;
-  if (h < 60) { r = c; g = x; b = 0; }
-  else if (h < 120) { r = x; g = c; b = 0; }
-  else if (h < 180) { r = 0; g = c; b = x; }
-  else if (h < 240) { r = 0; g = x; b = c; }
-  else if (h < 300) { r = x; g = 0; b = c; }
-  else { r = c; g = 0; b = x; }
-  
-  return [r + m, g + m, b + m];
-}
-
-/**
- * Curated landing scene: "Gallery Study"
- * - No overlaps (spheres are placed with a simple packing constraint)
- * - Includes cuboids (floor, backdrop, plinths)
- * - Deterministic (seeded) so it always looks the same on first load
- * - Designed to show: mirror-like metals, refractive glass, emissive lights, soft shadows
+ * Default landing scene: Cornell Box
  */
 function createInitialScene(): SceneObject[] {
+  return createCornellBoxScene();
+}
+
+/*
+ * Legacy landing scene: "Gallery Study" (kept for reference)
+function createInitialScene_GalleryStudy(): SceneObject[] {
   const objects: SceneObject[] = [];
   const rand = seededRandom(1337);
 
@@ -323,10 +447,12 @@ function createInitialScene(): SceneObject[] {
 
   return objects;
 }
+*/
 
 interface SceneState {
   objects: SceneObject[];
   selectedObjectId: ObjectId | null;
+  backgroundColor: [number, number, number]; // RGB 0-1 (scene-wide)
 
   // Object management
   addSphere: () => ObjectId | null;
@@ -350,6 +476,10 @@ interface SceneState {
   // Utilities
   getObject: (id: ObjectId) => SceneObject | undefined;
   clear: () => void;
+
+  // Environment (scene-wide)
+  setBackgroundColor: (color: [number, number, number]) => void;
+  applyBackgroundPreset: (preset: 'day' | 'dusk' | 'night') => void;
 }
 
 export const useSceneStore = create<WithHistory<SceneState>>()(
@@ -357,6 +487,8 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
     (set, get) => ({
       objects: createInitialScene(),
       selectedObjectId: null,
+      // Default environment background: Night
+      backgroundColor: [0.04, 0.05, 0.1],
 
       addSphere: () => {
         if (get().objects.length >= LIMITS.maxObjects) return null;
@@ -479,6 +611,19 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
 
       getObject: (id) => {
         return get().objects.find((o) => o.id === id);
+      },
+
+      setBackgroundColor: (color) => {
+        set({ backgroundColor: color });
+      },
+
+      applyBackgroundPreset: (preset) => {
+        const presets: Record<'day' | 'dusk' | 'night', [number, number, number]> = {
+          day: [0.5, 0.7, 1.0],
+          dusk: [0.18, 0.22, 0.35],
+          night: [0.04, 0.05, 0.1],
+        };
+        set({ backgroundColor: presets[preset] });
       },
 
       clear: () => {
