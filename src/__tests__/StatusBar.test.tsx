@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { StatusBar } from '../components/layout/StatusBar';
 import { useRef } from 'react';
+import { useSceneStore } from '../store/sceneStore';
 
 // Mock Renderer
 const mockRenderer = {
@@ -18,6 +19,15 @@ function TestWrapper() {
 }
 
 describe('StatusBar', () => {
+  it('renders undo/redo buttons', () => {
+    // Ensure history functions exist (sceneStore is wrapped with history middleware)
+    useSceneStore.setState({ past: [], future: [] } as any);
+
+    render(<TestWrapper />);
+    expect(screen.getByLabelText('Undo')).toBeDefined();
+    expect(screen.getByLabelText('Redo')).toBeDefined();
+  });
+
   it('renders samples label', () => {
     render(<TestWrapper />);
     expect(screen.getByText(/Samples:/)).toBeDefined();
