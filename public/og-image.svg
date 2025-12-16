@@ -25,18 +25,18 @@
 
   <rect width="1200" height="630" fill="url(#bg)"/>
 
-  <!-- Glassy sphere -->
-  <g transform="translate(800 315)">
-    <circle r="165" fill="url(#glass)"/>
-    <circle r="165" fill="url(#rim)"/>
-    <circle r="165" fill="url(#spec)"/>
+  <!-- Glassy sphere (shifted right + slightly smaller to avoid text overlap) -->
+  <g transform="translate(930 315)">
+    <circle r="150" fill="url(#glass)"/>
+    <circle r="150" fill="url(#rim)"/>
+    <circle r="150" fill="url(#spec)"/>
   </g>
 
   <text x="96" y="292" fill="#E6F0FF" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="72" font-weight="700">
     Lightshow
   </text>
-  <text x="96" y="360" fill="#9FB3C8" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="30" font-weight="500">
-    Real-time raytracing in the browser (WebGPU)
+  <text x="96" y="360" fill="#9FB3C8" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="34" font-weight="500">
+    Raytracing Playground in the Browser.
   </text>
 </svg>
 
