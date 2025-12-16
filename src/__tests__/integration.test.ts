@@ -76,14 +76,14 @@ describe('Scene Integration', () => {
 
   describe('Object visibility', () => {
     it('new objects are visible by default', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       const obj = useSceneStore.getState().getObject(id);
 
       expect(obj?.visible).toBe(true);
     });
 
     it('visibility can be toggled', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
 
       useSceneStore.getState().updateObject(id, { visible: false });
       expect(useSceneStore.getState().getObject(id)?.visible).toBe(false);
@@ -95,7 +95,7 @@ describe('Scene Integration', () => {
 
   describe('Object properties for GPU', () => {
     it('object has all required transform properties', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       const obj = useSceneStore.getState().getObject(id);
 
       expect(obj?.transform.position).toBeDefined();
@@ -107,7 +107,7 @@ describe('Scene Integration', () => {
     });
 
     it('object has all required material properties', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       const obj = useSceneStore.getState().getObject(id);
 
       expect(obj?.material.type).toBeDefined();

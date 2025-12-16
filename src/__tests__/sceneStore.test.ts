@@ -70,7 +70,7 @@ describe('sceneStore', () => {
 
   describe('removeObject', () => {
     it('removes object by id', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().removeObject(id);
       
@@ -78,7 +78,7 @@ describe('sceneStore', () => {
     });
 
     it('clears selection when selected object removed', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().selectObject(id);
       
       useSceneStore.getState().removeObject(id);
@@ -87,8 +87,8 @@ describe('sceneStore', () => {
     });
 
     it('preserves other objects', () => {
-      const id1 = useSceneStore.getState().addSphere();
-      const id2 = useSceneStore.getState().addSphere();
+      const id1 = useSceneStore.getState().addSphere()!;
+      const id2 = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().removeObject(id1);
       
@@ -99,7 +99,7 @@ describe('sceneStore', () => {
 
   describe('duplicateObject', () => {
     it('duplicates object and returns new id', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       const newId = useSceneStore.getState().duplicateObject(id);
       
@@ -109,7 +109,7 @@ describe('sceneStore', () => {
     });
 
     it('duplicate has offset position', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       const original = useSceneStore.getState().getObject(id);
       
       const newId = useSceneStore.getState().duplicateObject(id);

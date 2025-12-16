@@ -18,7 +18,7 @@ describe('Object renaming', () => {
   });
 
   it('enter submits new name', () => {
-    const id = useSceneStore.getState().addSphere();
+    const id = useSceneStore.getState().addSphere()!;
     render(<ObjectList />);
 
     fireEvent.doubleClick(screen.getByText(/Sphere 1/));

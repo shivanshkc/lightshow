@@ -10,6 +10,7 @@ import {
   createDefaultCuboid,
 } from '../core/types';
 import { historyMiddleware, type WithHistory } from './historyMiddleware';
+import { LIMITS } from '../utils/limits';
 
 /**
  * Seeded random number generator for reproducible scenes
@@ -328,8 +329,8 @@ interface SceneState {
   selectedObjectId: ObjectId | null;
 
   // Object management
-  addSphere: () => ObjectId;
-  addCuboid: () => ObjectId;
+  addSphere: () => ObjectId | null;
+  addCuboid: () => ObjectId | null;
   removeObject: (id: ObjectId) => void;
   duplicateObject: (id: ObjectId) => ObjectId | null;
   renameObject: (id: ObjectId, name: string) => void;
@@ -358,6 +359,7 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
       selectedObjectId: null,
 
       addSphere: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
         const id = nanoid();
         const count = get().objects.filter((o) => o.type === 'sphere').length + 1;
         const sphere: SceneObject = {
@@ -370,6 +372,7 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
       },
 
       addCuboid: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
         const id = nanoid();
         const count = get().objects.filter((o) => o.type === 'cuboid').length + 1;
         const cuboid: SceneObject = {
