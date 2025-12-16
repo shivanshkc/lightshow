@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="80%">
+      <stop offset="0%" stop-color="#0B1220"/>
+      <stop offset="100%" stop-color="#05070D"/>
+    </radialGradient>
+
+    <radialGradient id="glass" cx="38%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="#E0F2FE" stop-opacity="0.85"/>
+      <stop offset="45%" stop-color="#93C5FD" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#1D4ED8" stop-opacity="0.35"/>
+    </radialGradient>
+
+    <radialGradient id="spec" cx="33%" cy="27%" r="18%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="rim" cx="50%" cy="50%" r="55%">
+      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.45"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Glassy sphere (shifted right + slightly smaller to avoid text overlap) -->
+  <g transform="translate(930 315)">
+    <circle r="150" fill="url(#glass)"/>
+    <circle r="150" fill="url(#rim)"/>
+    <circle r="150" fill="url(#spec)"/>
+  </g>
+
+  <text x="96" y="292" fill="#E6F0FF" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="72" font-weight="700">
+    Lightshow
+  </text>
+  <text x="96" y="360" fill="#9FB3C8" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="34" font-weight="500">
+    Raytracing Playground in the Browser.
+  </text>
+</svg>
+
+

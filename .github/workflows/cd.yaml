@@ -1,11 +1,11 @@
 name: CD
+
 on:
-  # Runs on all push events on main.
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
-  # Can only read the source code.
   contents: read
 
 jobs:
@@ -13,34 +13,80 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/lint
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/test
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
 
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/build
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          application-name: lightshow
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          if-no-files-found: error
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npm test -- --run
 
   semver:
     name: Semver
-    needs: [lint, test, build]
     runs-on: ubuntu-latest
-    permissions: write-all
+    needs: [lint, build, test]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/semver
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy (Cloudflare Pages)
+    runs-on: ubuntu-latest
+    needs: [semver]
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=lightshow --branch=main
+          # Optional: enable GitHub Deployments
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
