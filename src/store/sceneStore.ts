@@ -35,7 +35,6 @@ function createCornellBoxScene(): SceneObject[] {
   // Interior planes (useful for “flush” placement)
   const yFloor = -halfY;
   const yCeil = halfY;
-  const zFront = 0;
   const zBack = -2 * halfZ;
   const zCenter = -halfZ;
 
