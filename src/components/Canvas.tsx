@@ -483,6 +483,9 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   }, []);
 
   if (status === 'error') {
+    const isDeviceLost = (errorMessage || '').toLowerCase().includes('device lost');
+    const title = isDeviceLost ? 'WebGPU Device Lost' : 'WebGPU Not Available';
+
     return (
       <div
         className={`flex items-center justify-center bg-base ${className || ''}`}
@@ -490,7 +493,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         <div className="text-center p-8 max-w-md">
           <div className="text-4xl mb-4">⚠️</div>
           <h2 className="text-xl font-semibold mb-2 text-text-primary">
-            WebGPU Not Available
+            {title}
           </h2>
           <p className="text-text-secondary mb-4">{errorMessage}</p>
           <div className="flex items-center justify-center gap-3">
