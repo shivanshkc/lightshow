@@ -10,6 +10,7 @@ import { ScaleGizmo } from '../gizmos/ScaleGizmo';
 import { useSceneStore } from '../store/sceneStore';
 import { useCameraStore } from '../store/cameraStore';
 import { useGizmoStore } from '../store/gizmoStore';
+import { LIMITS } from '../utils/limits';
 import {
   mat4Inverse,
   mat4Perspective,
@@ -41,9 +42,15 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     const renderer = rendererRef.current;
     if (!canvas) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const pixelWidth = Math.max(1, Math.floor(width * dpr));
-    const pixelHeight = Math.max(1, Math.floor(height * dpr));
+    const dpr = Math.min(window.devicePixelRatio || 1, LIMITS.maxDpr);
+    const pixelWidth = Math.max(
+      1,
+      Math.min(LIMITS.maxRenderSize, Math.floor(width * dpr))
+    );
+    const pixelHeight = Math.max(
+      1,
+      Math.min(LIMITS.maxRenderSize, Math.floor(height * dpr))
+    );
 
     canvas.width = pixelWidth;
     canvas.height = pixelHeight;
@@ -68,6 +75,17 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           ctx.device.destroy();
           return;
         }
+
+        // Handle GPU device lost (common on driver resets / tab backgrounding)
+        ctx.device.lost.then((info) => {
+          if (!mounted) return;
+          rendererRef.current?.destroy();
+          rendererRef.current = null;
+          setStatus('error');
+          setErrorMessage(
+            `WebGPU device lost${info?.message ? `: ${info.message}` : ''}. Reload the page to continue.`
+          );
+        });
 
         const renderer = new Renderer(ctx);
         rendererRef.current = renderer;

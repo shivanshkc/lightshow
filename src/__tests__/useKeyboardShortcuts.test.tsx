@@ -15,7 +15,7 @@ describe('Keyboard shortcuts', () => {
   });
 
   it('Delete removes selected object', () => {
-    const id = useSceneStore.getState().addSphere();
+    const id = useSceneStore.getState().addSphere()!;
     useSceneStore.getState().selectObject(id);
 
     render(<Harness />);
@@ -25,7 +25,7 @@ describe('Keyboard shortcuts', () => {
   });
 
   it('Ctrl+D duplicates selected', () => {
-    const id = useSceneStore.getState().addSphere();
+    const id = useSceneStore.getState().addSphere()!;
     useSceneStore.getState().selectObject(id);
 
     render(<Harness />);
