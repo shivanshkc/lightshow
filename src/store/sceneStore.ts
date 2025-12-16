@@ -9,6 +9,7 @@ import {
   createDefaultSphere,
   createDefaultCuboid,
 } from '../core/types';
+import { historyMiddleware } from './historyMiddleware';
 
 /**
  * Seeded random number generator for reproducible scenes
@@ -331,10 +332,14 @@ interface SceneState {
   addCuboid: () => ObjectId;
   removeObject: (id: ObjectId) => void;
   duplicateObject: (id: ObjectId) => ObjectId | null;
+  renameObject: (id: ObjectId, name: string) => void;
+  toggleVisibility: (id: ObjectId) => void;
 
   // Selection
   selectObject: (id: ObjectId | null) => void;
   getSelectedObject: () => SceneObject | null;
+  deleteSelected: () => void;
+  duplicateSelected: () => ObjectId | null;
 
   // Updates
   updateObject: (id: ObjectId, updates: Partial<SceneObject>) => void;
@@ -346,100 +351,139 @@ interface SceneState {
   clear: () => void;
 }
 
-export const useSceneStore = create<SceneState>((set, get) => ({
-  objects: createInitialScene(),
-  selectedObjectId: null,
+export const useSceneStore = create<SceneState>()(
+  historyMiddleware(
+    (set, get) => ({
+      objects: createInitialScene(),
+      selectedObjectId: null,
 
-  addSphere: () => {
-    const id = nanoid();
-    const count = get().objects.filter((o) => o.type === 'sphere').length + 1;
-    const sphere: SceneObject = {
-      id,
-      ...createDefaultSphere(),
-      name: `Sphere ${count}`,
-    };
-    set((state) => ({ objects: [...state.objects, sphere] }));
-    return id;
-  },
-
-  addCuboid: () => {
-    const id = nanoid();
-    const count = get().objects.filter((o) => o.type === 'cuboid').length + 1;
-    const cuboid: SceneObject = {
-      id,
-      ...createDefaultCuboid(),
-      name: `Cuboid ${count}`,
-    };
-    set((state) => ({ objects: [...state.objects, cuboid] }));
-    return id;
-  },
-
-  removeObject: (id) => {
-    set((state) => ({
-      objects: state.objects.filter((o) => o.id !== id),
-      selectedObjectId: state.selectedObjectId === id ? null : state.selectedObjectId,
-    }));
-  },
-
-  duplicateObject: (id) => {
-    const obj = get().getObject(id);
-    if (!obj) return null;
-
-    const newId = nanoid();
-    const duplicate: SceneObject = {
-      ...structuredClone(obj),
-      id: newId,
-      name: `${obj.name} Copy`,
-      transform: {
-        ...obj.transform,
-        position: [
-          obj.transform.position[0] + 1,
-          obj.transform.position[1],
-          obj.transform.position[2],
-        ],
+      addSphere: () => {
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'sphere').length + 1;
+        const sphere: SceneObject = {
+          id,
+          ...createDefaultSphere(),
+          name: `Sphere ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, sphere] }));
+        return id;
       },
-    };
-    set((state) => ({ objects: [...state.objects, duplicate] }));
-    return newId;
-  },
 
-  selectObject: (id) => {
-    set({ selectedObjectId: id });
-  },
+      addCuboid: () => {
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'cuboid').length + 1;
+        const cuboid: SceneObject = {
+          id,
+          ...createDefaultCuboid(),
+          name: `Cuboid ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, cuboid] }));
+        return id;
+      },
 
-  getSelectedObject: () => {
-    const { objects, selectedObjectId } = get();
-    return objects.find((o) => o.id === selectedObjectId) ?? null;
-  },
+      removeObject: (id) => {
+        set((state) => ({
+          objects: state.objects.filter((o) => o.id !== id),
+          selectedObjectId:
+            state.selectedObjectId === id ? null : state.selectedObjectId,
+        }));
+      },
 
-  updateObject: (id, updates) => {
-    set((state) => ({
-      objects: state.objects.map((o) => (o.id === id ? { ...o, ...updates } : o)),
-    }));
-  },
+      duplicateObject: (id) => {
+        const obj = get().getObject(id);
+        if (!obj) return null;
 
-  updateTransform: (id, transform) => {
-    set((state) => ({
-      objects: state.objects.map((o) =>
-        o.id === id ? { ...o, transform: { ...o.transform, ...transform } } : o
-      ),
-    }));
-  },
+        const newId = nanoid();
+        const duplicate: SceneObject = {
+          ...structuredClone(obj),
+          id: newId,
+          name: `${obj.name} Copy`,
+          transform: {
+            ...obj.transform,
+            position: [
+              obj.transform.position[0] + 0.5,
+              obj.transform.position[1],
+              obj.transform.position[2] + 0.5,
+            ],
+          },
+        };
+        set((state) => ({
+          objects: [...state.objects, duplicate],
+          selectedObjectId: newId,
+        }));
+        return newId;
+      },
 
-  updateMaterial: (id, material) => {
-    set((state) => ({
-      objects: state.objects.map((o) =>
-        o.id === id ? { ...o, material: { ...o.material, ...material } } : o
-      ),
-    }));
-  },
+      renameObject: (id, name) => {
+        set((state) => ({
+          objects: state.objects.map((o) => (o.id === id ? { ...o, name } : o)),
+        }));
+      },
 
-  getObject: (id) => {
-    return get().objects.find((o) => o.id === id);
-  },
+      toggleVisibility: (id) => {
+        set((state) => ({
+          objects: state.objects.map((o) =>
+            o.id === id ? { ...o, visible: !o.visible } : o
+          ),
+        }));
+      },
 
-  clear: () => {
-    set({ objects: [], selectedObjectId: null });
-  },
-}));
+      selectObject: (id) => {
+        set({ selectedObjectId: id });
+      },
+
+      getSelectedObject: () => {
+        const { objects, selectedObjectId } = get();
+        return objects.find((o) => o.id === selectedObjectId) ?? null;
+      },
+
+      deleteSelected: () => {
+        const id = get().selectedObjectId;
+        if (id) get().removeObject(id);
+      },
+
+      duplicateSelected: () => {
+        const id = get().selectedObjectId;
+        if (id) return get().duplicateObject(id);
+        return null;
+      },
+
+      updateObject: (id, updates) => {
+        set((state) => ({
+          objects: state.objects.map((o) =>
+            o.id === id ? { ...o, ...updates } : o
+          ),
+        }));
+      },
+
+      updateTransform: (id, transform) => {
+        set((state) => ({
+          objects: state.objects.map((o) =>
+            o.id === id
+              ? { ...o, transform: { ...o.transform, ...transform } }
+              : o
+          ),
+        }));
+      },
+
+      updateMaterial: (id, material) => {
+        set((state) => ({
+          objects: state.objects.map((o) =>
+            o.id === id ? { ...o, material: { ...o.material, ...material } } : o
+          ),
+        }));
+      },
+
+      getObject: (id) => {
+        return get().objects.find((o) => o.id === id);
+      },
+
+      clear: () => {
+        // Clear scene objects and selection. History stacks are cleared by tests via setState.
+        set({ objects: [], selectedObjectId: null });
+      },
+    }),
+    { limit: 30 }
+  )
+);
 
