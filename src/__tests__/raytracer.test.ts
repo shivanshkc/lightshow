@@ -138,7 +138,8 @@ describe('Material System (Stage 5)', () => {
 
   it('handles MAT_PLASTIC default case', () => {
     expect(raytracerShader).toContain('case MAT_PLASTIC');
-    expect(raytracerShader).toContain('diffuseDir');
+    // Plastic is modeled as purely diffuse (Lambertian)
+    expect(raytracerShader).toContain('randomCosineHemisphere');
   });
 });
 

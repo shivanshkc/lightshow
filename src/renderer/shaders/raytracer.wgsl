@@ -451,13 +451,8 @@ fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
       }
       
       case MAT_PLASTIC, default: {
-        // Diffuse with slight specular highlight
-        let diffuseDir = randomCosineHemisphere(rng, hit.normal);
-        let reflectDir = reflect(ray.direction, hit.normal);
-        
-        // 95% diffuse, 5% specular (plastic has slight sheen)
-        let isSpecular = randomFloat(rng) < 0.05;
-        newDir = select(diffuseDir, reflectDir, isSpecular);
+        // Pure diffuse (Lambertian). Plastic is modeled as completely matte: no specular lobe.
+        newDir = randomCosineHemisphere(rng, hit.normal);
         throughput *= obj.color;
         newOrigin = hit.position + hit.normal * EPSILON;
       }
