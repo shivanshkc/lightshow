@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid';
 import {
   SceneObject,
   ObjectId,
-  MaterialType,
   Transform,
   Material,
   createDefaultSphere,
@@ -13,42 +12,189 @@ import { historyMiddleware, type WithHistory } from './historyMiddleware';
 import { LIMITS } from '../utils/limits';
 
 /**
- * Seeded random number generator for reproducible scenes
+ * Default landing scene: Cornell Box
+ * - Classic lighting test scene (white box with red/green walls + ceiling light)
+ * - Designed to immediately showcase: global illumination, soft shadows, glossy reflections, refraction
+ * - Open front face (camera looks in from +Z)
  */
-function seededRandom(seed: number): () => number {
-  return () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
+function createCornellBoxScene(): SceneObject[] {
+  const objects: SceneObject[] = [];
+
+  // Box dimensions (interior).
+  // We place the box so the OPENING is centered at the origin (0,0,0),
+  // i.e. front face lies on the Z=0 plane and the interior extends into -Z.
+  const halfX = 3.0;
+  const halfY = 1.5; // interior height = 3.0
+  const halfZ = 3.0; // interior depth = 6.0 (from z=0 to z=-6)
+  const wallT = 0.06; // wall half-thickness (actual thickness = 2*wallT)
+
+  const white: [number, number, number] = [0.83, 0.83, 0.83];
+  const red: [number, number, number] = [0.82, 0.18, 0.2];
+  const green: [number, number, number] = [0.18, 0.78, 0.26];
+
+  // Interior planes (useful for “flush” placement)
+  const yFloor = -halfY;
+  const yCeil = halfY;
+  const zFront = 0;
+  const zBack = -2 * halfZ;
+  const zCenter = -halfZ;
+
+  const mkWall = (
+    name: string,
+    pos: [number, number, number],
+    scale: [number, number, number],
+    color: [number, number, number]
+  ): SceneObject => ({
+    id: nanoid(),
+    name,
+    type: 'cuboid',
+    transform: { position: pos, rotation: [0, 0, 0], scale },
+    material: { type: 'plastic', color, ior: 1.5, intensity: 5 },
+    visible: true,
+  });
+
+  // Cornell box (open front at z=zFront). Walls overlap slightly to avoid visible seams.
+  objects.push(
+    // Floor slab: top surface aligns with y=yFloor
+    mkWall('Cornell Floor', [0, yFloor - wallT, zCenter], [halfX + wallT, wallT, halfZ + wallT], white),
+    // Back wall: front surface aligns with z=zBack
+    mkWall('Cornell Back Wall', [0, 0, zBack - wallT], [halfX + wallT, halfY + wallT, wallT], white),
+    // Side walls: inner surfaces align with x=±halfX
+    mkWall('Cornell Left Wall', [-halfX - wallT, 0, zCenter], [wallT, halfY + wallT, halfZ + wallT], red),
+    mkWall('Cornell Right Wall', [halfX + wallT, 0, zCenter], [wallT, halfY + wallT, halfZ + wallT], green)
+  );
+
+  // Ceiling “frame” with a cutout for the light panel, so the light is visible and not blocked by the ceiling slab.
+  const outerX = halfX + wallT;
+  const outerZ = halfZ + wallT;
+  const zOuterFront = zFront + wallT; // slight overlap past the opening plane
+  const zOuterBack = zBack - wallT;
+
+  const lightHalfX = 1.05;
+  const lightHalfZ = 0.85;
+  const cutMargin = 0.06;
+  const cutHalfX = lightHalfX + cutMargin;
+  const cutHalfZ = lightHalfZ + cutMargin;
+
+  const ceilingY = yCeil + wallT; // bottom face aligns with y=yCeil
+
+  const ceilSideHalfX = (outerX - cutHalfX) * 0.5;
+  const ceilSideCenterX = (outerX + cutHalfX) * 0.5;
+
+  const ceilFrontHalfZ = (zOuterFront - (zCenter + cutHalfZ)) * 0.5;
+  const ceilFrontCenterZ = (zOuterFront + (zCenter + cutHalfZ)) * 0.5;
+
+  const ceilBackHalfZ = ((zCenter - cutHalfZ) - zOuterBack) * 0.5;
+  const ceilBackCenterZ = (zOuterBack + (zCenter - cutHalfZ)) * 0.5;
+
+  objects.push(
+    mkWall('Cornell Ceiling', [ -ceilSideCenterX, ceilingY, zCenter], [ceilSideHalfX, wallT, outerZ], white),
+    mkWall('Cornell Ceiling', [  ceilSideCenterX, ceilingY, zCenter], [ceilSideHalfX, wallT, outerZ], white),
+    mkWall('Cornell Ceiling', [0, ceilingY, ceilFrontCenterZ], [cutHalfX, wallT, ceilFrontHalfZ], white),
+    mkWall('Cornell Ceiling', [0, ceilingY, ceilBackCenterZ], [cutHalfX, wallT, ceilBackHalfZ], white)
+  );
+
+  // Ceiling light: thin emissive panel that sits “flush” with the interior ceiling plane,
+  // overlapping slightly into the ceiling slab so it reads as part of the same plane.
+  const lightT = 0.03; // half-thickness; must be < wallT
+  objects.push({
+    id: nanoid(),
+    name: 'Ceiling Light',
+    type: 'cuboid',
+    transform: {
+      // bottom face at y=yCeil, top face at y=yCeil + 2*lightT (inside the ceiling slab)
+      position: [0.0, yCeil + lightT, zCenter],
+      rotation: [0, 0, 0],
+      scale: [lightHalfX, lightT, lightHalfZ],
+    },
+    material: {
+      type: 'light',
+      color: [1.0, 0.98, 0.95],
+      ior: 1.5,
+      intensity: 10,
+    },
+    visible: true,
+  });
+
+  // Classic Cornell boxes (renderer treats cuboid scale as half-extents)
+  objects.push(
+    {
+      id: nanoid(),
+      name: 'Tall Box',
+      type: 'cuboid',
+      transform: {
+        position: [1.1, yFloor + 1.0, -4.4],
+        rotation: [0, 0.35, 0],
+        scale: [0.55, 1.0, 0.55],
+      },
+      material: { type: 'plastic', color: white, ior: 1.5, intensity: 5 },
+      visible: true,
+    },
+    {
+      id: nanoid(),
+      name: 'Short Box',
+      type: 'cuboid',
+      transform: {
+        position: [-0.9, yFloor + 0.6, -2.6],
+        rotation: [0, -0.25, 0],
+        scale: [0.65, 0.6, 0.65],
+      },
+      material: { type: 'plastic', color: white, ior: 1.5, intensity: 5 },
+      visible: true,
+    }
+  );
+
+  // Hero objects for extra raytracing "wow"
+  objects.push(
+    {
+      id: nanoid(),
+      name: 'Glass Sphere',
+      type: 'sphere',
+      transform: {
+        position: [-1.6, yFloor + 0.55, -5.0],
+        rotation: [0, 0, 0],
+        scale: [0.55, 0.55, 0.55],
+      },
+      material: {
+        type: 'glass',
+        color: [0.95, 0.98, 1.0],
+        ior: 1.52,
+        intensity: 5,
+      },
+      visible: true,
+    },
+    {
+      id: nanoid(),
+      name: 'Chrome Sphere',
+      type: 'sphere',
+      transform: {
+        position: [0.6, yFloor + 0.5, -2.0],
+        rotation: [0, 0, 0],
+        scale: [0.5, 0.5, 0.5],
+      },
+      material: {
+        type: 'metal',
+        color: [0.96, 0.97, 0.99],
+        ior: 1.5,
+        intensity: 5,
+      },
+      visible: true,
+    }
+  );
+
+  return objects;
 }
 
 /**
- * Convert HSL to RGB (h: 0-360, s: 0-1, l: 0-1)
- */
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  
-  let r = 0, g = 0, b = 0;
-  if (h < 60) { r = c; g = x; b = 0; }
-  else if (h < 120) { r = x; g = c; b = 0; }
-  else if (h < 180) { r = 0; g = c; b = x; }
-  else if (h < 240) { r = 0; g = x; b = c; }
-  else if (h < 300) { r = x; g = 0; b = c; }
-  else { r = c; g = 0; b = x; }
-  
-  return [r + m, g + m, b + m];
-}
-
-/**
- * Curated landing scene: "Gallery Study"
- * - No overlaps (spheres are placed with a simple packing constraint)
- * - Includes cuboids (floor, backdrop, plinths)
- * - Deterministic (seeded) so it always looks the same on first load
- * - Designed to show: mirror-like metals, refractive glass, emissive lights, soft shadows
+ * Default landing scene: Cornell Box
  */
 function createInitialScene(): SceneObject[] {
+  return createCornellBoxScene();
+}
+
+/*
+ * Legacy landing scene: "Gallery Study" (kept for reference)
+function createInitialScene_GalleryStudy(): SceneObject[] {
   const objects: SceneObject[] = [];
   const rand = seededRandom(1337);
 
@@ -323,6 +469,7 @@ function createInitialScene(): SceneObject[] {
 
   return objects;
 }
+*/
 
 interface SceneState {
   objects: SceneObject[];
