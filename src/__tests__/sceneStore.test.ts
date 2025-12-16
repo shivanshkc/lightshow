@@ -119,7 +119,7 @@ describe('sceneStore', () => {
     });
 
     it('duplicate has "Copy" suffix in name', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       const newId = useSceneStore.getState().duplicateObject(id);
       const duplicate = useSceneStore.getState().getObject(newId!);
@@ -136,7 +136,7 @@ describe('sceneStore', () => {
 
   describe('selectObject', () => {
     it('selects object by id', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().selectObject(id);
       
@@ -144,7 +144,7 @@ describe('sceneStore', () => {
     });
 
     it('deselects with null', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().selectObject(id);
       
       useSceneStore.getState().selectObject(null);
@@ -155,7 +155,7 @@ describe('sceneStore', () => {
 
   describe('getSelectedObject', () => {
     it('returns selected object', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().selectObject(id);
       
       const selected = useSceneStore.getState().getSelectedObject();
@@ -175,7 +175,7 @@ describe('sceneStore', () => {
 
   describe('updateObject', () => {
     it('updates object properties', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateObject(id, { name: 'Custom Name' });
       
@@ -184,7 +184,7 @@ describe('sceneStore', () => {
     });
 
     it('updates visibility', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateObject(id, { visible: false });
       
@@ -195,7 +195,7 @@ describe('sceneStore', () => {
 
   describe('updateTransform', () => {
     it('updates object position', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateTransform(id, { position: [1, 2, 3] });
       
@@ -204,7 +204,7 @@ describe('sceneStore', () => {
     });
 
     it('updates object rotation', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateTransform(id, { rotation: [0.1, 0.2, 0.3] });
       
@@ -213,7 +213,7 @@ describe('sceneStore', () => {
     });
 
     it('updates object scale', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateTransform(id, { scale: [2, 2, 2] });
       
@@ -222,7 +222,7 @@ describe('sceneStore', () => {
     });
 
     it('preserves other transform properties', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().updateTransform(id, { position: [1, 2, 3] });
       
       useSceneStore.getState().updateTransform(id, { rotation: [0.1, 0.2, 0.3] });
@@ -234,7 +234,7 @@ describe('sceneStore', () => {
 
   describe('updateMaterial', () => {
     it('updates object color', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateMaterial(id, { color: [1, 0, 0] });
       
@@ -243,7 +243,7 @@ describe('sceneStore', () => {
     });
 
     it('updates ior', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       useSceneStore.getState().updateMaterial(id, { ior: 1.8 });
       
@@ -252,7 +252,7 @@ describe('sceneStore', () => {
     });
 
     it('preserves other material properties', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().updateMaterial(id, { color: [1, 0, 0] });
       
       useSceneStore.getState().updateMaterial(id, { ior: 1.8 });
@@ -264,7 +264,7 @@ describe('sceneStore', () => {
 
   describe('getObject', () => {
     it('returns object by id', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       
       const obj = useSceneStore.getState().getObject(id);
       
@@ -290,7 +290,7 @@ describe('sceneStore', () => {
     });
 
     it('clears selection', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().selectObject(id);
       
       useSceneStore.getState().clear();
@@ -308,7 +308,7 @@ describe('sceneStore', () => {
     });
 
     it('can undo removeObject', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().removeObject(id);
       expect(useSceneStore.getState().objects.length).toBe(0);
       (useSceneStore.getState() as any).undo();
@@ -316,7 +316,7 @@ describe('sceneStore', () => {
     });
 
     it('can undo transform changes', () => {
-      const id = useSceneStore.getState().addSphere();
+      const id = useSceneStore.getState().addSphere()!;
       useSceneStore.getState().updateTransform(id, { position: [5, 0, 0] });
       (useSceneStore.getState() as any).undo();
       expect(useSceneStore.getState().getObject(id)?.transform.position[0]).toBe(0);
