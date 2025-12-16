@@ -1,4 +1,4 @@
-import { Ray, Vec3, normalize, sub, dot, length, add, mul } from '../core/math';
+import { Ray, Vec3, normalize, sub, dot, length } from '../core/math';
 import { GizmoAxis, GizmoMode } from '../store/gizmoStore';
 
 /**

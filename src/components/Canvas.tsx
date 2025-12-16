@@ -226,11 +226,10 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
             });
           } else if (gizmoState.mode === 'rotate' && dragStartRotation.current) {
             // Rotation
-            const axis = gizmoState.activeAxis as 'x' | 'y' | 'z' | 'trackball';
-            if (axis === 'x' || axis === 'y' || axis === 'z' || axis === 'xyz') {
-              const rotationAxis = axis === 'xyz' ? 'trackball' : axis;
+            const axis = gizmoState.activeAxis;
+            if (axis === 'x' || axis === 'y' || axis === 'z' || axis === 'trackball') {
               let rotationDelta = RotateGizmo.calculateRotation(
-                rotationAxis,
+                axis,
                 selectedObject.transform.position,
                 gizmoState.dragStartMousePosition,
                 [e.clientX, e.clientY],
@@ -254,8 +253,13 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
             }
           } else if (gizmoState.mode === 'scale' && dragStartScale.current) {
             // Scale
-            const axis = gizmoState.activeAxis as 'x' | 'y' | 'z' | 'uniform';
-            const scaleAxis = axis === 'xyz' ? 'uniform' : (axis === 'xy' || axis === 'xz' || axis === 'yz') ? 'uniform' : axis;
+            const axis = gizmoState.activeAxis;
+            const scaleAxis =
+              axis === 'uniform' || axis === 'xy' || axis === 'xz' || axis === 'yz' || axis === 'xyz'
+                ? 'uniform'
+                : axis === 'trackball'
+                  ? 'uniform'
+                  : axis;
             
             let newScale = ScaleGizmo.calculateScale(
               scaleAxis,

@@ -1,7 +1,17 @@
 import { create } from 'zustand';
 
 export type GizmoMode = 'translate' | 'rotate' | 'scale' | 'none';
-export type GizmoAxis = 'x' | 'y' | 'z' | 'xy' | 'xz' | 'yz' | 'xyz' | null;
+export type GizmoAxis =
+  | 'x'
+  | 'y'
+  | 'z'
+  | 'xy'
+  | 'xz'
+  | 'yz'
+  | 'xyz' // translate: free move
+  | 'trackball' // rotate: free rotate ring
+  | 'uniform' // scale: center cube
+  | null;
 
 interface GizmoState {
   mode: GizmoMode;
@@ -65,7 +75,7 @@ export const useGizmoStore = create<GizmoState>((set) => ({
 
 /**
  * Convert GizmoAxis to numeric ID for shader
- * 0=none, 1=x, 2=y, 3=z, 4=xy, 5=xz, 6=yz, 7=xyz
+ * 0=none, 1=x, 2=y, 3=z, 4=xy, 5=xz, 6=yz, 7=xyz, 8=trackball, 9=uniform
  */
 export function axisToId(axis: GizmoAxis): number {
   switch (axis) {
@@ -83,6 +93,10 @@ export function axisToId(axis: GizmoAxis): number {
       return 6;
     case 'xyz':
       return 7;
+    case 'trackball':
+      return 8;
+    case 'uniform':
+      return 9;
     default:
       return 0;
   }
@@ -107,6 +121,10 @@ export function idToAxis(id: number): GizmoAxis {
       return 'yz';
     case 7:
       return 'xyz';
+    case 8:
+      return 'trackball';
+    case 9:
+      return 'uniform';
     default:
       return null;
   }

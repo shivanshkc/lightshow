@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TransformSection } from '../../components/panels/TransformSection';
 import { SceneObject } from '../../core/types';
@@ -17,8 +17,6 @@ const createMockObject = (type: 'sphere' | 'cuboid'): SceneObject => ({
   material: {
     type: 'plastic',
     color: [0.8, 0.8, 0.8],
-    roughness: 0.5,
-    metalness: 0,
     ior: 1.5,
     intensity: 1,
   },
