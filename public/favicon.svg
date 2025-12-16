@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="g" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#7DD3FC"/>
+      <stop offset="55%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </radialGradient>
+    <linearGradient id="r" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#E0F2FE" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base -->
+  <circle cx="32" cy="32" r="30" fill="url(#g)"/>
+
+  <!-- Stylized light ray -->
+  <path
+    d="M18 42 L32 14 L46 42 L40.5 42 L32 26 L23.5 42 Z"
+    fill="url(#r)"
+  />
+
+  <!-- Small glow dot -->
+  <circle cx="32" cy="18" r="2.2" fill="#FFFFFF" fill-opacity="0.9"/>
+</svg>
+
+
