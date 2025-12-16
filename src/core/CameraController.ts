@@ -1,6 +1,8 @@
 import { useCameraStore } from '../store/cameraStore';
 import { useSceneStore } from '../store/sceneStore';
 import { useGizmoStore } from '../store/gizmoStore';
+import { raycaster } from './Raycaster';
+import { mat4Inverse, mat4Perspective, screenToWorldRay } from './math';
 
 interface ControllerOptions {
   orbitSensitivity?: number;
@@ -17,7 +19,7 @@ interface ControllerOptions {
  * - Scroll wheel: Zoom in/out
  * - Home key: Reset camera
  * - F key: Focus on selected object
- * - Double-click: Focus on origin
+ * - Double-click: Focus on clicked object (falls back to origin)
  */
 export class CameraController {
   private canvas: HTMLCanvasElement;
@@ -203,9 +205,18 @@ export class CameraController {
       this.notifyCameraChange();
     }
 
-    // Gizmo mode switching
+    // Delete selected object
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      const selectedId = useSceneStore.getState().selectedObjectId;
+      if (selectedId) {
+        useSceneStore.getState().removeObject(selectedId);
+        this.notifyCameraChange();
+      }
+    }
+
+    // Gizmo mode switching (WER only)
     const key = e.key.toLowerCase();
-    if (key === 'w' || key === 'g') {
+    if (key === 'w') {
       useGizmoStore.getState().setMode('translate');
     } else if (key === 'e') {
       useGizmoStore.getState().setMode('rotate');
@@ -220,8 +231,45 @@ export class CameraController {
     }
   }
 
-  private onDoubleClick(_e: MouseEvent): void {
-    // Focus on origin (TODO: implement raycasting to focus on clicked object)
+  private onDoubleClick(e: MouseEvent): void {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const cameraState = useCameraStore.getState();
+    const viewMatrix = cameraState.getViewMatrix();
+    const projMatrix = mat4Perspective(
+      cameraState.fovY,
+      rect.width / rect.height,
+      0.1,
+      1000
+    );
+    const inverseView = mat4Inverse(viewMatrix);
+    const inverseProjection = mat4Inverse(projMatrix);
+
+    const ray = screenToWorldRay(
+      x,
+      y,
+      rect.width,
+      rect.height,
+      inverseProjection,
+      inverseView,
+      cameraState.position
+    );
+
+    const objects = useSceneStore.getState().objects;
+    const hit = raycaster.pickWithRay(ray, objects);
+
+    if (hit.objectId) {
+      const obj = useSceneStore.getState().getObject(hit.objectId);
+      if (obj) {
+        useCameraStore.getState().focusOn(obj.transform.position);
+        this.notifyCameraChange();
+        return;
+      }
+    }
+
+    // Fallback: focus origin
     useCameraStore.getState().focusOn([0, 0, 0]);
     this.notifyCameraChange();
   }

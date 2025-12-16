@@ -17,8 +17,6 @@ const createMockObject = (materialType: MaterialType): SceneObject => ({
   material: {
     type: materialType,
     color: [0.8, 0.8, 0.8],
-    roughness: 0.5,
-    metalness: 0,
     ior: 1.5,
     intensity: 5,
   },

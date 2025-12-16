@@ -129,7 +129,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.translateVertexBuffer,
       0,
-      this.translateGeometry.vertices
+      this.translateGeometry.vertices.buffer as ArrayBuffer,
+      this.translateGeometry.vertices.byteOffset,
+      this.translateGeometry.vertices.byteLength
     );
 
     this.translateIndexBuffer = device.createBuffer({
@@ -139,7 +141,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.translateIndexBuffer,
       0,
-      this.translateGeometry.indices
+      this.translateGeometry.indices.buffer as ArrayBuffer,
+      this.translateGeometry.indices.byteOffset,
+      this.translateGeometry.indices.byteLength
     );
 
     // Create buffers for rotate gizmo
@@ -150,7 +154,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.rotateVertexBuffer,
       0,
-      this.rotateGeometry.vertices
+      this.rotateGeometry.vertices.buffer as ArrayBuffer,
+      this.rotateGeometry.vertices.byteOffset,
+      this.rotateGeometry.vertices.byteLength
     );
 
     this.rotateIndexBuffer = device.createBuffer({
@@ -160,7 +166,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.rotateIndexBuffer,
       0,
-      this.rotateGeometry.indices
+      this.rotateGeometry.indices.buffer as ArrayBuffer,
+      this.rotateGeometry.indices.byteOffset,
+      this.rotateGeometry.indices.byteLength
     );
 
     // Create buffers for scale gizmo
@@ -171,7 +179,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.scaleVertexBuffer,
       0,
-      this.scaleGeometry.vertices
+      this.scaleGeometry.vertices.buffer as ArrayBuffer,
+      this.scaleGeometry.vertices.byteOffset,
+      this.scaleGeometry.vertices.byteLength
     );
 
     this.scaleIndexBuffer = device.createBuffer({
@@ -181,7 +191,9 @@ export class GizmoRenderer {
     device.queue.writeBuffer(
       this.scaleIndexBuffer,
       0,
-      this.scaleGeometry.indices
+      this.scaleGeometry.indices.buffer as ArrayBuffer,
+      this.scaleGeometry.indices.byteOffset,
+      this.scaleGeometry.indices.byteLength
     );
   }
 
