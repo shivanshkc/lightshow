@@ -53,7 +53,7 @@ describe('App', () => {
   it('shows initial scene objects', () => {
     render(<App />);
     // Initial scene includes procedurally generated spheres
-    expect(screen.getByText('Sphere 1')).toBeDefined();
+    expect(screen.getByText('Chrome Hero')).toBeDefined();
     expect(screen.getByText('Key Light')).toBeDefined();
   });
 
