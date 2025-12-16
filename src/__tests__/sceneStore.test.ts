@@ -5,6 +5,8 @@ describe('sceneStore', () => {
   beforeEach(() => {
     // Reset store before each test
     useSceneStore.getState().clear();
+    // Clear history stacks for deterministic tests (history middleware will otherwise track `clear`)
+    useSceneStore.setState({ past: [], future: [] } as any);
   });
 
   describe('initial state', () => {
@@ -113,7 +115,7 @@ describe('sceneStore', () => {
       const newId = useSceneStore.getState().duplicateObject(id);
       const duplicate = useSceneStore.getState().getObject(newId!);
       
-      expect(duplicate?.transform.position[0]).toBe(original!.transform.position[0] + 1);
+      expect(duplicate?.transform.position[0]).toBe(original!.transform.position[0] + 0.5);
     });
 
     it('duplicate has "Copy" suffix in name', () => {
@@ -294,6 +296,30 @@ describe('sceneStore', () => {
       useSceneStore.getState().clear();
       
       expect(useSceneStore.getState().selectedObjectId).toBeNull();
+    });
+  });
+
+  describe('history', () => {
+    it('can undo addSphere', () => {
+      useSceneStore.getState().addSphere();
+      expect(useSceneStore.getState().objects.length).toBe(1);
+      (useSceneStore.getState() as any).undo();
+      expect(useSceneStore.getState().objects.length).toBe(0);
+    });
+
+    it('can undo removeObject', () => {
+      const id = useSceneStore.getState().addSphere();
+      useSceneStore.getState().removeObject(id);
+      expect(useSceneStore.getState().objects.length).toBe(0);
+      (useSceneStore.getState() as any).undo();
+      expect(useSceneStore.getState().objects.length).toBe(1);
+    });
+
+    it('can undo transform changes', () => {
+      const id = useSceneStore.getState().addSphere();
+      useSceneStore.getState().updateTransform(id, { position: [5, 0, 0] });
+      (useSceneStore.getState() as any).undo();
+      expect(useSceneStore.getState().getObject(id)?.transform.position[0]).toBe(0);
     });
   });
 });
