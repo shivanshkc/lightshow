@@ -1,3 +1,19 @@
+# [1.1.0](https://github.com/shivanshkc/lightshow/compare/v1.0.0...v1.1.0) (2025-12-16)
+
+
+### Bug Fixes
+
+* **build:** remove unused scene constant ([b8fdac9](https://github.com/shivanshkc/lightshow/commit/b8fdac9b901643dcbe73803e48fab56b3cc1dbf9))
+
+
+### Features
+
+* **env:** background presets + color picker ([b295c7d](https://github.com/shivanshkc/lightshow/commit/b295c7db754755c05059ac06a40a56e394e6d26f))
+* **material:** make plastic purely diffuse ([5d29587](https://github.com/shivanshkc/lightshow/commit/5d29587cafd26126ffa2e6b7ab2087a7d1b5ac03))
+* **scene:** Cornell box landing scene ([bf1c17d](https://github.com/shivanshkc/lightshow/commit/bf1c17dc0c59a8c4d9f9bcd8874e0049c56e5594))
+* **scene:** simplify Cornell ceiling ([27d9725](https://github.com/shivanshkc/lightshow/commit/27d972503a0f0fd35f9b37f1b95aaae75a90be79))
+* **ux:** warn on page leave ([5b1124d](https://github.com/shivanshkc/lightshow/commit/5b1124d97f582a09b51eb8501178532cb0f87198))
+
 # 1.0.0 (2025-12-16)
 
 
