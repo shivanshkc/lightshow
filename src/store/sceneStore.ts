@@ -57,6 +57,8 @@ function createCornellBoxScene(): SceneObject[] {
   objects.push(
     // Floor slab: top surface aligns with y=yFloor
     mkWall('Cornell Floor', [0, yFloor - wallT, zCenter], [halfX + wallT, wallT, halfZ + wallT], white),
+    // Ceiling slab: bottom surface aligns with y=yCeil (same dimensions as the floor)
+    mkWall('Cornell Ceiling', [0, yCeil + wallT, zCenter], [halfX + wallT, wallT, halfZ + wallT], white),
     // Back wall: front surface aligns with z=zBack
     mkWall('Cornell Back Wall', [0, 0, zBack - wallT], [halfX + wallT, halfY + wallT, wallT], white),
     // Side walls: inner surfaces align with x=±halfX
@@ -64,46 +66,20 @@ function createCornellBoxScene(): SceneObject[] {
     mkWall('Cornell Right Wall', [halfX + wallT, 0, zCenter], [wallT, halfY + wallT, halfZ + wallT], green)
   );
 
-  // Ceiling “frame” with a cutout for the light panel, so the light is visible and not blocked by the ceiling slab.
-  const outerX = halfX + wallT;
-  const outerZ = halfZ + wallT;
-  const zOuterFront = zFront + wallT; // slight overlap past the opening plane
-  const zOuterBack = zBack - wallT;
-
   const lightHalfX = 1.05;
   const lightHalfZ = 0.85;
-  const cutMargin = 0.06;
-  const cutHalfX = lightHalfX + cutMargin;
-  const cutHalfZ = lightHalfZ + cutMargin;
-
-  const ceilingY = yCeil + wallT; // bottom face aligns with y=yCeil
-
-  const ceilSideHalfX = (outerX - cutHalfX) * 0.5;
-  const ceilSideCenterX = (outerX + cutHalfX) * 0.5;
-
-  const ceilFrontHalfZ = (zOuterFront - (zCenter + cutHalfZ)) * 0.5;
-  const ceilFrontCenterZ = (zOuterFront + (zCenter + cutHalfZ)) * 0.5;
-
-  const ceilBackHalfZ = ((zCenter - cutHalfZ) - zOuterBack) * 0.5;
-  const ceilBackCenterZ = (zOuterBack + (zCenter - cutHalfZ)) * 0.5;
-
-  objects.push(
-    mkWall('Cornell Ceiling', [ -ceilSideCenterX, ceilingY, zCenter], [ceilSideHalfX, wallT, outerZ], white),
-    mkWall('Cornell Ceiling', [  ceilSideCenterX, ceilingY, zCenter], [ceilSideHalfX, wallT, outerZ], white),
-    mkWall('Cornell Ceiling', [0, ceilingY, ceilFrontCenterZ], [cutHalfX, wallT, ceilFrontHalfZ], white),
-    mkWall('Cornell Ceiling', [0, ceilingY, ceilBackCenterZ], [cutHalfX, wallT, ceilBackHalfZ], white)
-  );
 
   // Ceiling light: thin emissive panel that sits “flush” with the interior ceiling plane,
-  // overlapping slightly into the ceiling slab so it reads as part of the same plane.
+  // and protrudes slightly into the box so it can illuminate without a ceiling cutout.
   const lightT = 0.03; // half-thickness; must be < wallT
+  const lightProtrude = 0.015; // how much the panel dips below the interior ceiling plane
   objects.push({
     id: nanoid(),
     name: 'Ceiling Light',
     type: 'cuboid',
     transform: {
-      // bottom face at y=yCeil, top face at y=yCeil + 2*lightT (inside the ceiling slab)
-      position: [0.0, yCeil + lightT, zCenter],
+      // bottom face at y=yCeil - lightProtrude, top face inside ceiling slab (overlap for polish)
+      position: [0.0, yCeil - lightProtrude + lightT, zCenter],
       rotation: [0, 0, 0],
       scale: [lightHalfX, lightT, lightHalfZ],
     },
