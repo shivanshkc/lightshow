@@ -367,16 +367,23 @@ fn traceScene(ray: Ray) -> HitResult {
 // ============================================
 
 fn sampleSky(direction: vec3<f32>) -> vec3<f32> {
-  // Clean neutral grey studio backdrop - lets the spheres shine
-  // Subtle gradient from slightly darker at bottom to lighter at top
-  let t = 0.5 * (direction.y + 1.0);
-  
-  let bottomGrey = vec3<f32>(0.75, 0.76, 0.78);  // Slightly cooler grey
-  let topGrey = vec3<f32>(0.88, 0.89, 0.90);     // Light warm grey
-  
-  let skyColor = mix(bottomGrey, topGrey, smoothstep(0.0, 1.0, t));
-  
-  return skyColor;
+  // Blue sky gradient with gentle haze — bright, friendly, and readable.
+  let t = clamp(0.5 * (direction.y + 1.0), 0.0, 1.0);
+
+  let horizon = vec3<f32>(0.86, 0.93, 1.00);
+  let mid = vec3<f32>(0.48, 0.72, 0.98);
+  let zenith = vec3<f32>(0.18, 0.36, 0.78);
+
+  var sky = mix(horizon, mid, smoothstep(0.0, 0.35, t));
+  sky = mix(sky, zenith, smoothstep(0.35, 1.0, t));
+
+  // Subtle sun bloom for nicer highlights in reflections (directional-ish).
+  let sunDir = normalize(vec3<f32>(0.25, 0.65, -0.72));
+  let sun = pow(max(0.0, dot(normalize(direction), sunDir)), 256.0);
+  sky += vec3<f32>(1.0, 0.98, 0.92) * sun * 2.0;
+
+  // Slightly dim so emissives still pop.
+  return sky * 0.75;
 }
 
 // ============================================
