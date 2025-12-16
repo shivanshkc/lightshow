@@ -23,6 +23,28 @@ vi.mock('lucide-react', () => ({
 }));
 
 describe('App', () => {
+  it('registers a beforeunload warning', () => {
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    const { unmount } = render(<App />);
+
+    expect(addSpy).toHaveBeenCalledWith(
+      'beforeunload',
+      expect.any(Function)
+    );
+
+    unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith(
+      'beforeunload',
+      expect.any(Function)
+    );
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
+  });
+
   it('renders without crashing', () => {
     render(<App />);
     expect(screen.getByTestId('canvas-mock')).toBeDefined();
