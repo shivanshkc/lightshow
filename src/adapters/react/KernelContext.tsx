@@ -10,8 +10,18 @@ type KernelContextValue = {
 
 const KernelContext = createContext<KernelContextValue | null>(null);
 
-export function KernelProvider({ children }: { children: React.ReactNode }) {
-  const kernel = useMemo(() => new KernelShell(new V1ZustandBackingStore()), []);
+export function KernelProvider({
+  children,
+  kernel: providedKernel,
+}: {
+  children: React.ReactNode;
+  /** Optional injection for tests / alternate startup wiring. */
+  kernel?: Kernel;
+}) {
+  const kernel = useMemo(
+    () => providedKernel ?? new KernelShell(new V1ZustandBackingStore()),
+    [providedKernel]
+  );
 
   // Global DOM keyboard listener (temporary wiring; will be generalized as InputController(s)).
   useEffect(() => {
