@@ -1,11 +1,11 @@
-// v2 ports (contracts) — placeholder.
-//
-// Ports are stable TypeScript interfaces/types used across modules.
-// This module will define:
-// - Command types (write contract)
-// - Query interfaces (read contract)
-// - Event interfaces (notification contract)
-// - Renderer/Input/UI adapter contracts
+/**
+ * Ports (contracts).
+ *
+ * Stable TypeScript interfaces/types used across modules:
+ * - `Command` union: write contract (user intent)
+ * - `KernelQueries`: read contract (snapshots)
+ * - `KernelEvents`: notification contract (minimal events)
+ */
 
 export * from './commands';
 export * from './queries';

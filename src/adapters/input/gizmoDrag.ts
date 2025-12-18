@@ -44,7 +44,7 @@ export type DragFrameInput = {
  * Compute the transform.update command for a gizmo drag frame.
  * Returns null when no update is applicable.
  *
- * This module is a v2 "input/controller" boundary: UI should not contain
+ * This module is an "input/controller" boundary: UI should not contain
  * the drag→math→command logic.
  */
 export function computeGizmoDragCommand(input: DragFrameInput): Command | null {

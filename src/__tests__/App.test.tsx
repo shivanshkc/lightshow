@@ -74,7 +74,7 @@ describe('App', () => {
     expect(screen.getByText('Ceiling Light')).toBeDefined();
   });
 
-  it('shows properties placeholder when nothing selected', () => {
+  it('shows properties prompt when nothing selected', () => {
     render(<App />);
     expect(screen.getByText('Select an object to view properties')).toBeDefined();
   });

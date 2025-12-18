@@ -72,7 +72,7 @@ export default [
       // Reasonable defaults for Vite + Fast Refresh
       'react-refresh/only-export-components': 'off',
 
-      // Guardrails (v2 / Milestone 01)
+      // Guardrails
       // - prevent dependency cycles
       'import/no-cycle': ['error', { ignoreExternal: true }],
 
@@ -102,7 +102,7 @@ export default [
       'react-hooks/exhaustive-deps': 'off',
     },
   },
-  // v2 dependency direction: kernel + ports must not depend on UI/WebGPU/Zustand.
+  // Dependency direction: kernel + ports must not depend on UI/WebGPU/Zustand.
   {
     files: ['src/kernel/**/*.{ts,tsx}'],
     rules: {
@@ -121,7 +121,7 @@ export default [
             '@gizmos/*',
             '@hooks',
             '@hooks/*',
-            // Also block relative reach-ins to v1 adapters from kernel during migration.
+            // Also block relative reach-ins to store adapters from kernel.
             '../components/*',
             '../renderer/*',
             '../store/*',

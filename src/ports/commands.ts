@@ -24,11 +24,11 @@ export type MaterialPatch = {
 export type BackgroundPreset = 'day' | 'dusk' | 'night';
 
 /**
- * v2 write contract: Commands represent user intent (NOT low-level input events).
+ * Write contract: Commands represent user intent (NOT low-level input events).
  *
  * Notes:
  * - Must stay stable and serializable (for logging / tests / future persistence).
- * - Versioned via `v` so we can evolve commands safely in later milestones.
+ * - Versioned via `v` so we can evolve commands safely over time.
  */
 export type Command =
   | { v: 1; type: 'selection.set'; objectId: ObjectId | null }

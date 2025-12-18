@@ -26,7 +26,7 @@ function createMockStore(initial: KernelSceneState = baseSceneState()): KernelBa
         }
         case 'selection.pick': {
           // Picking may change selection, but must not invalidate accumulation.
-          // In v2, selection highlight is display-only (not accumulated).
+          // Selection highlight is display-only (not accumulated).
           const next = { ...this.state, selectedObjectId: 'picked' };
           const changed = next.selectedObjectId !== this.state.selectedObjectId;
           this.state = next;

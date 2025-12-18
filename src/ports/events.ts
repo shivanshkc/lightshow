@@ -6,7 +6,7 @@ export type KernelEvent =
 export type Unsubscribe = () => void;
 
 /**
- * v2 eventing contract: minimal notifications only.
+ * Eventing contract: minimal notifications only.
  *
  * Implementations must:
  * - deliver events in order

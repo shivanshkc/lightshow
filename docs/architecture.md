@@ -1,25 +1,21 @@
-# Architecture (v2 in-progress)
+# Architecture
 
-This document is a **navigation map** for the codebase as it is migrated to v2.
+This document is a **navigation map** for the codebase: components, contracts, wiring, and where to find things.
 
-v2 goal: **behavior-preserving refactor** that improves decoupling, mockability, and startup-time swappability (see `prp/v2/base.md`).
-
-## Module map (current)
-
-> This list will evolve as v2 milestones introduce new module boundaries.
+## Module map
 
 - `@ports`
-  - v2 **contracts**: `Command` (writes), `KernelQueries` (reads), `KernelEvents` (notifications).
+  - **contracts**: `Command` (writes), `KernelQueries` (reads), `KernelEvents` (notifications).
 - `@kernel`
-  - v2 **state authority**: owns history stacks + grouping and emits kernel events.
+  - **state authority**: owns history stacks + grouping and emits kernel events.
 - `@adapters`
-  - Concrete adapters that bridge ports to specific technologies (React, DOM input, Zustand v1 stores, renderer wiring).
+  - Concrete adapters that bridge ports to specific technologies (React, DOM input, Zustand stores, renderer wiring).
 - `@core`
   - Math, types, camera math/controller, raycasting, and GPU scene buffer utilities.
 - `@renderer`
   - WebGPU renderer and pipelines.
 - `@store`
-  - Legacy Zustand stores (v1). In v2, these are only accessed through `@adapters` (temporary while migration completes).
+  - Zustand stores. Access from outside `@store` should be via adapters.
 - `@components`
   - React UI components (panels/layout/canvas).
 - `@hooks`
@@ -55,7 +51,7 @@ v2 goal: **behavior-preserving refactor** that improves decoupling, mockability,
 - **Renderer deps adapter**: `src/adapters/zustand/createRendererDepsFromStores.ts`
 - **Canvas deps adapter**: `src/adapters/zustand/createCanvasDepsFromStores.ts`
 - **Camera orbit/pan/zoom state (legacy)**: `src/store/cameraStore.ts`
-- **Canvas input wiring**: `src/components/Canvas.tsx` (dispatches commands; store reads via v1 adapter)
+- **Canvas input wiring**: `src/components/Canvas.tsx` (dispatches commands; reads store state via adapter)
 - **Benchmark harness**: `bench/run.mjs` + `src/bench/benchBridge.ts`
 
 

@@ -40,7 +40,7 @@ export class ZustandSceneBackingStore implements KernelBackingStore {
       case 'history.group.end':
       case 'history.undo':
       case 'history.redo': {
-        // History is owned by the kernel in v2; adapter should never be asked to apply these.
+        // History is owned by the kernel; adapter should never be asked to apply these.
         return { stateChanged: false, renderInvalidated: false };
       }
 

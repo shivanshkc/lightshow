@@ -1,7 +1,7 @@
 import type { Kernel } from '@kernel';
 
 /**
- * DOM keyboard input controller (v2).
+ * DOM keyboard input controller.
  *
  * Translates key bindings into kernel Commands.
  * This replaces the previous React hook-based keyboard listener.

@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 /**
- * Lightshow benchmark runner (Milestone 01 / Step 1.1)
+ * Lightshow benchmark runner
  *
  * Single command:
  *   npm run bench
@@ -25,8 +25,7 @@ const BENCH_QUERY = '__bench=1';
 const BENCH_RUNS = Number(process.env.BENCH_RUNS ?? 3);
 const BENCH_MAX_ATTEMPTS_PER_RUN = Number(process.env.BENCH_MAX_ATTEMPTS_PER_RUN ?? 2);
 
-// Performance gate thresholds (relative to v1 baseline on same machine).
-// See prp/v2/base.md §10.3.
+// Performance gate thresholds (relative to the committed baseline on the same machine/browser).
 const TTFF_MAX_REGRESSION_RATIO = 1.10; // +10%
 const FPS_MIN_RATIO = 0.90; // -10%
 

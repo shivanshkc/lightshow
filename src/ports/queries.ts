@@ -30,9 +30,7 @@ export type SceneSnapshot = {
 };
 
 /**
- * v2 read contract: coarse-grained, allocation-light queries.
- *
- * NOTE: This is a contract only. The kernel will implement this in Milestones 03+.
+ * Read contract: coarse-grained, allocation-light queries.
  */
 export interface KernelQueries {
   /** Scene state needed by UI + renderer. */

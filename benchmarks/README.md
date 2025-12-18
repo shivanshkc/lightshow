@@ -1,6 +1,6 @@
 # Benchmarks
 
-This folder stores performance benchmark artifacts for Lightshow v2.
+This folder stores performance benchmark artifacts for Lightshow.
 
 ## Commands
 
@@ -22,7 +22,7 @@ This folder stores performance benchmark artifacts for Lightshow v2.
   - **generated** output from the most recent benchmark run
   - ignored by git (`.gitignore`)
 - `baseline.json`
-  - **committed** baseline numbers captured before the v2 refactor (Milestone 01 / Step 1.2)
+  - **committed** baseline numbers captured on this machine/browser for performance regression checks
 
 ### Orbit diagnostics
 

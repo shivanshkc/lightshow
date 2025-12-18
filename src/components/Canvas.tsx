@@ -28,7 +28,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   const rendererRef = useRef<Renderer | null>(null);
   const controllerRef = useRef<CameraController | null>(null);
   const kernel = useKernel();
-  const v1 = useMemo(() => createCanvasDepsFromStores(), []);
+  const deps = useMemo(() => createCanvasDepsFromStores(), []);
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -90,8 +90,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         const controller = new CameraController(
           canvas,
           {
-            getCamera: () => v1.getCameraState(),
-            getGizmo: () => v1.getGizmoState(),
+            getCamera: () => deps.getCameraState(),
+            getGizmo: () => deps.getGizmoState(),
             getSceneSnapshot: () => kernel.queries.getSceneSnapshot() as any,
           },
           {}
@@ -130,7 +130,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       rendererRef.current?.destroy();
       rendererRef.current = null;
     };
-  }, [handleResize, kernel, onRendererReady, v1]);
+  }, [deps, handleResize, kernel, onRendererReady]);
 
   // Handle resize
   useEffect(() => {
@@ -163,7 +163,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
   // Helper to get camera vectors
   const getCameraVectors = useCallback(() => {
-    const cameraState = v1.getCameraState();
+    const cameraState = deps.getCameraState();
     const target = cameraState.target;
     const position = cameraState.position;
     
@@ -178,7 +178,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     const up = cross(right, forward);
     
     return { right, up, forward };
-  }, [v1]);
+  }, [deps]);
 
   // Handle mouse move for gizmo hover and drag
   const handleMouseMove = useCallback(
@@ -190,7 +190,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      const gizmoState = v1.getGizmoState();
+      const gizmoState = deps.getGizmoState();
       const sceneState = kernel.queries.getSceneSnapshot();
 
       // If dragging gizmo, update object transform
@@ -200,7 +200,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         );
 
         if (selectedObject) {
-          const cameraState = v1.getCameraState();
+          const cameraState = deps.getCameraState();
           const { forward } = getCameraVectors();
           const cmd = computeGizmoDragCommand({
             mode: gizmoState.mode,
@@ -236,7 +236,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         );
 
         if (selectedObject) {
-          const cameraState = v1.getCameraState();
+          const cameraState = deps.getCameraState();
           const viewMatrix = cameraState.getViewMatrix();
           const aspect = rect.width / rect.height;
           const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
@@ -277,7 +277,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      const gizmoState = v1.getGizmoState();
+      const gizmoState = deps.getGizmoState();
       const sceneState = kernel.queries.getSceneSnapshot();
 
       // Check if clicking on gizmo (for all modes)
@@ -287,7 +287,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         );
 
         if (selectedObject) {
-          const cameraState = v1.getCameraState();
+          const cameraState = deps.getCameraState();
           const viewMatrix = cameraState.getViewMatrix();
           const aspect = rect.width / rect.height;
           const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
@@ -323,7 +323,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
             
             // Start gizmo drag
             gizmoState.startDrag(hitAxis, selectedObject.transform.position, [e.clientX, e.clientY]);
-            // Group continuous transform edits into a single undo step (Milestone 06).
+            // Group continuous transform edits into a single undo step.
             kernel.dispatch({ v: 1, type: 'history.group.begin', label: 'transform' });
             
             // Disable camera controller during gizmo drag
@@ -340,7 +340,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const gizmoState = v1.getGizmoState();
+      const gizmoState = deps.getGizmoState();
 
       // End gizmo drag
       if (gizmoState.isDragging) {
@@ -348,7 +348,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         dragStartRay.current = null;
         dragStartRotation.current = null;
         dragStartScale.current = null;
-        // Commit grouped transform history (Milestone 06).
+        // Commit grouped transform history.
         kernel.dispatch({ v: 1, type: 'history.group.end' });
         
         // Re-enable camera controller
@@ -376,7 +376,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         const y = e.clientY - rect.top;
 
         // Get camera state
-        const cameraState = v1.getCameraState();
+        const cameraState = deps.getCameraState();
         const viewMatrix = cameraState.getViewMatrix();
         const aspect = canvas.width / canvas.height;
         const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
@@ -434,7 +434,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     const x = t.clientX - rect.left;
     const y = t.clientY - rect.top;
 
-    const cameraState = v1.getCameraState();
+    const cameraState = deps.getCameraState();
     const viewMatrix = cameraState.getViewMatrix();
     const aspect = rect.width / rect.height;
     const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
@@ -452,12 +452,12 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     );
 
     kernel.dispatch({ v: 1, type: 'selection.pick', ray: ray as any });
-  }, [kernel, v1]);
+  }, [deps, kernel]);
 
   // Handle mouse leave to clear hover
   const handleMouseLeave = useCallback(() => {
-    v1.getGizmoState().setHoveredAxis(null);
-  }, [v1]);
+    deps.getGizmoState().setHoveredAxis(null);
+  }, [deps]);
 
   if (status === 'error') {
     const isDeviceLost = (errorMessage || '').toLowerCase().includes('device lost');
