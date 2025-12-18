@@ -1,6 +1,7 @@
 import type { KernelBackingStore } from '@kernel';
 import type { Command, SceneObjectSnapshot, SceneSnapshot, Vec3 } from '@ports';
 import { useSceneStore } from '@store';
+import { raycaster } from '@core';
 
 function vec3Equals(a: Vec3, b: Vec3): boolean {
   return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
@@ -67,6 +68,15 @@ export class V1ZustandBackingStore implements KernelBackingStore {
           return { stateChanged: false, renderInvalidated: false };
         }
         s.selectObject(command.objectId);
+        return { stateChanged: true, renderInvalidated: false };
+      }
+
+      case 'selection.pick': {
+        const result = raycaster.pickWithRay(command.ray as any, s.objects as any);
+        if (s.selectedObjectId === result.objectId) {
+          return { stateChanged: false, renderInvalidated: false };
+        }
+        s.selectObject(result.objectId);
         return { stateChanged: true, renderInvalidated: false };
       }
 

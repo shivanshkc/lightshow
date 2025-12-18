@@ -2,7 +2,6 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { initWebGPU } from '../renderer/webgpu';
 import { Renderer } from '../renderer/Renderer';
 import { CameraController } from '../core/CameraController';
-import { raycaster } from '../core/Raycaster';
 import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
 import { TranslateGizmo } from '../gizmos/TranslateGizmo';
 import { RotateGizmo } from '../gizmos/RotateGizmo';
@@ -464,23 +463,18 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         const inverseView = mat4Inverse(viewMatrix);
         const inverseProjection = mat4Inverse(projMatrix);
 
-        // Get scene objects
-        const objects = kernel.queries.getSceneSnapshot().objects;
-
-        // Perform picking
-        const result = raycaster.pick(
+        const ray = screenToWorldRay(
           x,
           y,
           rect.width,
           rect.height,
-          cameraState.position,
           inverseProjection,
           inverseView,
-          objects
+          cameraState.position
         );
 
-        // Update selection
-        kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
+        // Ask kernel to choose closest visible hit for this ray.
+        kernel.dispatch({ v: 1, type: 'selection.pick', ray: ray as any });
       }
 
       mouseDownPos.current = null;
@@ -527,19 +521,17 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     const inverseView = mat4Inverse(viewMatrix);
     const inverseProjection = mat4Inverse(projMatrix);
 
-    const objects = kernel.queries.getSceneSnapshot().objects;
-    const result = raycaster.pick(
+    const ray = screenToWorldRay(
       x,
       y,
       rect.width,
       rect.height,
-      cameraState.position,
       inverseProjection,
       inverseView,
-      objects
+      cameraState.position
     );
 
-    kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
+    kernel.dispatch({ v: 1, type: 'selection.pick', ray: ray as any });
   }, [kernel]);
 
   // Handle mouse leave to clear hover

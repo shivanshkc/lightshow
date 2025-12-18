@@ -2,6 +2,8 @@ export type ObjectId = string;
 
 export type Vec3 = [number, number, number];
 
+export type Ray = { origin: Vec3; direction: Vec3 };
+
 export type PrimitiveType = 'sphere' | 'cuboid';
 
 export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
@@ -30,6 +32,7 @@ export type BackgroundPreset = 'day' | 'dusk' | 'night';
  */
 export type Command =
   | { v: 1; type: 'selection.set'; objectId: ObjectId | null }
+  | { v: 1; type: 'selection.pick'; ray: Ray }
   | { v: 1; type: 'object.add'; primitive: PrimitiveType }
   | { v: 1; type: 'object.remove'; objectId: ObjectId }
   | { v: 1; type: 'object.duplicate'; objectId: ObjectId }
@@ -56,6 +59,11 @@ function isVec3(v: unknown): v is Vec3 {
   );
 }
 
+function isRay(v: unknown): v is Ray {
+  if (!isRecord(v)) return false;
+  return isVec3(v.origin) && isVec3(v.direction);
+}
+
 /**
  * Runtime decoder for commands (safe rejection of unknown/invalid inputs).
  * Returns null instead of throwing.
@@ -72,6 +80,11 @@ export function parseCommand(input: unknown): Command | null {
       const objectId = input.objectId;
       if (objectId !== null && typeof objectId !== 'string') return null;
       return { v: 1, type, objectId };
+    }
+    case 'selection.pick': {
+      const ray = (input as any).ray;
+      if (!isRay(ray)) return null;
+      return { v: 1, type, ray };
     }
     case 'object.add': {
       const primitive = input.primitive;
