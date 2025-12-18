@@ -8,5 +8,6 @@
 // - Renderer/Input/UI adapter contracts
 
 export * from './commands';
+export * from './queries';
 
 
