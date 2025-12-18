@@ -51,9 +51,9 @@ v2 goal: **behavior-preserving refactor** that improves decoupling, mockability,
 - **Commands (writes)**: `src/ports/commands.ts`
 - **Queries (reads)**: `src/ports/queries.ts`
 - **Events (notifications)**: `src/ports/events.ts`
-- **Scene backing store adapter (temporary)**: `src/adapters/v1/V1ZustandBackingStore.ts`
-- **Renderer deps adapter (temporary)**: `src/adapters/v1/createV1RendererDeps.ts`
-- **Canvas deps adapter (temporary)**: `src/adapters/v1/createV1CanvasDeps.ts`
+- **Scene backing store adapter**: `src/adapters/zustand/ZustandSceneBackingStore.ts`
+- **Renderer deps adapter**: `src/adapters/zustand/createRendererDepsFromStores.ts`
+- **Canvas deps adapter**: `src/adapters/zustand/createCanvasDepsFromStores.ts`
 - **Camera orbit/pan/zoom state (legacy)**: `src/store/cameraStore.ts`
 - **Canvas input wiring**: `src/components/Canvas.tsx` (dispatches commands; store reads via v1 adapter)
 - **Benchmark harness**: `bench/run.mjs` + `src/bench/benchBridge.ts`

@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useSceneStore } from '@store';
 import { createDefaultSphere } from '@core';
-import { V1ZustandBackingStore } from '../v1/V1ZustandBackingStore';
+import { ZustandSceneBackingStore } from '../zustand/ZustandSceneBackingStore';
 
-describe('adapters/v1 V1ZustandBackingStore', () => {
+describe('adapters/zustand ZustandSceneBackingStore', () => {
   beforeEach(() => {
     useSceneStore.getState().clear();
   });
 
   it('selection.set changes state but does not invalidate render', () => {
-    const backing = new V1ZustandBackingStore();
+    const backing = new ZustandSceneBackingStore();
     const id = useSceneStore.getState().addSphere()!;
 
     const res = backing.apply({ v: 1, type: 'selection.set', objectId: id });
@@ -19,7 +19,7 @@ describe('adapters/v1 V1ZustandBackingStore', () => {
   });
 
   it('selection.pick chooses the closest visible hit and does not invalidate render', () => {
-    const backing = new V1ZustandBackingStore();
+    const backing = new ZustandSceneBackingStore();
 
     useSceneStore.setState({
       objects: [
@@ -59,7 +59,7 @@ describe('adapters/v1 V1ZustandBackingStore', () => {
   });
 
   it('object.add invalidates render when object is created', () => {
-    const backing = new V1ZustandBackingStore();
+    const backing = new ZustandSceneBackingStore();
 
     const res = backing.apply({ v: 1, type: 'object.add', primitive: 'sphere' });
 
@@ -69,7 +69,7 @@ describe('adapters/v1 V1ZustandBackingStore', () => {
   });
 
   it('transform.update changes state and invalidates render', () => {
-    const backing = new V1ZustandBackingStore();
+    const backing = new ZustandSceneBackingStore();
     const id = useSceneStore.getState().addSphere()!;
 
     const res = backing.apply({

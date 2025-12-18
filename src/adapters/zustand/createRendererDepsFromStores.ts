@@ -29,10 +29,12 @@ function axisToId(axis: string | null): number {
 }
 
 /**
- * Temporary Milestone 03 adapter: provide the Renderer with kernel notifications
- * (events/queries) while still sourcing camera + gizmo state from v1 stores.
+ * Renderer deps adapter backed by the legacy Zustand stores.
+ *
+ * Provides the renderer with kernel notifications (events/queries) while sourcing
+ * camera + gizmo state from the current store implementations.
  */
-export function createV1RendererDeps(kernel: {
+export function createRendererDepsFromStores(kernel: {
   queries: KernelQueries;
   events: KernelEvents;
 }): RendererDeps {

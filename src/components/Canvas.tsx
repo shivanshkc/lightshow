@@ -4,7 +4,7 @@ import { Renderer } from '../renderer/Renderer';
 import { CameraController } from '../core/CameraController';
 import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
 import { LIMITS } from '../utils/limits';
-import { computeGizmoDragCommand, createV1RendererDeps, createV1CanvasDeps, useKernel } from '@adapters';
+import { computeGizmoDragCommand, createRendererDepsFromStores, createCanvasDepsFromStores, useKernel } from '@adapters';
 import {
   mat4Inverse,
   mat4Perspective,
@@ -28,7 +28,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   const rendererRef = useRef<Renderer | null>(null);
   const controllerRef = useRef<CameraController | null>(null);
   const kernel = useKernel();
-  const v1 = useMemo(() => createV1CanvasDeps(), []);
+  const v1 = useMemo(() => createCanvasDepsFromStores(), []);
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -83,7 +83,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           );
         });
 
-        const renderer = new Renderer(ctx, createV1RendererDeps(kernel));
+        const renderer = new Renderer(ctx, createRendererDepsFromStores(kernel));
         rendererRef.current = renderer;
 
         // Initialize camera controller

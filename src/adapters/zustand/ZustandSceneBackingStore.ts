@@ -8,13 +8,13 @@ function vec3Equals(a: Vec3, b: Vec3): boolean {
 }
 
 /**
- * Temporary adapter (Milestone 03 / Step 3.2):
- * Bridges KernelBackingStore to the existing Zustand scene store.
+ * Zustand-backed scene store adapter.
  *
- * This allows Kernel to remain framework/state-library agnostic while the app
- * is progressively rewired to use ports.
+ * Implements the kernel's backing-store interface using the legacy Zustand scene store.
+ * This keeps the kernel decoupled from any specific state library while still allowing
+ * the current app to run.
  */
-export class V1ZustandBackingStore implements KernelBackingStore {
+export class ZustandSceneBackingStore implements KernelBackingStore {
   getSceneState() {
     const s = useSceneStore.getState();
     return {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useSceneStore } from '@store';
 import { KernelShell } from '@kernel';
-import { V1ZustandBackingStore } from '@adapters';
+import { ZustandSceneBackingStore } from '@adapters';
 
 describe('m06 history slice (kernel-facing contract)', () => {
   beforeEach(() => {
@@ -10,7 +10,7 @@ describe('m06 history slice (kernel-facing contract)', () => {
   });
 
   it('exposes canUndo/canRedo via queries.getSceneSnapshot().history', () => {
-    const kernel = new KernelShell(new V1ZustandBackingStore());
+    const kernel = new KernelShell(new ZustandSceneBackingStore());
 
     const snap0 = kernel.queries.getSceneSnapshot();
     expect(snap0.history.canUndo).toBe(false);
@@ -30,7 +30,7 @@ describe('m06 history slice (kernel-facing contract)', () => {
   });
 
   it('undo/redo roll back and forward a core operation (object.add)', () => {
-    const kernel = new KernelShell(new V1ZustandBackingStore());
+    const kernel = new KernelShell(new ZustandSceneBackingStore());
 
     expect(kernel.queries.getSceneSnapshot().objects.length).toBe(0);
 
@@ -45,7 +45,7 @@ describe('m06 history slice (kernel-facing contract)', () => {
   });
 
   it('undo/redo are no-ops when unavailable (no events emitted)', () => {
-    const kernel = new KernelShell(new V1ZustandBackingStore());
+    const kernel = new KernelShell(new ZustandSceneBackingStore());
     const events: string[] = [];
     kernel.events.subscribe((e) => events.push(e.type));
 

@@ -2,17 +2,17 @@ import { useCameraStore } from '@store';
 import { useGizmoStore } from '@store';
 
 /**
- * Temporary Milestone 07 adapter:
- * Canvas should not import v1 stores directly; only adapters may depend on store singletons.
+ * Canvas deps adapter backed by the legacy Zustand stores.
  *
+ * Canvas should not import store singletons directly; only adapters may depend on stores.
  * This adapter exposes the minimal read/write surface Canvas needs.
  */
-export type V1CanvasDeps = {
+export type CanvasDepsFromStores = {
   getCameraState: () => ReturnType<typeof useCameraStore.getState>;
   getGizmoState: () => ReturnType<typeof useGizmoStore.getState>;
 };
 
-export function createV1CanvasDeps(): V1CanvasDeps {
+export function createCanvasDepsFromStores(): CanvasDepsFromStores {
   return {
     getCameraState: () => useCameraStore.getState(),
     getGizmoState: () => useGizmoStore.getState(),
