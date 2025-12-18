@@ -15,6 +15,8 @@ export function App() {
 
   const handleRendererReady = useCallback((renderer: Renderer) => {
     rendererRef.current = renderer;
+    // Optional benchmark hook (only active when loaded by src/main.tsx).
+    window.__LIGHTSHOW_BENCH__?.registerRenderer(renderer);
   }, []);
 
   return (
