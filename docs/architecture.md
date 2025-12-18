@@ -8,12 +8,18 @@ v2 goal: **behavior-preserving refactor** that improves decoupling, mockability,
 
 > This list will evolve as v2 milestones introduce new module boundaries.
 
+- `@ports`
+  - v2 **contracts**: `Command` (writes), `KernelQueries` (reads), `KernelEvents` (notifications).
+- `@kernel`
+  - v2 **state authority**: owns history stacks + grouping and emits kernel events.
+- `@adapters`
+  - Concrete adapters that bridge ports to specific technologies (React, DOM input, Zustand v1 stores, renderer wiring).
 - `@core`
   - Math, types, camera math/controller, raycasting, and GPU scene buffer utilities.
 - `@renderer`
   - WebGPU renderer and pipelines.
 - `@store`
-  - Current state management (Zustand) used by the v1 app; will be migrated behind kernel contracts in later milestones.
+  - Legacy Zustand stores (v1). In v2, these are only accessed through `@adapters` (temporary while migration completes).
 - `@components`
   - React UI components (panels/layout/canvas).
 - `@hooks`
@@ -29,15 +35,27 @@ v2 goal: **behavior-preserving refactor** that improves decoupling, mockability,
 - **Public API only for aliased imports**:
   - Imports like `@core/*` are disallowed.
   - Consumers must import from the module entrypoint `index.ts` (e.g. `import { Camera } from '@core'`).
-  - Relative imports within a module are allowed (migration-friendly).
+  - Relative imports within a module are allowed (migration-friendly), but cross-module relative imports should be retired over time.
+- **Directionality**:
+  - `@ports` is dependency-free.
+  - `@kernel` depends on `@ports` (not React/WebGPU/Zustand/UI).
+  - `@renderer` consumes `@ports` contracts via injected deps; it does not import stores directly.
+  - `@components` dispatch commands + read queries; store singletons must be behind adapters.
 
 ## “Where to find X” (starter)
 
 - **Rendering loop**: `src/renderer/Renderer.ts`
 - **Raytracing pipeline**: `src/renderer/RaytracingPipeline.ts`
 - **Picking/raycasting**: `src/core/Raycaster.ts`
-- **Camera orbit/pan/zoom state**: `src/store/cameraStore.ts` (will migrate later)
-- **Canvas input wiring**: `src/components/Canvas.tsx`
+- **Kernel shell / event ordering**: `src/kernel/Kernel.ts`
+- **Commands (writes)**: `src/ports/commands.ts`
+- **Queries (reads)**: `src/ports/queries.ts`
+- **Events (notifications)**: `src/ports/events.ts`
+- **Scene backing store adapter (temporary)**: `src/adapters/v1/V1ZustandBackingStore.ts`
+- **Renderer deps adapter (temporary)**: `src/adapters/v1/createV1RendererDeps.ts`
+- **Canvas deps adapter (temporary)**: `src/adapters/v1/createV1CanvasDeps.ts`
+- **Camera orbit/pan/zoom state (legacy)**: `src/store/cameraStore.ts`
+- **Canvas input wiring**: `src/components/Canvas.tsx` (dispatches commands; store reads via v1 adapter)
 - **Benchmark harness**: `bench/run.mjs` + `src/bench/benchBridge.ts`
 
 
