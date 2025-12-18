@@ -22,6 +22,7 @@ import path from 'node:path';
 const DEFAULT_PORT = 4173;
 const ORBIT_DURATION_MS = 10_000;
 const BENCH_QUERY = '__bench=1';
+const BENCH_RUNS = Number(process.env.BENCH_RUNS ?? 3);
 
 // Performance gate thresholds (relative to v1 baseline on same machine).
 // See prp/v2/base.md §10.3.
@@ -34,6 +35,16 @@ function nowIso() {
 
 function pct(n) {
   return `${(n * 100).toFixed(1)}%`;
+}
+
+function median(values) {
+  const xs = values
+    .filter((n) => typeof n === 'number' && Number.isFinite(n))
+    .slice()
+    .sort((a, b) => a - b);
+  if (xs.length === 0) return null;
+  const mid = Math.floor(xs.length / 2);
+  return xs.length % 2 === 1 ? xs[mid] : (xs[mid - 1] + xs[mid]) / 2;
 }
 
 function sleep(ms) {
@@ -307,51 +318,79 @@ async function main() {
   try {
     await waitForHttpOk(`http://127.0.0.1:${port}/`, { timeoutMs: 30_000 });
 
-    // Launch Chrome to a blank page; we will navigate via CDP so only one tab loads during the run.
-    const chrome = await launchChrome({ url: 'about:blank' });
-    try {
-      const cdp = createCdpClient(chrome.wsUrl);
-      await cdp.waitOpen();
+    const waitForBridgeExpr =
+      "typeof window.__LIGHTSHOW_BENCH__ !== 'undefined' && !!window.__LIGHTSHOW_BENCH__?.run";
 
-      const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
-      const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+    // For TTFF stability, run each sample in a fresh Chrome instance + fresh user-data-dir.
+    // (TTFF is sensitive to caches and process state.)
+    const runs = [];
+    for (let i = 0; i < BENCH_RUNS; i++) {
+      const chrome = await launchChrome({ url: 'about:blank' });
+      try {
+        const cdp = createCdpClient(chrome.wsUrl);
+        await cdp.waitOpen();
 
-      await cdp.send('Page.enable', {}, { sessionId });
-      await cdp.send('Runtime.enable', {}, { sessionId });
+        const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+        const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
-      await cdp.send('Page.navigate', { url: previewUrl }, { sessionId });
-      await cdp.waitForEvent('Page.loadEventFired', { timeoutMs: 60_000, sessionId });
+        await cdp.send('Page.enable', {}, { sessionId });
+        await cdp.send('Runtime.enable', {}, { sessionId });
 
-      // Wait for bench bridge to exist.
-      const waitForBridgeExpr =
-        "typeof window.__LIGHTSHOW_BENCH__ !== 'undefined' && !!window.__LIGHTSHOW_BENCH__?.run";
-      while (true) {
-        const ready = await cdp.send(
+        await cdp.send('Page.navigate', { url: previewUrl }, { sessionId });
+        await cdp.waitForEvent('Page.loadEventFired', { timeoutMs: 60_000, sessionId });
+
+        while (true) {
+          const ready = await cdp.send(
+            'Runtime.evaluate',
+            { expression: waitForBridgeExpr, returnByValue: true },
+            { sessionId }
+          );
+          if (ready?.result?.value === true) break;
+          await sleep(50);
+        }
+
+        const result = await cdp.send(
           'Runtime.evaluate',
-          { expression: waitForBridgeExpr, returnByValue: true },
+          {
+            expression: `window.__LIGHTSHOW_BENCH__.run({ orbitDurationMs: ${orbitDurationMs} })`,
+            awaitPromise: true,
+            returnByValue: true,
+          },
           { sessionId }
         );
-        if (ready?.result?.value === true) break;
-        await sleep(50);
-      }
 
-      const result = await cdp.send(
-        'Runtime.evaluate',
-        {
-          expression: `window.__LIGHTSHOW_BENCH__.run({ orbitDurationMs: ${orbitDurationMs} })`,
-          awaitPromise: true,
-          returnByValue: true,
-        },
-        { sessionId }
-      );
+        const benchResult = result?.result?.value;
+        if (!benchResult || typeof benchResult !== 'object') {
+          throw new Error('Benchmark did not return a result object');
+        }
 
-      const benchResult = result?.result?.value;
-      if (!benchResult || typeof benchResult !== 'object') {
-        throw new Error('Benchmark did not return a result object');
+        const metrics = extractMetrics(benchResult);
+        runs.push({
+          ttffMs: metrics.ttffMs,
+          orbitMedianFps: metrics.orbitMedianFps,
+          orbitDurationMs: benchResult.orbitDurationMs ?? orbitDurationMs,
+          startedAtIso: benchResult.startedAtIso ?? nowIso(),
+          userAgent: benchResult.userAgent ?? 'unknown',
+        });
+
+        // Best-effort close.
+        try {
+          await sendWithTimeout(cdp, 'Target.closeTarget', { targetId }, { timeoutMs: 1_000 });
+        } catch {
+          // ignore
+        }
+        cdp.close();
+      } finally {
+        await killAndWait(chrome.child, { name: 'chrome' });
       }
+    }
 
       const baseline = await readBaselineMetrics();
-      const current = extractMetrics(benchResult);
+      const current = {
+        ttffMs: median(runs.map((r) => r.ttffMs)) ?? 0,
+        orbitMedianFps: median(runs.map((r) => r.orbitMedianFps)) ?? 0,
+      };
+
       const ttffRatio = current.ttffMs / baseline.ttffMs;
       const fpsRatio = current.orbitMedianFps / baseline.orbitMedianFps;
       const passTtff = ttffRatio <= TTFF_MAX_REGRESSION_RATIO;
@@ -364,16 +403,18 @@ async function main() {
       const latest = {
         schemaVersion: 1,
         capturedAtIso: nowIso(),
+        benchRuns: BENCH_RUNS,
         machine: {
           os: `${process.platform} ${os.release()}`,
-          browser: benchResult.userAgent ?? 'unknown',
+          browser: runs[0]?.userAgent ?? 'unknown',
           gpu: 'unknown',
         },
         results: {
           ttffMs: current.ttffMs,
           orbitMedianFps: current.orbitMedianFps,
-          orbitDurationMs: benchResult.orbitDurationMs ?? orbitDurationMs,
+          orbitDurationMs: orbitDurationMs,
         },
+        runs,
         baseline: {
           ttffMs: baseline.ttffMs,
           orbitMedianFps: baseline.orbitMedianFps,
@@ -391,6 +432,7 @@ async function main() {
       console.log('--- Lightshow benchmark (Step 1.1) ---');
       console.log(`TTFF:          ${current.ttffMs.toFixed(1)} ms (baseline ${baseline.ttffMs.toFixed(1)} ms, ratio ${pct(ttffRatio)})`);
       console.log(`Orbit median:  ${current.orbitMedianFps.toFixed(1)} fps (baseline ${baseline.orbitMedianFps.toFixed(1)} fps, ratio ${pct(fpsRatio)})`);
+      console.log(`Runs:          ${BENCH_RUNS} (median)`);
       console.log(`Status:        ${pass ? 'PASS' : 'FAIL'}`);
       console.log(`Output JSON:   ${outPath}`);
       console.log('-------------------------------------');
@@ -399,16 +441,6 @@ async function main() {
         process.exitCode = 1;
       }
 
-      // Do not allow teardown to hang the whole benchmark.
-      try {
-        await sendWithTimeout(cdp, 'Target.closeTarget', { targetId }, { timeoutMs: 1_000 });
-      } catch {
-        // ignore
-      }
-      cdp.close();
-    } finally {
-      await killAndWait(chrome.child, { name: 'chrome' });
-    }
   } finally {
     await killAndWait(preview, { name: 'vite preview' });
   }

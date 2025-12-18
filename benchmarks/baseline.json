@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
-  "capturedAtIso": "2025-12-18T09:28:08.093Z",
+  "capturedAtIso": "2025-12-18T12:08:55.000Z",
   "machine": {
     "os": "darwin 25.2.0",
     "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
     "gpu": "unknown"
   },
   "results": {
-    "ttffMs": 1340.1000000014901,
-    "orbitMedianFps": 75.18796989954012,
+    "ttffMs": 2826.6,
+    "orbitMedianFps": 75.18796985742027,
     "orbitDurationMs": 10000
-  }
+  },
+  "notes": "Re-baselined using median of 5 bench runs at commit bf227dc (m01 baseline commit) because original TTFF (1340ms) was not reproducible; runs observed ~2.58s-2.85s on same machine/browser."
 }
 
 
