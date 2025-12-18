@@ -1,5 +1,6 @@
 export * from './v1/V1ZustandBackingStore';
 export * from './v1/createV1RendererDeps';
+export * from './v1/createV1CanvasDeps';
 export * from './react/KernelContext';
 export * from './input/DomKeyboardController';
 export * from './input/gizmoDrag';
