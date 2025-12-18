@@ -82,11 +82,14 @@ export default [
         'error',
         {
           patterns: [
+            '@adapters/*',
             '@bench/*',
             '@components/*',
             '@core/*',
             '@gizmos/*',
             '@hooks/*',
+            '@kernel/*',
+            '@ports/*',
             '@renderer/*',
             '@store/*',
             '@utils/*',
