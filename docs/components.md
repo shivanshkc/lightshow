@@ -48,17 +48,18 @@ This doc describes the **decoupled components** in the codebase, the **contracts
 ### Runtime data flow
 
 ```mermaid
-flowchart LR;
-UI["UI (React components)"] -->|dispatch(Command)| K[Kernel]
-UI -->|queries.getSceneSnapshot()| K
-K -->|events.subscribe(...)| UI
+flowchart LR
 
-UI -->|injects deps| R[Renderer]
-R -->|queries.getSceneSnapshot()| K
-K -->|events| R
+UI[UI React] -->|dispatch Command| K[Kernel]
+UI -->|query SceneSnapshot| K
+K -->|emit events| UI
 
-K -->|get/set scene state| BS["BackingStore implementation"]
-BS --> S["Zustand stores"]
+UI -->|inject deps| R[Renderer]
+R -->|query SceneSnapshot| K
+K -->|emit events| R
+
+K -->|read/write scene state| BS[BackingStore]
+BS --> S[Zustand stores]
 ```
 
 ### Composition root (wiring)
