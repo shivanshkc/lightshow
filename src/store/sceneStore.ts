@@ -8,7 +8,6 @@ import {
   createDefaultSphere,
   createDefaultCuboid,
 } from '../core/types';
-import { historyMiddleware, type WithHistory } from './historyMiddleware';
 import { LIMITS } from '../utils/limits';
 
 /**
@@ -482,9 +481,8 @@ interface SceneState {
   applyBackgroundPreset: (preset: 'day' | 'dusk' | 'night') => void;
 }
 
-export const useSceneStore = create<WithHistory<SceneState>>()(
-  historyMiddleware<SceneState>(
-    (set, get) => ({
+export const useSceneStore = create<SceneState>()(
+  (set, get) => ({
       objects: createInitialScene(),
       selectedObjectId: null,
       // Default environment background: Night
@@ -627,11 +625,9 @@ export const useSceneStore = create<WithHistory<SceneState>>()(
       },
 
       clear: () => {
-        // Clear scene objects and selection. History stacks are cleared by tests via setState.
+        // Clear scene objects and selection.
         set({ objects: [], selectedObjectId: null });
       },
-    }),
-    { limit: 30 }
-  )
+    })
 );
 

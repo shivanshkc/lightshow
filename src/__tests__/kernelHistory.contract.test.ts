@@ -5,9 +5,8 @@ import { V1ZustandBackingStore } from '@adapters';
 
 describe('m06 history slice (kernel-facing contract)', () => {
   beforeEach(() => {
-    // Start from an empty scene and clear history stacks.
+    // Start from an empty scene.
     useSceneStore.getState().clear();
-    useSceneStore.setState({ past: [], future: [] } as any);
   });
 
   it('exposes canUndo/canRedo via queries.getSceneSnapshot().history', () => {
