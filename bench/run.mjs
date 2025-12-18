@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -23,8 +23,17 @@ const DEFAULT_PORT = 4173;
 const ORBIT_DURATION_MS = 10_000;
 const BENCH_QUERY = '__bench=1';
 
+// Performance gate thresholds (relative to v1 baseline on same machine).
+// See prp/v2/base.md §10.3.
+const TTFF_MAX_REGRESSION_RATIO = 1.10; // +10%
+const FPS_MIN_RATIO = 0.90; // -10%
+
 function nowIso() {
   return new Date().toISOString();
+}
+
+function pct(n) {
+  return `${(n * 100).toFixed(1)}%`;
 }
 
 function sleep(ms) {
@@ -86,6 +95,35 @@ async function runCmd(command, args, { cwd, env, prefix } = {}) {
   if (exitCode !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(' ')} (exit ${exitCode})`);
   }
+}
+
+function extractMetrics(obj) {
+  // Baseline schema (benchmarks/baseline.json)
+  if (obj && typeof obj === 'object' && obj.results && typeof obj.results === 'object') {
+    const ttffMs = obj.results.ttffMs;
+    const orbitMedianFps = obj.results.orbitMedianFps;
+    if (typeof ttffMs === 'number' && typeof orbitMedianFps === 'number') {
+      return { ttffMs, orbitMedianFps };
+    }
+  }
+
+  // Current bench bridge output schema
+  if (obj && typeof obj === 'object') {
+    const ttffMs = obj.ttffMs;
+    const orbitMedianFps = obj.orbitMedianFps;
+    if (typeof ttffMs === 'number' && typeof orbitMedianFps === 'number') {
+      return { ttffMs, orbitMedianFps };
+    }
+  }
+
+  throw new Error('Unable to extract ttffMs/orbitMedianFps from benchmark JSON');
+}
+
+async function readBaselineMetrics() {
+  const baselinePath = path.join(process.cwd(), 'benchmarks', 'baseline.json');
+  const raw = await readFile(baselinePath, 'utf8');
+  const json = JSON.parse(raw);
+  return { baselinePath, ...extractMetrics(json) };
 }
 
 async function waitForHttpOk(url, { timeoutMs = 30_000 } = {}) {
@@ -312,18 +350,54 @@ async function main() {
         throw new Error('Benchmark did not return a result object');
       }
 
+      const baseline = await readBaselineMetrics();
+      const current = extractMetrics(benchResult);
+      const ttffRatio = current.ttffMs / baseline.ttffMs;
+      const fpsRatio = current.orbitMedianFps / baseline.orbitMedianFps;
+      const passTtff = ttffRatio <= TTFF_MAX_REGRESSION_RATIO;
+      const passFps = fpsRatio >= FPS_MIN_RATIO;
+      const pass = passTtff && passFps;
+
       const outDir = path.join(process.cwd(), 'benchmarks');
       await mkdir(outDir, { recursive: true });
       const outPath = path.join(outDir, 'latest.json');
-      await writeFile(outPath, JSON.stringify(benchResult, null, 2), 'utf8');
+      const latest = {
+        schemaVersion: 1,
+        capturedAtIso: nowIso(),
+        machine: {
+          os: `${process.platform} ${os.release()}`,
+          browser: benchResult.userAgent ?? 'unknown',
+          gpu: 'unknown',
+        },
+        results: {
+          ttffMs: current.ttffMs,
+          orbitMedianFps: current.orbitMedianFps,
+          orbitDurationMs: benchResult.orbitDurationMs ?? orbitDurationMs,
+        },
+        baseline: {
+          ttffMs: baseline.ttffMs,
+          orbitMedianFps: baseline.orbitMedianFps,
+          baselinePath: baseline.baselinePath,
+        },
+        gate: {
+          pass,
+          ttff: { ratio: ttffRatio, maxAllowedRatio: TTFF_MAX_REGRESSION_RATIO },
+          fps: { ratio: fpsRatio, minAllowedRatio: FPS_MIN_RATIO },
+        },
+      };
+      await writeFile(outPath, JSON.stringify(latest, null, 2), 'utf8');
 
       console.log('');
       console.log('--- Lightshow benchmark (Step 1.1) ---');
-      console.log(`TTFF:          ${benchResult.ttffMs.toFixed(1)} ms`);
-      console.log(`Orbit median:  ${benchResult.orbitMedianFps.toFixed(1)} fps`);
-      console.log(`Status:        PASS (placeholder; thresholds enforced later)`);
+      console.log(`TTFF:          ${current.ttffMs.toFixed(1)} ms (baseline ${baseline.ttffMs.toFixed(1)} ms, ratio ${pct(ttffRatio)})`);
+      console.log(`Orbit median:  ${current.orbitMedianFps.toFixed(1)} fps (baseline ${baseline.orbitMedianFps.toFixed(1)} fps, ratio ${pct(fpsRatio)})`);
+      console.log(`Status:        ${pass ? 'PASS' : 'FAIL'}`);
       console.log(`Output JSON:   ${outPath}`);
       console.log('-------------------------------------');
+
+      if (!pass) {
+        process.exitCode = 1;
+      }
 
       // Do not allow teardown to hang the whole benchmark.
       try {
