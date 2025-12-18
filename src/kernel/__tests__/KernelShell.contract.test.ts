@@ -3,7 +3,12 @@ import type { Command, SceneSnapshot } from '@ports';
 import { KernelShell, type KernelBackingStore } from '../Kernel';
 
 function baseScene(): SceneSnapshot {
-  return { objects: [], selectedObjectId: null, backgroundColor: [0, 0, 0] };
+  return {
+    objects: [],
+    selectedObjectId: null,
+    backgroundColor: [0, 0, 0],
+    history: { canUndo: false, canRedo: false },
+  };
 }
 
 function createMockStore(initial: SceneSnapshot = baseScene()): KernelBackingStore & { state: SceneSnapshot } {

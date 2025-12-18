@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TransformSection } from '../../components/panels/TransformSection';
-import { SceneObject } from '../../core/types';
 import { useSceneStore } from '../../store/sceneStore';
+import { KernelProvider } from '@adapters';
 
 // Create a mock scene object
-const createMockObject = (type: 'sphere' | 'cuboid'): SceneObject => ({
+const createMockObject = (type: 'sphere' | 'cuboid') => ({
   id: 'test-1',
   name: 'Test Object',
   type,
@@ -30,17 +30,29 @@ describe('TransformSection', () => {
   });
 
   it('renders position label', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     expect(screen.getByText('Position')).toBeDefined();
   });
 
   it('renders rotation label', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     expect(screen.getByText('Rotation (°)')).toBeDefined();
   });
 
   it('displays position values', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     // Position Y value (2.00) - unique to this test
     expect(screen.getByDisplayValue('2.00')).toBeDefined();
     // Position Z value (3.00)
@@ -48,27 +60,47 @@ describe('TransformSection', () => {
   });
 
   it('shows Radius for spheres', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     expect(screen.getByText('Radius')).toBeDefined();
   });
 
   it('shows Scale label for cuboids', () => {
-    render(<TransformSection object={createMockObject('cuboid')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('cuboid') as any} />
+      </KernelProvider>
+    );
     expect(screen.getByText('Scale')).toBeDefined();
   });
 
   it('does not show Scale for spheres', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     expect(screen.queryByText('Scale')).toBeNull();
   });
 
   it('does not show Radius for cuboids', () => {
-    render(<TransformSection object={createMockObject('cuboid')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('cuboid') as any} />
+      </KernelProvider>
+    );
     expect(screen.queryByText('Radius')).toBeNull();
   });
 
   it('displays rotation in degrees', () => {
-    render(<TransformSection object={createMockObject('sphere')} />);
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
     // 45 degrees for Y rotation
     expect(screen.getByDisplayValue('45.0')).toBeDefined();
   });

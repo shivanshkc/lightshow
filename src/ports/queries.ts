@@ -23,6 +23,10 @@ export type SceneSnapshot = {
   objects: readonly SceneObjectSnapshot[];
   selectedObjectId: ObjectId | null;
   backgroundColor: Vec3;
+  history: {
+    canUndo: boolean;
+    canRedo: boolean;
+  };
 };
 
 /**

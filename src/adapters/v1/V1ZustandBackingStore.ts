@@ -14,15 +14,48 @@ function vec3Equals(a: Vec3, b: Vec3): boolean {
  * is progressively rewired to use ports.
  */
 export class V1ZustandBackingStore implements KernelBackingStore {
+  private last:
+    | {
+        objectsRef: unknown;
+        selectedObjectId: string | null;
+        backgroundRef: unknown;
+        canUndo: boolean;
+        canRedo: boolean;
+        snapshot: SceneSnapshot;
+      }
+    | null = null;
+
   getSceneSnapshot(): SceneSnapshot {
     const s = useSceneStore.getState();
 
-    // Allocation-light: reuse store references. The port contract allows returning stable references.
-    return {
+    const objectsRef = s.objects as unknown;
+    const selectedObjectId = s.selectedObjectId;
+    const backgroundRef = s.backgroundColor as unknown;
+    const canUndo = (s as any).canUndo?.() ?? false;
+    const canRedo = (s as any).canRedo?.() ?? false;
+
+    // Allocation-light + referentially stable for useSyncExternalStore:
+    // reuse the exact same snapshot object when nothing changed.
+    if (
+      this.last &&
+      this.last.objectsRef === objectsRef &&
+      this.last.selectedObjectId === selectedObjectId &&
+      this.last.backgroundRef === backgroundRef &&
+      this.last.canUndo === canUndo &&
+      this.last.canRedo === canRedo
+    ) {
+      return this.last.snapshot;
+    }
+
+    const snapshot: SceneSnapshot = {
       objects: s.objects as unknown as readonly SceneObjectSnapshot[],
-      selectedObjectId: s.selectedObjectId,
+      selectedObjectId,
       backgroundColor: s.backgroundColor as Vec3,
+      history: { canUndo, canRedo },
     };
+
+    this.last = { objectsRef, selectedObjectId, backgroundRef, canUndo, canRedo, snapshot };
+    return snapshot;
   }
 
   apply(command: Command): { stateChanged: boolean; renderInvalidated: boolean } {

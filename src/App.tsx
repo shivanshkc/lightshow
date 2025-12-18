@@ -2,8 +2,9 @@ import { useRef, useCallback } from 'react';
 import { LeftPanel, RightPanel, StatusBar, Canvas } from '@components';
 import { Renderer } from '@renderer';
 import { useKeyboardShortcuts, useBeforeUnloadWarning } from '@hooks';
+import { KernelProvider } from '@adapters';
 
-export function App() {
+function AppInner() {
   const rendererRef = useRef<Renderer | null>(null);
 
   useKeyboardShortcuts();
@@ -29,6 +30,14 @@ export function App() {
 
       <StatusBar rendererRef={rendererRef} />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <KernelProvider>
+      <AppInner />
+    </KernelProvider>
   );
 }
 

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { Canvas } from '../components/Canvas';
+import { KernelProvider } from '@adapters';
+
+function renderCanvas(ui: React.ReactElement) {
+  return render(<KernelProvider>{ui}</KernelProvider>);
+}
 
 describe('Canvas Component', () => {
   beforeEach(() => {
@@ -54,24 +59,24 @@ describe('Canvas Component', () => {
   });
 
   it('shows loading state initially', () => {
-    render(<Canvas />);
+    renderCanvas(<Canvas />);
     expect(screen.getByText('Initializing WebGPU...')).toBeDefined();
   });
 
   it('renders canvas element immediately', () => {
-    const { container } = render(<Canvas />);
+    const { container } = renderCanvas(<Canvas />);
     const canvas = container.querySelector('canvas');
     expect(canvas).not.toBeNull();
   });
 
   it('disables default touch gestures on canvas', () => {
-    const { container } = render(<Canvas />);
+    const { container } = renderCanvas(<Canvas />);
     const canvas = container.querySelector('canvas') as HTMLCanvasElement;
     expect(canvas.className).toContain('touch-none');
   });
 
   it('hides loading overlay when WebGPU initializes', async () => {
-    render(<Canvas />);
+    renderCanvas(<Canvas />);
     
     // Initially shows loading
     expect(screen.getByText('Initializing WebGPU...')).toBeDefined();
@@ -83,7 +88,7 @@ describe('Canvas Component', () => {
   });
 
   it('applies className prop', () => {
-    const { container } = render(<Canvas className="test-class" />);
+    const { container } = renderCanvas(<Canvas className="test-class" />);
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper.className).toContain('test-class');
   });
@@ -100,7 +105,7 @@ describe('Canvas Error Handling', () => {
     // Override mock to simulate no WebGPU
     vi.stubGlobal('navigator', { gpu: undefined });
     
-    render(<Canvas />);
+    renderCanvas(<Canvas />);
     
     await waitFor(() => {
       expect(screen.getByText('WebGPU Not Available')).toBeDefined();
@@ -110,7 +115,7 @@ describe('Canvas Error Handling', () => {
   it('displays the error message', async () => {
     vi.stubGlobal('navigator', { gpu: undefined });
     
-    render(<Canvas />);
+    renderCanvas(<Canvas />);
     
     await waitFor(() => {
       expect(screen.getByText(/not supported/i)).toBeDefined();
@@ -120,7 +125,7 @@ describe('Canvas Error Handling', () => {
   it('shows reload action in error state', async () => {
     vi.stubGlobal('navigator', { gpu: undefined });
 
-    render(<Canvas />);
+    renderCanvas(<Canvas />);
 
     await waitFor(() => {
       expect(screen.getByText('Reload')).toBeDefined();

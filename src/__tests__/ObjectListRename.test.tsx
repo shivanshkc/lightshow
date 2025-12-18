@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ObjectList } from '../components/panels/ObjectList';
 import { useSceneStore } from '../store/sceneStore';
+import { KernelProvider } from '@adapters';
 
 describe('Object renaming', () => {
   beforeEach(() => {
@@ -11,7 +12,11 @@ describe('Object renaming', () => {
 
   it('double-click enables edit mode', () => {
     useSceneStore.getState().addSphere();
-    render(<ObjectList />);
+    render(
+      <KernelProvider>
+        <ObjectList />
+      </KernelProvider>
+    );
 
     fireEvent.doubleClick(screen.getByText(/Sphere 1/));
     expect(screen.getByRole('textbox')).toBeDefined();
@@ -19,7 +24,11 @@ describe('Object renaming', () => {
 
   it('enter submits new name', () => {
     const id = useSceneStore.getState().addSphere()!;
-    render(<ObjectList />);
+    render(
+      <KernelProvider>
+        <ObjectList />
+      </KernelProvider>
+    );
 
     fireEvent.doubleClick(screen.getByText(/Sphere 1/));
     const input = screen.getByRole('textbox') as HTMLInputElement;

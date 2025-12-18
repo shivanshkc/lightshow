@@ -1,36 +1,37 @@
 import { useCallback } from 'react';
-import { SceneObject } from '../../core/types';
-import { useSceneStore } from '../../store/sceneStore';
+import type { SceneObjectSnapshot } from '@ports';
+import { useKernel } from '@adapters';
 import { Panel } from '../ui/Panel';
 import { Vec3Input } from '../ui/Vec3Input';
 import { NumberInput } from '../ui/NumberInput';
 
 interface TransformSectionProps {
-  object: SceneObject;
+  object: SceneObjectSnapshot;
 }
 
 export function TransformSection({ object }: TransformSectionProps) {
-  const updateTransform = useSceneStore((state) => state.updateTransform);
+  const kernel = useKernel();
 
   const handlePositionChange = useCallback(
     (position: [number, number, number]) => {
-      updateTransform(object.id, { position });
+      kernel.dispatch({ v: 1, type: 'transform.update', objectId: object.id, transform: { position } });
     },
-    [object.id, updateTransform]
+    [kernel, object.id]
   );
 
   const handleRotationChange = useCallback(
     (rotationDegrees: [number, number, number]) => {
       // Convert degrees to radians for storage
-      updateTransform(object.id, {
-        rotation: rotationDegrees.map((d) => (d * Math.PI) / 180) as [
-          number,
-          number,
-          number,
-        ],
+      kernel.dispatch({
+        v: 1,
+        type: 'transform.update',
+        objectId: object.id,
+        transform: {
+          rotation: rotationDegrees.map((d) => (d * Math.PI) / 180) as [number, number, number],
+        },
       });
     },
-    [object.id, updateTransform]
+    [kernel, object.id]
   );
 
   const handleScaleChange = useCallback(
@@ -38,12 +39,17 @@ export function TransformSection({ object }: TransformSectionProps) {
       // For spheres, enforce uniform scale
       if (object.type === 'sphere') {
         const uniform = scale[0];
-        updateTransform(object.id, { scale: [uniform, uniform, uniform] });
+        kernel.dispatch({
+          v: 1,
+          type: 'transform.update',
+          objectId: object.id,
+          transform: { scale: [uniform, uniform, uniform] },
+        });
       } else {
-        updateTransform(object.id, { scale });
+        kernel.dispatch({ v: 1, type: 'transform.update', objectId: object.id, transform: { scale } });
       }
     },
-    [object.id, object.type, updateTransform]
+    [kernel, object.id, object.type]
   );
 
   // Convert radians to degrees for display

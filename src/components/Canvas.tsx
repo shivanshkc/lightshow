@@ -7,10 +7,10 @@ import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
 import { TranslateGizmo } from '../gizmos/TranslateGizmo';
 import { RotateGizmo } from '../gizmos/RotateGizmo';
 import { ScaleGizmo } from '../gizmos/ScaleGizmo';
-import { useSceneStore } from '../store/sceneStore';
 import { useCameraStore } from '../store/cameraStore';
 import { useGizmoStore } from '../store/gizmoStore';
 import { LIMITS } from '../utils/limits';
+import { useKernel } from '@adapters';
 import {
   mat4Inverse,
   mat4Perspective,
@@ -33,6 +33,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const controllerRef = useRef<CameraController | null>(null);
+  const kernel = useKernel();
   const [status, setStatus] = useState<CanvasStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -187,7 +188,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const y = e.clientY - rect.top;
 
       const gizmoState = useGizmoStore.getState();
-      const sceneState = useSceneStore.getState();
+      const sceneState = kernel.queries.getSceneSnapshot();
 
       // If dragging gizmo, update object transform
       if (gizmoState.isDragging && gizmoState.activeAxis && gizmoState.dragStartMousePosition) {
@@ -243,8 +244,11 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
               ];
             }
 
-            sceneState.updateTransform(sceneState.selectedObjectId!, {
-              position: newPosition,
+            kernel.dispatch({
+              v: 1,
+              type: 'transform.update',
+              objectId: sceneState.selectedObjectId!,
+              transform: { position: newPosition },
             });
           } else if (gizmoState.mode === 'rotate' && dragStartRotation.current) {
             // Rotation
@@ -269,8 +273,11 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
               const newRotation = RotateGizmo.addRotation(dragStartRotation.current, rotationDelta);
 
-              sceneState.updateTransform(sceneState.selectedObjectId!, {
-                rotation: newRotation,
+              kernel.dispatch({
+                v: 1,
+                type: 'transform.update',
+                objectId: sceneState.selectedObjectId!,
+                transform: { rotation: newRotation },
               });
             }
           } else if (gizmoState.mode === 'scale' && dragStartScale.current) {
@@ -296,8 +303,11 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
               newScale = ScaleGizmo.snapScale(newScale);
             }
 
-            sceneState.updateTransform(sceneState.selectedObjectId!, {
-              scale: newScale,
+            kernel.dispatch({
+              v: 1,
+              type: 'transform.update',
+              objectId: sceneState.selectedObjectId!,
+              transform: { scale: newScale },
             });
           }
         }
@@ -338,7 +348,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         }
       }
     },
-    [getCameraVectors]
+    [getCameraVectors, kernel]
   );
 
   const handleMouseDown = useCallback(
@@ -353,7 +363,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       const y = e.clientY - rect.top;
 
       const gizmoState = useGizmoStore.getState();
-      const sceneState = useSceneStore.getState();
+      const sceneState = kernel.queries.getSceneSnapshot();
 
       // Check if clicking on gizmo (for all modes)
       if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
@@ -408,7 +418,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         }
       }
     },
-    []
+    [kernel]
   );
 
   const handleMouseUp = useCallback(
@@ -455,7 +465,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         const inverseProjection = mat4Inverse(projMatrix);
 
         // Get scene objects
-        const objects = useSceneStore.getState().objects;
+        const objects = kernel.queries.getSceneSnapshot().objects;
 
         // Perform picking
         const result = raycaster.pick(
@@ -470,7 +480,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         );
 
         // Update selection
-        useSceneStore.getState().selectObject(result.objectId);
+        kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
 
         // Reset accumulation when selection changes
         rendererRef.current?.resetAccumulation();
@@ -478,7 +488,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
       mouseDownPos.current = null;
     },
-    []
+    [kernel]
   );
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
@@ -520,7 +530,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     const inverseView = mat4Inverse(viewMatrix);
     const inverseProjection = mat4Inverse(projMatrix);
 
-    const objects = useSceneStore.getState().objects;
+    const objects = kernel.queries.getSceneSnapshot().objects;
     const result = raycaster.pick(
       x,
       y,
@@ -532,9 +542,9 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       objects
     );
 
-    useSceneStore.getState().selectObject(result.objectId);
+    kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
     rendererRef.current?.resetAccumulation();
-  }, []);
+  }, [kernel]);
 
   // Handle mouse leave to clear hover
   const handleMouseLeave = useCallback(() => {

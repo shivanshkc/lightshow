@@ -1,10 +1,14 @@
-import { useSceneStore } from '../../store/sceneStore';
+import { useKernelSceneSnapshot } from '@adapters';
 import { TransformSection } from '../panels/TransformSection';
 import { MaterialSection } from '../panels/MaterialSection';
 import { ActionSection } from '../panels/ActionSection';
 
 export function RightPanel() {
-  const selectedObject = useSceneStore((state) => state.getSelectedObject());
+  const snap = useKernelSceneSnapshot();
+  const selectedObject =
+    snap.selectedObjectId === null
+      ? null
+      : snap.objects.find((o) => o.id === snap.selectedObjectId) ?? null;
 
   return (
     <aside className="w-72 bg-panel border-l border-border-subtle overflow-y-auto">

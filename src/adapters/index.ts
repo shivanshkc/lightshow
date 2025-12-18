@@ -1,4 +1,5 @@
 export * from './v1/V1ZustandBackingStore';
+export * from './react/KernelContext';
 
 // v2 adapters — placeholder.
 //

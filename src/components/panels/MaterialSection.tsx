@@ -1,23 +1,25 @@
 import { useCallback } from 'react';
-import { SceneObject, MaterialType, MATERIAL_TYPES } from '../../core/types';
-import { useSceneStore } from '../../store/sceneStore';
+import type { MaterialType } from '@ports';
+import type { SceneObjectSnapshot } from '@ports';
+import { useKernel } from '@adapters';
+import { MATERIAL_TYPES } from '../../core/types';
 import { Panel } from '../ui/Panel';
 import { Select } from '../ui/Select';
 import { ColorPicker } from '../ui/ColorPicker';
 import { Slider } from '../ui/Slider';
 
 interface MaterialSectionProps {
-  object: SceneObject;
+  object: SceneObjectSnapshot;
 }
 
 export function MaterialSection({ object }: MaterialSectionProps) {
-  const updateMaterial = useSceneStore((state) => state.updateMaterial);
+  const kernel = useKernel();
 
   const handleChange = useCallback(
     (updates: Partial<typeof object.material>) => {
-      updateMaterial(object.id, updates);
+      kernel.dispatch({ v: 1, type: 'material.update', objectId: object.id, material: updates as any });
     },
-    [object.id, updateMaterial]
+    [kernel, object.id]
   );
 
   return (

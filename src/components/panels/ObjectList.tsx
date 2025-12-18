@@ -1,16 +1,11 @@
 import { Circle, Box, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useSceneStore } from '../../store/sceneStore';
-import { SceneObject } from '../../core/types';
+import { useKernel, useKernelSceneSnapshot } from '@adapters';
+import type { SceneObjectSnapshot } from '@ports';
 
 export function ObjectList() {
-  const {
-    objects,
-    selectedObjectId,
-    selectObject,
-    toggleVisibility,
-    removeObject,
-  } = useSceneStore();
+  const kernel = useKernel();
+  const snap = useKernelSceneSnapshot();
 
   return (
     <div className="flex flex-col h-full">
@@ -19,18 +14,29 @@ export function ObjectList() {
       </h2>
 
       <div className="flex-1 overflow-y-auto">
-        {objects.length === 0 ? (
+        {snap.objects.length === 0 ? (
           <div className="p-3 text-sm text-text-muted">No objects in scene</div>
         ) : (
           <ul>
-            {objects.map((obj) => (
+            {snap.objects.map((obj) => (
               <ObjectListItem
                 key={obj.id}
                 object={obj}
-                isSelected={obj.id === selectedObjectId}
-                onSelect={() => selectObject(obj.id)}
-                onToggleVisibility={() => toggleVisibility(obj.id)}
-                onDelete={() => removeObject(obj.id)}
+                isSelected={obj.id === snap.selectedObjectId}
+                onSelect={() =>
+                  kernel.dispatch({ v: 1, type: 'selection.set', objectId: obj.id })
+                }
+                onToggleVisibility={() =>
+                  kernel.dispatch({
+                    v: 1,
+                    type: 'object.visibility.set',
+                    objectId: obj.id,
+                    visible: !obj.visible,
+                  })
+                }
+                onDelete={() =>
+                  kernel.dispatch({ v: 1, type: 'object.remove', objectId: obj.id })
+                }
               />
             ))}
           </ul>
@@ -41,7 +47,7 @@ export function ObjectList() {
 }
 
 interface ObjectListItemProps {
-  object: SceneObject;
+  object: SceneObjectSnapshot;
   isSelected: boolean;
   onSelect: () => void;
   onToggleVisibility: () => void;
@@ -56,7 +62,7 @@ function ObjectListItem({
   onDelete,
 }: ObjectListItemProps) {
   const Icon = object.type === 'sphere' ? Circle : Box;
-  const renameObject = useSceneStore((s) => s.renameObject);
+  const kernel = useKernel();
   const [isRenaming, setIsRenaming] = useState(false);
   const [editName, setEditName] = useState(object.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,7 +82,7 @@ function ObjectListItem({
   const handleRenameSubmit = () => {
     const trimmed = editName.trim();
     if (trimmed && trimmed !== object.name) {
-      renameObject(object.id, trimmed);
+      kernel.dispatch({ v: 1, type: 'object.rename', objectId: object.id, name: trimmed });
     }
     setIsRenaming(false);
     setEditName(object.name);

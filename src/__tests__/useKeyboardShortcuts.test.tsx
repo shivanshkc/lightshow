@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useSceneStore } from '../store/sceneStore';
+import { KernelProvider } from '@adapters';
 
 function Harness() {
   useKeyboardShortcuts();
@@ -18,8 +19,14 @@ describe('Keyboard shortcuts', () => {
     const id = useSceneStore.getState().addSphere()!;
     useSceneStore.getState().selectObject(id);
 
-    render(<Harness />);
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+    render(
+      <KernelProvider>
+        <Harness />
+      </KernelProvider>
+    );
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+    });
 
     expect(useSceneStore.getState().objects.length).toBe(0);
   });
@@ -28,10 +35,14 @@ describe('Keyboard shortcuts', () => {
     const id = useSceneStore.getState().addSphere()!;
     useSceneStore.getState().selectObject(id);
 
-    render(<Harness />);
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'd', ctrlKey: true })
+    render(
+      <KernelProvider>
+        <Harness />
+      </KernelProvider>
     );
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }));
+    });
 
     expect(useSceneStore.getState().objects.length).toBe(2);
   });
@@ -40,8 +51,14 @@ describe('Keyboard shortcuts', () => {
     useSceneStore.getState().addSphere();
     expect(useSceneStore.getState().objects.length).toBe(1);
 
-    render(<Harness />);
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    render(
+      <KernelProvider>
+        <Harness />
+      </KernelProvider>
+    );
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true }));
+    });
 
     expect(useSceneStore.getState().objects.length).toBe(0);
   });

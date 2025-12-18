@@ -9,6 +9,7 @@ describe('ports/queries contract', () => {
           objects: [],
           selectedObjectId: null,
           backgroundColor: [0, 0, 0],
+          history: { canUndo: false, canRedo: false },
         }) satisfies SceneSnapshot,
     };
 
