@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "capturedAtIso": "2025-12-18T09:28:08.093Z",
+  "machine": {
+    "os": "darwin 25.2.0",
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "gpu": "unknown"
+  },
+  "results": {
+    "ttffMs": 1340.1000000014901,
+    "orbitMedianFps": 75.18796989954012,
+    "orbitDurationMs": 10000
+  }
+}
+
+
