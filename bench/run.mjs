@@ -90,7 +90,6 @@ async function runCmd(command, args, { cwd, env, prefix } = {}) {
 
 async function waitForHttpOk(url, { timeoutMs = 30_000 } = {}) {
   const start = Date.now();
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     try {
       const res = await fetch(url, { method: 'GET' });
@@ -288,7 +287,6 @@ async function main() {
       // Wait for bench bridge to exist.
       const waitForBridgeExpr =
         "typeof window.__LIGHTSHOW_BENCH__ !== 'undefined' && !!window.__LIGHTSHOW_BENCH__?.run";
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const ready = await cdp.send(
           'Runtime.evaluate',

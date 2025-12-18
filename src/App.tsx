@@ -1,11 +1,7 @@
 import { useRef, useCallback } from 'react';
-import { LeftPanel } from '@components/layout/LeftPanel';
-import { RightPanel } from '@components/layout/RightPanel';
-import { StatusBar } from '@components/layout/StatusBar';
-import { Canvas } from '@components/Canvas';
-import { Renderer } from '@renderer/Renderer';
-import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts';
-import { useBeforeUnloadWarning } from '@hooks/useBeforeUnloadWarning';
+import { LeftPanel, RightPanel, StatusBar, Canvas } from '@components';
+import { Renderer } from '@renderer';
+import { useKeyboardShortcuts, useBeforeUnloadWarning } from '@hooks';
 
 export function App() {
   const rendererRef = useRef<Renderer | null>(null);

@@ -4,6 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import importPlugin from 'eslint-plugin-import';
 
 export default [
   {
@@ -14,6 +15,19 @@ export default [
       '.vite/**',
       '.cache/**',
     ],
+  },
+  // Node/tooling files (bench runner, configs)
+  {
+    files: ['bench/**/*.mjs', 'vite.config.ts', 'eslint.config.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2022,
+        // Node 18+ provides fetch; ESLint globals set may not include it.
+        fetch: 'readonly',
+        WebSocket: 'readonly',
+      },
+    },
   },
   js.configs.recommended,
   {
@@ -34,6 +48,14 @@ export default [
       '@typescript-eslint': tsPlugin,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      import: importPlugin,
+    },
+    settings: {
+      'import/resolver': {
+        typescript: {
+          project: './tsconfig.json',
+        },
+      },
     },
     rules: {
       // Use TypeScript-aware lint rules
@@ -49,6 +71,28 @@ export default [
 
       // Reasonable defaults for Vite + Fast Refresh
       'react-refresh/only-export-components': 'off',
+
+      // Guardrails (v2 / Milestone 01)
+      // - prevent dependency cycles
+      'import/no-cycle': ['error', { ignoreExternal: true }],
+
+      // - enforce "public API only" for alias-based imports (index.ts entrypoints)
+      //   (internal imports within a module can keep using relative paths during the migration)
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            '@bench/*',
+            '@components/*',
+            '@core/*',
+            '@gizmos/*',
+            '@hooks/*',
+            '@renderer/*',
+            '@store/*',
+            '@utils/*',
+          ],
+        },
+      ],
 
       // Project conventions (keep lint useful without forcing refactors)
       '@typescript-eslint/no-explicit-any': 'off',
