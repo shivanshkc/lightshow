@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from 'react';
-import type { Kernel, SceneSnapshot } from '@kernel';
+import type { Kernel } from '@kernel';
+import type { SceneSnapshot } from '@ports';
 import { KernelShell } from '@kernel';
 import { V1ZustandBackingStore } from '../v1/V1ZustandBackingStore';
 import { DomKeyboardController } from '../input/DomKeyboardController';

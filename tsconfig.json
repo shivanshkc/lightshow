@@ -11,6 +11,7 @@
       "@components/*": ["src/components/*"],
       "@core": ["src/core/index.ts"],
       "@core/*": ["src/core/*"],
+      "@gizmos": ["src/gizmos/index.ts"],
       "@gizmos/*": ["src/gizmos/*"],
       "@hooks": ["src/hooks/index.ts"],
       "@hooks/*": ["src/hooks/*"],
