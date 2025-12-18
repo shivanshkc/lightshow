@@ -87,7 +87,15 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         rendererRef.current = renderer;
 
         // Initialize camera controller
-        const controller = new CameraController(canvas);
+        const controller = new CameraController(
+          canvas,
+          {
+            getCamera: () => v1.getCameraState(),
+            getGizmo: () => v1.getGizmoState(),
+            getSceneSnapshot: () => kernel.queries.getSceneSnapshot() as any,
+          },
+          {}
+        );
         controllerRef.current = controller;
 
         // Reset accumulation when camera changes
@@ -122,7 +130,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       rendererRef.current?.destroy();
       rendererRef.current = null;
     };
-  }, [handleResize, onRendererReady]);
+  }, [handleResize, kernel, onRendererReady, v1]);
 
   // Handle resize
   useEffect(() => {
