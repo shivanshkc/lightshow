@@ -102,6 +102,67 @@ export default [
       'react-hooks/exhaustive-deps': 'off',
     },
   },
+  // v2 dependency direction: kernel + ports must not depend on UI/WebGPU/Zustand.
+  {
+    files: ['src/kernel/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['react', 'react-dom', 'zustand'],
+          patterns: [
+            '@components',
+            '@components/*',
+            '@renderer',
+            '@renderer/*',
+            '@store',
+            '@store/*',
+            '@gizmos',
+            '@gizmos/*',
+            '@hooks',
+            '@hooks/*',
+            // Also block relative reach-ins to v1 adapters from kernel during migration.
+            '../components/*',
+            '../renderer/*',
+            '../store/*',
+            '../gizmos/*',
+            '../hooks/*',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/ports/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['react', 'react-dom', 'zustand'],
+          patterns: [
+            '@components',
+            '@components/*',
+            '@renderer',
+            '@renderer/*',
+            '@store',
+            '@store/*',
+            '@gizmos',
+            '@gizmos/*',
+            '@hooks',
+            '@hooks/*',
+            // Ports should not reach into implementations; keep them technology-agnostic.
+            '../components/*',
+            '../renderer/*',
+            '../store/*',
+            '../gizmos/*',
+            '../hooks/*',
+            '../adapters/*',
+            '../kernel/*',
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 
