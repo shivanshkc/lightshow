@@ -1,5 +1,6 @@
 export * from './v1/V1ZustandBackingStore';
 export * from './react/KernelContext';
+export * from './input/DomKeyboardController';
 
 // v2 adapters — placeholder.
 //

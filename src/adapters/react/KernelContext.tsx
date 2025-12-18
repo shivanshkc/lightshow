@@ -1,7 +1,8 @@
-import { createContext, useContext, useMemo, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { Kernel, SceneSnapshot } from '@kernel';
 import { KernelShell } from '@kernel';
 import { V1ZustandBackingStore } from '../v1/V1ZustandBackingStore';
+import { DomKeyboardController } from '../input/DomKeyboardController';
 
 type KernelContextValue = {
   kernel: Kernel;
@@ -11,6 +12,14 @@ const KernelContext = createContext<KernelContextValue | null>(null);
 
 export function KernelProvider({ children }: { children: React.ReactNode }) {
   const kernel = useMemo(() => new KernelShell(new V1ZustandBackingStore()), []);
+
+  // Global DOM keyboard listener (temporary wiring; will be generalized as InputController(s)).
+  useEffect(() => {
+    const keyboard = new DomKeyboardController(kernel);
+    keyboard.attach();
+    return () => keyboard.detach();
+  }, [kernel]);
+
   return <KernelContext.Provider value={{ kernel }}>{children}</KernelContext.Provider>;
 }
 

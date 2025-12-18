@@ -1,13 +1,12 @@
 import { useRef, useCallback } from 'react';
 import { LeftPanel, RightPanel, StatusBar, Canvas } from '@components';
 import { Renderer } from '@renderer';
-import { useKeyboardShortcuts, useBeforeUnloadWarning } from '@hooks';
+import { useBeforeUnloadWarning } from '@hooks';
 import { KernelProvider } from '@adapters';
 
 function AppInner() {
   const rendererRef = useRef<Renderer | null>(null);
 
-  useKeyboardShortcuts();
   useBeforeUnloadWarning(true);
 
   const handleRendererReady = useCallback((renderer: Renderer) => {
