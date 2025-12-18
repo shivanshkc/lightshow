@@ -10,7 +10,7 @@ import { ScaleGizmo } from '../gizmos/ScaleGizmo';
 import { useCameraStore } from '../store/cameraStore';
 import { useGizmoStore } from '../store/gizmoStore';
 import { LIMITS } from '../utils/limits';
-import { useKernel } from '@adapters';
+import { createV1RendererDeps, useKernel } from '@adapters';
 import {
   mat4Inverse,
   mat4Perspective,
@@ -88,7 +88,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
           );
         });
 
-        const renderer = new Renderer(ctx);
+        const renderer = new Renderer(ctx, createV1RendererDeps(kernel));
         rendererRef.current = renderer;
 
         // Initialize camera controller
