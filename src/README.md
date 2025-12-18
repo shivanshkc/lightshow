@@ -3,6 +3,7 @@
 This folder contains the application source code. Start with:
 
 - `docs/architecture.md`
+- `docs/components.md`
 
 ## Quick map
 

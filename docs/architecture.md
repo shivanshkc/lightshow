@@ -1,6 +1,8 @@
 # Architecture
 
-This document is a **navigation map** for the codebase: components, contracts, wiring, and where to find things.
+This document is a **navigation map** for the codebase: modules, dependency rules, and “where to find X”.
+
+For a component-level view (contracts, wiring, diagrams, and “how to replace X”), see `docs/components.md`.
 
 ## Module map
 
