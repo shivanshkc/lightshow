@@ -7,6 +7,6 @@
 // - Event interfaces (notification contract)
 // - Renderer/Input/UI adapter contracts
 
-export {};
+export * from './commands';
 
 
