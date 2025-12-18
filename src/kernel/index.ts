@@ -7,6 +7,6 @@
 //
 // Implemented in Milestones 03+; this file exists now to establish the public API.
 
-export {};
+export * from './Kernel';
 
 
