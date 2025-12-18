@@ -28,7 +28,11 @@ This is the first “vertical slice” migration: move one area fully behind por
 - Lock the contract for selection slice.
 
 **Implementation expectations**
-- Commands: select/deselect, select-by-hit-result, etc.
+- Commands:
+  - Deselect MUST be represented as `selection.set` with `objectId: null` (no separate command).
+  - `Esc` deselect MUST dispatch `selection.set` with `objectId: null`.
+  - Selection changes alone MUST NOT emit `render.invalidated`.
+  - (Later in this milestone) viewport picking should be driven by a kernel command/path rather than UI reaching into scene internals.
 - Queries: selected id, selected object snapshot, selection state.
 - Events: selection changed (if required) without triggering render invalidation.
 

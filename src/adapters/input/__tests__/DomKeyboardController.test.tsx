@@ -52,6 +52,17 @@ describe('DomKeyboardController', () => {
     c.detach();
   });
 
+  it('dispatches selection.set(null) on Escape', () => {
+    const kernel = makeKernel('obj-1');
+    const c = new DomKeyboardController(kernel);
+    c.attach();
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(kernel.dispatch).toHaveBeenCalledWith({ v: 1, type: 'selection.set', objectId: null });
+    c.detach();
+  });
+
   it('does nothing on Delete when no selection', () => {
     const kernel = makeKernel(null);
     const c = new DomKeyboardController(kernel);

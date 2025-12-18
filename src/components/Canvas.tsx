@@ -481,9 +481,6 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
 
         // Update selection
         kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
-
-        // Reset accumulation when selection changes
-        rendererRef.current?.resetAccumulation();
       }
 
       mouseDownPos.current = null;
@@ -543,7 +540,6 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     );
 
     kernel.dispatch({ v: 1, type: 'selection.set', objectId: result.objectId });
-    rendererRef.current?.resetAccumulation();
   }, [kernel]);
 
   // Handle mouse leave to clear hover

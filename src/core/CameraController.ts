@@ -292,6 +292,8 @@ export class CameraController {
     ) {
       return;
     }
+    // If another controller already handled this key, don't interfere.
+    if (e.defaultPrevented) return;
 
     if (e.key === 'Shift') {
       this.isShiftDown = true;
@@ -308,11 +310,6 @@ export class CameraController {
         useCameraStore.getState().focusOn(selectedObject.transform.position);
         this.notifyCameraChange();
       }
-    }
-
-    if (e.key === 'Escape') {
-      useSceneStore.getState().selectObject(null);
-      this.notifyCameraChange();
     }
 
     // Gizmo mode switching (WER only)

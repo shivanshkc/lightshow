@@ -35,6 +35,15 @@ export class DomKeyboardController {
       return;
     }
 
+    // Esc: deselect
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      // Prevent other global listeners (e.g. legacy CameraController) from also handling Escape.
+      e.stopImmediatePropagation();
+      this.kernel.dispatch({ v: 1, type: 'selection.set', objectId: null });
+      return;
+    }
+
     const isMac = navigator.platform.includes('Mac');
     const cmdKey = isMac ? e.metaKey : e.ctrlKey;
 
