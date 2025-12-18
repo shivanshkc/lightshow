@@ -10,6 +10,19 @@ describe('Object renaming', () => {
     useSceneStore.setState({ past: [], future: [] } as any);
   });
 
+  it('click selects an object via kernel command path', () => {
+    const id = useSceneStore.getState().addSphere()!;
+    render(
+      <KernelProvider>
+        <ObjectList />
+      </KernelProvider>
+    );
+
+    // Click the list row (text inside the row)
+    fireEvent.click(screen.getByText(/Sphere 1/));
+    expect(useSceneStore.getState().selectedObjectId).toBe(id);
+  });
+
   it('double-click enables edit mode', () => {
     useSceneStore.getState().addSphere();
     render(
