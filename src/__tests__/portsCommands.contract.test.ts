@@ -17,6 +17,24 @@ describe('ports/commands contract', () => {
     expect(parsed).toEqual(cmd);
   });
 
+  it('round-trips transform.update through JSON (stable patch shape)', () => {
+    const cmd: Command = {
+      v: 1,
+      type: 'transform.update',
+      objectId: 'obj-1',
+      transform: {
+        position: [1, 2, 3],
+        rotation: [0.1, 0.2, 0.3],
+        scale: [2, 2, 2],
+      },
+    };
+
+    const json = JSON.stringify(cmd);
+    const parsed = parseCommand(JSON.parse(json));
+
+    expect(parsed).toEqual(cmd);
+  });
+
   it('rejects unknown commands safely', () => {
     const unknown = { v: 1, type: 'not-a-real-command', foo: 'bar' };
     expect(parseCommand(unknown)).toBeNull();

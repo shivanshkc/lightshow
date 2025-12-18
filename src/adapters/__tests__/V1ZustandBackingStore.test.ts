@@ -69,6 +69,21 @@ describe('adapters/v1 V1ZustandBackingStore', () => {
     expect(useSceneStore.getState().objects.length).toBe(1);
   });
 
+  it('transform.update changes state and invalidates render', () => {
+    const backing = new V1ZustandBackingStore();
+    const id = useSceneStore.getState().addSphere()!;
+
+    const res = backing.apply({
+      v: 1,
+      type: 'transform.update',
+      objectId: id,
+      transform: { position: [1, 2, 3] },
+    });
+
+    expect(res).toEqual({ stateChanged: true, renderInvalidated: true });
+    expect(useSceneStore.getState().getObject(id)?.transform.position).toEqual([1, 2, 3]);
+  });
+
   it('history.undo is a no-op when cannot undo', () => {
     const backing = new V1ZustandBackingStore();
     const res = backing.apply({ v: 1, type: 'history.undo' });

@@ -6,7 +6,25 @@ describe('ports/queries contract', () => {
     const q: KernelQueries = {
       getSceneSnapshot: () =>
         ({
-          objects: [],
+          objects: [
+            {
+              id: 'obj-1',
+              name: 'Sphere 1',
+              type: 'sphere',
+              visible: true,
+              transform: {
+                position: [0, 0, 0],
+                rotation: [0, 0, 0],
+                scale: [1, 1, 1],
+              },
+              material: {
+                type: 'plastic',
+                color: [1, 1, 1],
+                ior: 1.5,
+                intensity: 5,
+              },
+            },
+          ],
           selectedObjectId: null,
           backgroundColor: [0, 0, 0],
           history: { canUndo: false, canRedo: false },
