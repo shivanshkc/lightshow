@@ -1,10 +1,9 @@
 import { WebGPUContext } from './webgpu';
-import { Camera } from '../core/Camera';
+import { Camera, mat4Multiply, mat4Perspective } from '@core';
 import { RaytracingPipeline } from './RaytracingPipeline';
 import { BlitPipeline } from './BlitPipeline';
-import { GizmoRenderer } from '../gizmos/GizmoRenderer';
+import { GizmoRenderer } from '@gizmos';
 import type { KernelEvents, KernelQueries, SceneSnapshot } from '@ports';
-import { mat4Multiply, mat4Perspective } from '../core/math';
 
 export interface RendererStats {
   fps: number;

@@ -1,6 +1,4 @@
-import { Camera } from '../core/Camera';
-import { SceneBuffer } from '../core/SceneBuffer';
-import { SceneObject } from '../core/types';
+import { Camera, SceneBuffer, type SceneObject } from '@core';
 import raytracerWGSL from './shaders/raytracer.wgsl?raw';
 
 /**
