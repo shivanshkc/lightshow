@@ -9,6 +9,8 @@ type BenchResult = {
   ttffMs: number;
   orbitMedianFps: number;
   orbitDurationMs: number;
+  orbitFrames: number;
+  orbitDeltaAzimuth: number;
 };
 
 type BenchApi = {
@@ -60,13 +62,16 @@ export function installBenchBridge(): void {
     return firstFramePromise;
   }
 
-  async function runOrbit(durationMs: number): Promise<number> {
+  async function runOrbit(durationMs: number): Promise<{ orbitMedianFps: number; orbitFrames: number; orbitDeltaAzimuth: number }> {
     const fpsSamples: number[] = [];
 
     let last = performance.now();
     const endAt = last + durationMs;
 
-    return await new Promise((resolve) => {
+    const startAzimuth = useCameraStore.getState().azimuth;
+    let frames = 0;
+
+    const orbitMedianFps = await new Promise<number>((resolve) => {
       const step = () => {
         const now = performance.now();
         const dt = now - last;
@@ -75,6 +80,7 @@ export function installBenchBridge(): void {
         // Drive orbit (small constant angular velocity).
         useCameraStore.getState().orbit(0.01, 0.0);
         renderer?.resetAccumulation();
+        frames++;
 
         // Ignore pathological stalls (tab switching / debugger / etc.)
         if (dt > 0 && dt < 250) {
@@ -92,6 +98,17 @@ export function installBenchBridge(): void {
 
       requestAnimationFrame(step);
     });
+
+    const endAzimuth = useCameraStore.getState().azimuth;
+    const orbitDeltaAzimuth = Math.abs(endAzimuth - startAzimuth);
+
+    // If the page is backgrounded/occluded, rAF can throttle badly; this makes orbit appear "stuck".
+    // Fail fast so the CDP runner can retry or report a real failure instead of silently producing bad data.
+    if (frames < 60 || orbitDeltaAzimuth < 0.5) {
+      throw new Error(`Orbit did not run reliably (frames=${frames}, deltaAzimuth=${orbitDeltaAzimuth.toFixed(3)})`);
+    }
+
+    return { orbitMedianFps, orbitFrames: frames, orbitDeltaAzimuth };
   }
 
   const api: BenchApi = {
@@ -101,14 +118,16 @@ export function installBenchBridge(): void {
     },
     run: async ({ orbitDurationMs }) => {
       const ttffMs = await waitForFirstFrame();
-      const orbitMedianFps = await runOrbit(orbitDurationMs);
+      const orbit = await runOrbit(orbitDurationMs);
       return {
         version: 1,
         startedAtIso: isoNow(),
         userAgent: navigator.userAgent,
         ttffMs,
-        orbitMedianFps,
+        orbitMedianFps: orbit.orbitMedianFps,
         orbitDurationMs,
+        orbitFrames: orbit.orbitFrames,
+        orbitDeltaAzimuth: orbit.orbitDeltaAzimuth,
       };
     },
   };

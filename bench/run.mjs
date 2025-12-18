@@ -23,6 +23,7 @@ const DEFAULT_PORT = 4173;
 const ORBIT_DURATION_MS = 10_000;
 const BENCH_QUERY = '__bench=1';
 const BENCH_RUNS = Number(process.env.BENCH_RUNS ?? 3);
+const BENCH_MAX_ATTEMPTS_PER_RUN = Number(process.env.BENCH_MAX_ATTEMPTS_PER_RUN ?? 2);
 
 // Performance gate thresholds (relative to v1 baseline on same machine).
 // See prp/v2/base.md §10.3.
@@ -182,6 +183,8 @@ async function launchChrome({ url }) {
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
+    // Avoid macOS/Win occlusion heuristics that can freeze/throttle rAF when the window is covered.
+    '--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling',
     '--window-size=1280,720',
     '--remote-debugging-port=0',
     // Keep WebGPU available on older channels; harmless if already enabled.
@@ -325,63 +328,87 @@ async function main() {
     // (TTFF is sensitive to caches and process state.)
     const runs = [];
     for (let i = 0; i < BENCH_RUNS; i++) {
-      const chrome = await launchChrome({ url: 'about:blank' });
-      try {
-        const cdp = createCdpClient(chrome.wsUrl);
-        await cdp.waitOpen();
+      let attempt = 0;
+      while (attempt < BENCH_MAX_ATTEMPTS_PER_RUN) {
+        attempt++;
+        const chrome = await launchChrome({ url: 'about:blank' });
+        try {
+          const cdp = createCdpClient(chrome.wsUrl);
+          await cdp.waitOpen();
 
-        const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
-        const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+          const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+          const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
-        await cdp.send('Page.enable', {}, { sessionId });
-        await cdp.send('Runtime.enable', {}, { sessionId });
+          await cdp.send('Page.enable', {}, { sessionId });
+          await cdp.send('Runtime.enable', {}, { sessionId });
 
-        await cdp.send('Page.navigate', { url: previewUrl }, { sessionId });
-        await cdp.waitForEvent('Page.loadEventFired', { timeoutMs: 60_000, sessionId });
+          await cdp.send('Page.navigate', { url: previewUrl }, { sessionId });
+          await cdp.waitForEvent('Page.loadEventFired', { timeoutMs: 60_000, sessionId });
 
-        while (true) {
-          const ready = await cdp.send(
+          // Make sure the page is "active" so requestAnimationFrame isn't throttled/frozen.
+          try {
+            await cdp.send('Page.bringToFront', {}, { sessionId });
+          } catch {
+            // ignore
+          }
+          try {
+            await cdp.send('Page.setWebLifecycleState', { state: 'active' }, { sessionId });
+          } catch {
+            // ignore
+          }
+
+          while (true) {
+            const ready = await cdp.send(
+              'Runtime.evaluate',
+              { expression: waitForBridgeExpr, returnByValue: true },
+              { sessionId }
+            );
+            if (ready?.result?.value === true) break;
+            await sleep(50);
+          }
+
+          const result = await cdp.send(
             'Runtime.evaluate',
-            { expression: waitForBridgeExpr, returnByValue: true },
+            {
+              expression: `window.__LIGHTSHOW_BENCH__.run({ orbitDurationMs: ${orbitDurationMs} })`,
+              awaitPromise: true,
+              returnByValue: true,
+            },
             { sessionId }
           );
-          if (ready?.result?.value === true) break;
-          await sleep(50);
+
+          const benchResult = result?.result?.value;
+          if (!benchResult || typeof benchResult !== 'object') {
+            throw new Error('Benchmark did not return a result object');
+          }
+
+          const metrics = extractMetrics(benchResult);
+          runs.push({
+            ttffMs: metrics.ttffMs,
+            orbitMedianFps: metrics.orbitMedianFps,
+            orbitDurationMs: benchResult.orbitDurationMs ?? orbitDurationMs,
+            startedAtIso: benchResult.startedAtIso ?? nowIso(),
+            userAgent: benchResult.userAgent ?? 'unknown',
+            // Diagnostics (helps debug "no orbit" complaints).
+            orbitFrames: benchResult.orbitFrames ?? undefined,
+            orbitDeltaAzimuth: benchResult.orbitDeltaAzimuth ?? undefined,
+          });
+
+          // Best-effort close.
+          try {
+            await sendWithTimeout(cdp, 'Target.closeTarget', { targetId }, { timeoutMs: 1_000 });
+          } catch {
+            // ignore
+          }
+          cdp.close();
+          break; // success
+        } catch (err) {
+          const last = attempt >= BENCH_MAX_ATTEMPTS_PER_RUN;
+          console.warn(`[bench] run ${i + 1}/${BENCH_RUNS} attempt ${attempt}/${BENCH_MAX_ATTEMPTS_PER_RUN} failed: ${err?.message ?? String(err)}`);
+          if (last) throw err;
+        } finally {
+          await killAndWait(chrome.child, { name: 'chrome' });
         }
-
-        const result = await cdp.send(
-          'Runtime.evaluate',
-          {
-            expression: `window.__LIGHTSHOW_BENCH__.run({ orbitDurationMs: ${orbitDurationMs} })`,
-            awaitPromise: true,
-            returnByValue: true,
-          },
-          { sessionId }
-        );
-
-        const benchResult = result?.result?.value;
-        if (!benchResult || typeof benchResult !== 'object') {
-          throw new Error('Benchmark did not return a result object');
-        }
-
-        const metrics = extractMetrics(benchResult);
-        runs.push({
-          ttffMs: metrics.ttffMs,
-          orbitMedianFps: metrics.orbitMedianFps,
-          orbitDurationMs: benchResult.orbitDurationMs ?? orbitDurationMs,
-          startedAtIso: benchResult.startedAtIso ?? nowIso(),
-          userAgent: benchResult.userAgent ?? 'unknown',
-        });
-
-        // Best-effort close.
-        try {
-          await sendWithTimeout(cdp, 'Target.closeTarget', { targetId }, { timeoutMs: 1_000 });
-        } catch {
-          // ignore
-        }
-        cdp.close();
-      } finally {
-        await killAndWait(chrome.child, { name: 'chrome' });
       }
     }
 
