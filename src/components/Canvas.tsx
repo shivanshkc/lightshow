@@ -316,6 +316,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
             
             // Start gizmo drag
             gizmoState.startDrag(hitAxis, selectedObject.transform.position, [e.clientX, e.clientY]);
+            // Group continuous transform edits into a single undo step (Milestone 06).
+            kernel.dispatch({ v: 1, type: 'history.group.begin', label: 'transform' });
             
             // Disable camera controller during gizmo drag
             if (controllerRef.current) {
@@ -339,6 +341,8 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         dragStartRay.current = null;
         dragStartRotation.current = null;
         dragStartScale.current = null;
+        // Commit grouped transform history (Milestone 06).
+        kernel.dispatch({ v: 1, type: 'history.group.end' });
         
         // Re-enable camera controller
         if (controllerRef.current) {

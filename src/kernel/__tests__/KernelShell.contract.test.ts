@@ -1,21 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import type { Command, SceneSnapshot } from '@ports';
-import { KernelShell, type KernelBackingStore } from '../Kernel';
+import type { Command } from '@ports';
+import { KernelShell, type KernelBackingStore, type KernelSceneState } from '../Kernel';
 
-function baseScene(): SceneSnapshot {
-  return {
-    objects: [],
-    selectedObjectId: null,
-    backgroundColor: [0, 0, 0],
-    history: { canUndo: false, canRedo: false },
-  };
+function baseSceneState(): KernelSceneState {
+  return { objects: [], selectedObjectId: null, backgroundColor: [0, 0, 0] };
 }
 
-function createMockStore(initial: SceneSnapshot = baseScene()): KernelBackingStore & { state: SceneSnapshot } {
-  const store: KernelBackingStore & { state: SceneSnapshot } = {
+function createMockStore(initial: KernelSceneState = baseSceneState()): KernelBackingStore & { state: KernelSceneState } {
+  const store: KernelBackingStore & { state: KernelSceneState } = {
     state: initial,
-    getSceneSnapshot() {
+    getSceneState() {
       return this.state;
+    },
+    setSceneState(next) {
+      this.state = next;
     },
     apply(command: Command) {
       switch (command.type) {
@@ -36,6 +34,11 @@ function createMockStore(initial: SceneSnapshot = baseScene()): KernelBackingSto
         }
         case 'transform.update': {
           // Committed transform edits must invalidate accumulation.
+          this.state = { ...this.state, objects: [{} as any] };
+          return { stateChanged: true, renderInvalidated: true };
+        }
+        case 'object.add': {
+          this.state = { ...this.state, objects: [...(this.state.objects as any), {} as any] };
           return { stateChanged: true, renderInvalidated: true };
         }
         default: {
@@ -50,7 +53,7 @@ function createMockStore(initial: SceneSnapshot = baseScene()): KernelBackingSto
 
 describe('kernel/KernelShell contract', () => {
   it('queries.getSceneSnapshot delegates to backing store', () => {
-    const store = createMockStore({ ...baseScene(), selectedObjectId: 'a' });
+    const store = createMockStore({ ...baseSceneState(), selectedObjectId: 'a' });
     const kernel = new KernelShell(store);
     expect(kernel.queries.getSceneSnapshot().selectedObjectId).toBe('a');
   });
@@ -61,7 +64,7 @@ describe('kernel/KernelShell contract', () => {
     const events: string[] = [];
     kernel.events.subscribe((e) => events.push(e.type));
 
-    kernel.dispatch({ v: 1, type: 'history.undo' });
+    kernel.dispatch({ v: 1, type: 'transform.update', objectId: 'obj-1', transform: { position: [1, 2, 3] } });
 
     expect(events).toEqual(['state.changed', 'render.invalidated']);
   });
@@ -114,11 +117,12 @@ describe('kernel/KernelShell contract', () => {
     const events: string[] = [];
 
     const unsub = kernel.events.subscribe((e) => events.push(e.type));
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'sphere' });
     kernel.dispatch({ v: 1, type: 'history.undo' });
     unsub();
     kernel.dispatch({ v: 1, type: 'history.redo' });
 
-    expect(events).toEqual(['state.changed', 'render.invalidated']);
+    expect(events).toEqual(['state.changed', 'render.invalidated', 'state.changed', 'render.invalidated']);
   });
 });
 

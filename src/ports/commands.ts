@@ -42,6 +42,8 @@ export type Command =
   | { v: 1; type: 'material.update'; objectId: ObjectId; material: MaterialPatch }
   | { v: 1; type: 'environment.background.set'; color: Vec3 }
   | { v: 1; type: 'environment.background.preset'; preset: BackgroundPreset }
+  | { v: 1; type: 'history.group.begin'; label: 'transform' }
+  | { v: 1; type: 'history.group.end' }
   | { v: 1; type: 'history.undo' }
   | { v: 1; type: 'history.redo' };
 
@@ -165,6 +167,14 @@ export function parseCommand(input: unknown): Command | null {
       const preset = input.preset;
       if (preset !== 'day' && preset !== 'dusk' && preset !== 'night') return null;
       return { v: 1, type, preset };
+    }
+    case 'history.group.begin': {
+      const label = (input as any).label;
+      if (label !== 'transform') return null;
+      return { v: 1, type, label };
+    }
+    case 'history.group.end': {
+      return { v: 1, type };
     }
     case 'history.undo':
     case 'history.redo': {

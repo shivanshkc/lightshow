@@ -1,5 +1,5 @@
 import type { KernelBackingStore } from '@kernel';
-import type { Command, SceneObjectSnapshot, SceneSnapshot, Vec3 } from '@ports';
+import type { Command, SceneObjectSnapshot, Vec3 } from '@ports';
 import { useSceneStore } from '@store';
 import { raycaster } from '@core';
 
@@ -15,54 +15,35 @@ function vec3Equals(a: Vec3, b: Vec3): boolean {
  * is progressively rewired to use ports.
  */
 export class V1ZustandBackingStore implements KernelBackingStore {
-  private last:
-    | {
-        objectsRef: unknown;
-        selectedObjectId: string | null;
-        backgroundRef: unknown;
-        canUndo: boolean;
-        canRedo: boolean;
-        snapshot: SceneSnapshot;
-      }
-    | null = null;
-
-  getSceneSnapshot(): SceneSnapshot {
+  getSceneState() {
     const s = useSceneStore.getState();
-
-    const objectsRef = s.objects as unknown;
-    const selectedObjectId = s.selectedObjectId;
-    const backgroundRef = s.backgroundColor as unknown;
-    const canUndo = (s as any).canUndo?.() ?? false;
-    const canRedo = (s as any).canRedo?.() ?? false;
-
-    // Allocation-light + referentially stable for useSyncExternalStore:
-    // reuse the exact same snapshot object when nothing changed.
-    if (
-      this.last &&
-      this.last.objectsRef === objectsRef &&
-      this.last.selectedObjectId === selectedObjectId &&
-      this.last.backgroundRef === backgroundRef &&
-      this.last.canUndo === canUndo &&
-      this.last.canRedo === canRedo
-    ) {
-      return this.last.snapshot;
-    }
-
-    const snapshot: SceneSnapshot = {
+    return {
       objects: s.objects as unknown as readonly SceneObjectSnapshot[],
-      selectedObjectId,
+      selectedObjectId: s.selectedObjectId,
       backgroundColor: s.backgroundColor as Vec3,
-      history: { canUndo, canRedo },
     };
+  }
 
-    this.last = { objectsRef, selectedObjectId, backgroundRef, canUndo, canRedo, snapshot };
-    return snapshot;
+  setSceneState(next: { objects: readonly SceneObjectSnapshot[]; selectedObjectId: string | null; backgroundColor: Vec3 }): void {
+    useSceneStore.setState({
+      objects: next.objects as any,
+      selectedObjectId: next.selectedObjectId,
+      backgroundColor: next.backgroundColor as any,
+    } as any);
   }
 
   apply(command: Command): { stateChanged: boolean; renderInvalidated: boolean } {
     const s = useSceneStore.getState();
 
     switch (command.type) {
+      case 'history.group.begin':
+      case 'history.group.end':
+      case 'history.undo':
+      case 'history.redo': {
+        // History is owned by the kernel in v2; adapter should never be asked to apply these.
+        return { stateChanged: false, renderInvalidated: false };
+      }
+
       case 'selection.set': {
         if (s.selectedObjectId === command.objectId) {
           return { stateChanged: false, renderInvalidated: false };
@@ -158,20 +139,6 @@ export class V1ZustandBackingStore implements KernelBackingStore {
           return { stateChanged: false, renderInvalidated: false };
         }
         s.applyBackgroundPreset(command.preset);
-        return { stateChanged: true, renderInvalidated: true };
-      }
-
-      case 'history.undo': {
-        const can = (s as any).canUndo?.() ?? false;
-        if (!can) return { stateChanged: false, renderInvalidated: false };
-        (s as any).undo();
-        return { stateChanged: true, renderInvalidated: true };
-      }
-
-      case 'history.redo': {
-        const can = (s as any).canRedo?.() ?? false;
-        if (!can) return { stateChanged: false, renderInvalidated: false };
-        (s as any).redo();
         return { stateChanged: true, renderInvalidated: true };
       }
     }
