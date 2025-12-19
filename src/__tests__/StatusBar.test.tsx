@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { StatusBar } from '../components/layout/StatusBar';
 import { useRef } from 'react';
 import { useSceneStore } from '../store/sceneStore';
+import { KernelProvider } from '@adapters';
 
 // Mock Renderer
 const mockRenderer = {
@@ -15,7 +16,11 @@ const mockRenderer = {
 // Wrapper component to provide ref
 function TestWrapper() {
   const rendererRef = useRef(mockRenderer as any);
-  return <StatusBar rendererRef={rendererRef} />;
+  return (
+    <KernelProvider>
+      <StatusBar rendererRef={rendererRef} />
+    </KernelProvider>
+  );
 }
 
 describe('StatusBar', () => {

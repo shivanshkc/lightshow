@@ -1,20 +1,19 @@
 import { Circle, Box } from 'lucide-react';
-import { useSceneStore } from '../../store/sceneStore';
+import { useKernel, useKernelSceneSnapshot } from '@adapters';
 import { Button } from '../ui/Button';
 import { LIMITS } from '../../utils/limits';
 
 export function AddObjectSection() {
-  const { addSphere, addCuboid, selectObject, objects } = useSceneStore();
-  const atLimit = objects.length >= LIMITS.maxObjects;
+  const kernel = useKernel();
+  const snap = useKernelSceneSnapshot();
+  const atLimit = snap.objects.length >= LIMITS.maxObjects;
 
   const handleAddSphere = () => {
-    const id = addSphere();
-    if (id) selectObject(id);
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'sphere' });
   };
 
   const handleAddCuboid = () => {
-    const id = addCuboid();
-    if (id) selectObject(id);
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'cuboid' });
   };
 
   return (

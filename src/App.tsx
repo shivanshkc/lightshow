@@ -1,20 +1,18 @@
 import { useRef, useCallback } from 'react';
-import { LeftPanel } from './components/layout/LeftPanel';
-import { RightPanel } from './components/layout/RightPanel';
-import { StatusBar } from './components/layout/StatusBar';
-import { Canvas } from './components/Canvas';
-import { Renderer } from './renderer/Renderer';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useBeforeUnloadWarning } from './hooks/useBeforeUnloadWarning';
+import { LeftPanel, RightPanel, StatusBar, Canvas } from '@components';
+import { Renderer } from '@renderer';
+import { useBeforeUnloadWarning } from '@hooks';
+import { KernelProvider } from '@adapters';
 
-export function App() {
+function AppInner() {
   const rendererRef = useRef<Renderer | null>(null);
 
-  useKeyboardShortcuts();
   useBeforeUnloadWarning(true);
 
   const handleRendererReady = useCallback((renderer: Renderer) => {
     rendererRef.current = renderer;
+    // Optional benchmark hook (only active when loaded by src/main.tsx).
+    window.__LIGHTSHOW_BENCH__?.registerRenderer(renderer);
   }, []);
 
   return (
@@ -31,6 +29,14 @@ export function App() {
 
       <StatusBar rendererRef={rendererRef} />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <KernelProvider>
+      <AppInner />
+    </KernelProvider>
   );
 }
 

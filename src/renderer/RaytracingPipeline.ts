@@ -1,7 +1,4 @@
-import { Camera } from '../core/Camera';
-import { SceneBuffer } from '../core/SceneBuffer';
-import { SceneObject } from '../core/types';
-import { useSceneStore } from '../store/sceneStore';
+import { Camera, SceneBuffer, type SceneObject } from '@core';
 import raytracerWGSL from './shaders/raytracer.wgsl?raw';
 
 /**
@@ -28,6 +25,8 @@ export class RaytracingPipeline {
   private height: number = 0;
   private frameIndex: number = 0;
   private lastBgColorPacked: number | null = null;
+  private selectedObjectIndex: number = -1;
+  private bgColorPacked: number = 0; // 0xRRGGBB
 
   constructor(device: GPUDevice) {
     this.device = device;
@@ -104,6 +103,29 @@ export class RaytracingPipeline {
       size: 48,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+  }
+
+  /**
+   * Update selection index (-1 if none) used by shader.
+   *
+   * This should be computed by the integration layer (renderer) without
+   * per-frame allocations.
+   */
+  setSelectedObjectIndex(index: number): void {
+    this.selectedObjectIndex = index | 0;
+  }
+
+  /**
+   * Update background color packed as 0xRRGGBB (RGB 0..255).
+   * Resets accumulation when the background changes so the update is visible immediately.
+   */
+  setBackgroundColorPacked(bgPacked: number): void {
+    const next = bgPacked >>> 0;
+    if (this.lastBgColorPacked !== null && next !== this.lastBgColorPacked) {
+      this.resetAccumulation();
+    }
+    this.lastBgColorPacked = next;
+    this.bgColorPacked = next;
   }
 
   /**
@@ -220,26 +242,6 @@ export class RaytracingPipeline {
    *   (struct padding)       offset 44-47
    */
   private updateSettings(): void {
-    // Find the index of the selected object
-    const { objects, selectedObjectId, backgroundColor } = useSceneStore.getState();
-    const visibleObjects = objects.filter((o) => o.visible);
-    const selectedIndex = selectedObjectId
-      ? visibleObjects.findIndex((o) => o.id === selectedObjectId)
-      : -1;
-
-    // Pack background color (RGB 0..1) into 0xRRGGBB
-    const bg = backgroundColor ?? [0.5, 0.7, 1.0];
-    const r = Math.max(0, Math.min(255, Math.round(bg[0] * 255)));
-    const g = Math.max(0, Math.min(255, Math.round(bg[1] * 255)));
-    const b = Math.max(0, Math.min(255, Math.round(bg[2] * 255)));
-    const bgPacked = (r << 16) | (g << 8) | b;
-
-    // If background changed, reset accumulation so the update is visible immediately.
-    if (this.lastBgColorPacked !== null && bgPacked !== this.lastBgColorPacked) {
-      this.resetAccumulation();
-    }
-    this.lastBgColorPacked = bgPacked;
-
     // Create buffer: 48 bytes to match WGSL struct alignment
     const buffer = new ArrayBuffer(48);
     const uint32View = new Uint32Array(buffer);
@@ -249,9 +251,9 @@ export class RaytracingPipeline {
     uint32View[1] = 1; // samples per pixel per frame
     uint32View[2] = 8; // max bounces
     uint32View[3] = 1; // flags: bit 0 = accumulate
-    int32View[4] = selectedIndex; // selected object index (-1 if none)
+    int32View[4] = this.selectedObjectIndex; // selected object index (-1 if none)
     // uint32View[5-7] = implicit padding (already 0)
-    uint32View[8] = bgPacked >>> 0;
+    uint32View[8] = this.bgColorPacked >>> 0;
     // uint32View[9-10] = unused (already 0)
     // uint32View[11] = struct padding (already 0)
 
@@ -269,8 +271,8 @@ export class RaytracingPipeline {
   /**
    * Update scene objects
    */
-  updateScene(objects: SceneObject[]): void {
-    this.sceneBuffer.upload(objects);
+  updateScene(objects: readonly SceneObject[]): void {
+    this.sceneBuffer.upload(objects as SceneObject[]);
   }
 
   /**

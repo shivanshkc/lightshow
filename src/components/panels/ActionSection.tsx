@@ -1,14 +1,12 @@
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
-import { useSceneStore } from '../../store/sceneStore';
+import { useKernel, useKernelSceneSnapshot } from '@adapters';
 
 export function ActionSection() {
-  const selectedObjectId = useSceneStore((s) => s.selectedObjectId);
-  const duplicateSelected = useSceneStore((s) => s.duplicateSelected);
-  const deleteSelected = useSceneStore((s) => s.deleteSelected);
-  const updateTransform = useSceneStore((s) => s.updateTransform);
+  const kernel = useKernel();
+  const snap = useKernelSceneSnapshot();
 
-  const hasSelection = selectedObjectId !== null;
+  const hasSelection = snap.selectedObjectId !== null;
 
   return (
     <Panel title="Actions">
@@ -18,7 +16,14 @@ export function ActionSection() {
             variant="secondary"
             className="w-full justify-center"
             disabled={!hasSelection}
-            onClick={() => duplicateSelected()}
+            onClick={() =>
+              snap.selectedObjectId &&
+              kernel.dispatch({
+                v: 1,
+                type: 'object.duplicate',
+                objectId: snap.selectedObjectId,
+              })
+            }
           >
             Duplicate
           </Button>
@@ -26,7 +31,14 @@ export function ActionSection() {
             variant="secondary"
             className="w-full justify-center text-accent-error border border-border-default"
             disabled={!hasSelection}
-            onClick={() => deleteSelected()}
+            onClick={() =>
+              snap.selectedObjectId &&
+              kernel.dispatch({
+                v: 1,
+                type: 'object.remove',
+                objectId: snap.selectedObjectId,
+              })
+            }
           >
             Delete
           </Button>
@@ -37,10 +49,16 @@ export function ActionSection() {
           className="w-full justify-center"
           disabled={!hasSelection}
           onClick={() =>
-            updateTransform(selectedObjectId!, {
-              position: [0, 0, 0],
-              rotation: [0, 0, 0],
-              scale: [1, 1, 1],
+            snap.selectedObjectId &&
+            kernel.dispatch({
+              v: 1,
+              type: 'transform.update',
+              objectId: snap.selectedObjectId,
+              transform: {
+                position: [0, 0, 0],
+                rotation: [0, 0, 0],
+                scale: [1, 1, 1],
+              },
             })
           }
         >

@@ -20,10 +20,8 @@ This directory contains detailed commit breakdowns for each development stage. E
 | [Stage 10](./stage-10-commits.md) | 4 | Rotation & scale gizmos |
 | [Stage 11](./stage-11-commits.md) | 4 | Properties panel |
 | [Stage 12](./stage-12-commits.md) | 4 | Scene operations |
-| [Stage 13](./stage-13-commits.md) | 4 | Polish & UX |
-| [Stage 14](./stage-14-commits.md) | 4 | Export & persistence |
 
-**Total: 63 commits**
+**Total: 55 commits**
 
 ---
 
@@ -204,18 +202,6 @@ Scopes:
 - 12.3: Add keyboard shortcuts
 - 12.4: Add renaming and action buttons
 
-### Stage 13: Polish & UX
-- 13.1: Polish gizmo visuals
-- 13.2: Optimize render performance
-- 13.3: Add input validation
-- 13.4: Add error boundary
-
-### Stage 14: Export & Persistence
-- 14.1: Create scene serialization
-- 14.2: Add file save/load
-- 14.3: Add image export
-- 14.4: Add auto-save and recovery
-
 ---
 
-*Total Development: ~63 commits across 14 stages*
+*Total Development: ~55 commits across 12 stages*

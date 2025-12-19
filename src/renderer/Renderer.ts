@@ -1,18 +1,35 @@
 import { WebGPUContext } from './webgpu';
-import { Camera } from '../core/Camera';
+import { Camera, mat4Multiply, mat4Perspective } from '@core';
 import { RaytracingPipeline } from './RaytracingPipeline';
 import { BlitPipeline } from './BlitPipeline';
-import { GizmoRenderer } from '../gizmos/GizmoRenderer';
-import { useSceneStore } from '../store/sceneStore';
-import { useCameraStore } from '../store/cameraStore';
-import { useGizmoStore, axisToId } from '../store/gizmoStore';
-import { mat4Multiply, mat4Perspective } from '../core/math';
+import { GizmoRenderer } from '@gizmos';
+import type { KernelEvents, KernelQueries, SceneSnapshot } from '@ports';
 
 export interface RendererStats {
   fps: number;
   frameTime: number;
   frameCount: number;
   sampleCount: number;
+}
+
+export type RendererCameraState = {
+  position: [number, number, number];
+  target: [number, number, number];
+  fovY: number;
+  distance: number;
+};
+
+export type RendererGizmoState = {
+  mode: 'translate' | 'rotate' | 'scale' | 'none';
+  hoveredAxisId: number;
+  activeAxisId: number;
+};
+
+export interface RendererDeps {
+  queries: KernelQueries;
+  events: KernelEvents;
+  getCameraState(): RendererCameraState;
+  getGizmoState(): RendererGizmoState;
 }
 
 export class Renderer {
@@ -34,13 +51,17 @@ export class Renderer {
   private fps: number = 0;
   private fpsUpdateTime: number = 0;
 
-  private unsubscribeStore: (() => void) | null = null;
+  private deps: RendererDeps;
+  private unsubscribeKernelEvents: (() => void) | null = null;
+
+  private lastSnapshot: SceneSnapshot | null = null;
   private lastObjectsRef: unknown = null;
 
-  constructor(ctx: WebGPUContext) {
+  constructor(ctx: WebGPUContext, deps: RendererDeps) {
     this.device = ctx.device;
     this.context = ctx.context;
     this.format = ctx.format;
+    this.deps = deps;
 
     // Create camera
     this.camera = new Camera();
@@ -50,22 +71,39 @@ export class Renderer {
     this.blitPipeline = new BlitPipeline(this.device, this.format);
     this.gizmoRenderer = new GizmoRenderer(this.device, this.format);
 
-    // Subscribe to scene store changes
-    this.unsubscribeStore = useSceneStore.subscribe((state) => {
-      // Update scene data
-      this.raytracingPipeline.updateScene(state.objects);
-      
-      // Reset accumulation if objects array reference changed (add/remove/modify)
-      if (this.lastObjectsRef !== null && state.objects !== this.lastObjectsRef) {
+    // Initial sync + subscribe to kernel events (no direct store subscription).
+    this.syncFromSnapshot(this.deps.queries.getSceneSnapshot());
+    this.unsubscribeKernelEvents = this.deps.events.subscribe((event) => {
+      if (event.type === 'state.changed') {
+        this.syncFromSnapshot(this.deps.queries.getSceneSnapshot());
+      }
+      if (event.type === 'render.invalidated') {
         this.raytracingPipeline.resetAccumulation();
       }
-      this.lastObjectsRef = state.objects;
     });
+  }
 
-    // Initial scene sync
-    const initialState = useSceneStore.getState();
-    this.raytracingPipeline.updateScene(initialState.objects);
-    this.lastObjectsRef = initialState.objects;
+  private syncFromSnapshot(snapshot: SceneSnapshot): void {
+    this.lastSnapshot = snapshot;
+
+    // Upload scene only when object array reference changes.
+    const objectsRef = snapshot.objects as unknown;
+    if (this.lastObjectsRef !== objectsRef) {
+      this.raytracingPipeline.updateScene(snapshot.objects as any);
+      this.lastObjectsRef = objectsRef;
+    }
+
+    // Selection index is in terms of *visible* objects (shader only knows visible objects).
+    const selectedIndex = computeSelectedVisibleIndex(snapshot.objects as any, snapshot.selectedObjectId);
+    this.raytracingPipeline.setSelectedObjectIndex(selectedIndex);
+
+    // Pack background color (RGB 0..1) into 0xRRGGBB.
+    const bg = snapshot.backgroundColor ?? ([0.5, 0.7, 1.0] as [number, number, number]);
+    const r = Math.max(0, Math.min(255, Math.round(bg[0] * 255)));
+    const g = Math.max(0, Math.min(255, Math.round(bg[1] * 255)));
+    const b = Math.max(0, Math.min(255, Math.round(bg[2] * 255)));
+    const bgPacked = (r << 16) | (g << 8) | b;
+    this.raytracingPipeline.setBackgroundColorPacked(bgPacked);
   }
 
   /**
@@ -145,10 +183,9 @@ export class Renderer {
   destroy(): void {
     this.stop();
     
-    // Unsubscribe from store
-    if (this.unsubscribeStore) {
-      this.unsubscribeStore();
-      this.unsubscribeStore = null;
+    if (this.unsubscribeKernelEvents) {
+      this.unsubscribeKernelEvents();
+      this.unsubscribeKernelEvents = null;
     }
 
     this.raytracingPipeline.destroy();
@@ -174,8 +211,8 @@ export class Renderer {
       return;
     }
 
-    // Sync camera from store
-    const cameraState = useCameraStore.getState();
+    // Sync camera from integration layer.
+    const cameraState = this.deps.getCameraState();
     this.camera.setPosition(cameraState.position);
     this.camera.setTarget(cameraState.target);
 
@@ -197,12 +234,12 @@ export class Renderer {
     }
 
     // 3. Render gizmo if object is selected
-    const sceneState = useSceneStore.getState();
-    const gizmoState = useGizmoStore.getState();
-    
-    if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
-      const selectedObject = sceneState.objects.find(
-        (obj) => obj.id === sceneState.selectedObjectId
+    const snapshot = this.lastSnapshot;
+    const gizmoState = this.deps.getGizmoState();
+
+    if (snapshot?.selectedObjectId && gizmoState.mode !== 'none') {
+      const selectedObject = (snapshot.objects as any).find(
+        (obj: any) => obj.id === snapshot.selectedObjectId
       );
       
       if (selectedObject) {
@@ -216,18 +253,14 @@ export class Renderer {
         );
         const viewProjection = mat4Multiply(projMatrix, viewMatrix);
         
-        // Get hovered and active axis IDs
-        const hoveredAxis = axisToId(gizmoState.hoveredAxis);
-        const activeAxis = axisToId(gizmoState.activeAxis);
-        
         this.gizmoRenderer.render(
           commandEncoder,
           targetView,
           viewProjection,
           selectedObject.transform.position,
           cameraState.distance,
-          hoveredAxis,
-          activeAxis,
+          gizmoState.hoveredAxisId,
+          gizmoState.activeAxisId,
           gizmoState.mode
         );
       }
@@ -239,4 +272,21 @@ export class Renderer {
     // Schedule next frame
     this.animationFrameId = requestAnimationFrame(this.render);
   };
+}
+
+function computeSelectedVisibleIndex(
+  objects: readonly { id: string; visible: boolean }[],
+  selectedObjectId: string | null
+): number {
+  if (!selectedObjectId) return -1;
+
+  // No allocations: compute index in the "visible objects" stream.
+  let visibleIndex = 0;
+  for (let i = 0; i < objects.length; i++) {
+    const obj = objects[i];
+    if (!obj.visible) continue;
+    if (obj.id === selectedObjectId) return visibleIndex;
+    visibleIndex++;
+  }
+  return -1;
 }

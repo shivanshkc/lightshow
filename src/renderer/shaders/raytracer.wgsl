@@ -494,9 +494,12 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   // Jitter for anti-aliasing
   let jitter = randomFloat2(&rng) - 0.5;
   let ray = generateRay(pixelCoord + 0.5 + jitter, resolution);
+  // Use a stable (non-jittered) ray for selection highlight so it doesn't become noisy
+  // when rendered as a display-only overlay.
+  let highlightRay = generateRay(pixelCoord + 0.5, resolution);
   
   // Check if first hit is selected object (for highlight)
-  let firstHit = traceScene(ray);
+  let firstHit = traceScene(highlightRay);
   let isSelectedHit = firstHit.hit && firstHit.objectIndex == settings.selectedObjectIndex;
   
   // Path trace
@@ -504,21 +507,6 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   
   // Clamp fireflies (extremely bright pixels from low-probability paths)
   color = min(color, vec3<f32>(10.0));
-  
-  // Apply selection highlight using Fresnel-based rim glow
-  if (isSelectedHit) {
-    // Calculate rim factor based on viewing angle (Fresnel-like effect)
-    let viewDir = -ray.direction; // View direction is opposite of ray direction
-    let rimFactor = 1.0 - abs(dot(viewDir, firstHit.normal));
-    
-    // Create bright rim glow that's stronger at edges
-    let rimPower = pow(rimFactor, 2.5); // Sharper falloff for cleaner edge
-    let rimColor = vec3<f32>(0.3, 0.7, 1.0); // Bright cyan-blue
-    let rimGlow = rimColor * rimPower * 1.5;
-    
-    // Add rim glow to the color
-    color += rimGlow;
-  }
   
   // Accumulation using buffer
   var accumulated: vec3<f32>;
@@ -539,6 +527,20 @@ fn main(@builtin(global_invocation_id) globalId: vec3<u32>) {
   
   // Tone mapping (Reinhard) and gamma correction for output
   var finalColor = accumulated;
+
+  // Apply selection highlight as a display-only overlay (not accumulated).
+  if (isSelectedHit) {
+    // Calculate rim factor based on viewing angle (Fresnel-like effect)
+    let viewDir = -highlightRay.direction; // View direction is opposite of ray direction
+    let rimFactor = 1.0 - abs(dot(viewDir, firstHit.normal));
+
+    // Create bright rim glow that's stronger at edges
+    let rimPower = pow(rimFactor, 2.5); // Sharper falloff for cleaner edge
+    let rimColor = vec3<f32>(0.3, 0.7, 1.0); // Bright cyan-blue
+    let rimGlow = rimColor * rimPower * 1.5;
+
+    finalColor += rimGlow;
+  }
   finalColor = finalColor / (finalColor + vec3<f32>(1.0));  // Reinhard tone mapping
   finalColor = pow(finalColor, vec3<f32>(1.0 / 2.2));       // Gamma correction
   

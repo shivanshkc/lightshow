@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CameraController } from '../core/CameraController';
 import { useCameraStore } from '../store/cameraStore';
+import { useGizmoStore } from '../store/gizmoStore';
 
 describe('CameraController', () => {
   let canvas: HTMLCanvasElement;
@@ -22,23 +23,39 @@ describe('CameraController', () => {
 
   describe('construction', () => {
     it('creates controller without error', () => {
-      controller = new CameraController(canvas);
+      controller = new CameraController(canvas, {
+        getCamera: () => useCameraStore.getState(),
+        getGizmo: () => useGizmoStore.getState(),
+        getSceneSnapshot: () => ({ objects: [], selectedObjectId: null }),
+      });
       expect(controller).toBeDefined();
     });
 
     it('accepts custom sensitivity options', () => {
-      controller = new CameraController(canvas, {
-        orbitSensitivity: 0.01,
-        panSensitivity: 2,
-        zoomSensitivity: 0.5,
-      });
+      controller = new CameraController(
+        canvas,
+        {
+          getCamera: () => useCameraStore.getState(),
+          getGizmo: () => useGizmoStore.getState(),
+          getSceneSnapshot: () => ({ objects: [], selectedObjectId: null }),
+        },
+        {
+          orbitSensitivity: 0.01,
+          panSensitivity: 2,
+          zoomSensitivity: 0.5,
+        }
+      );
       expect(controller).toBeDefined();
     });
   });
 
   describe('event handling', () => {
     beforeEach(() => {
-      controller = new CameraController(canvas);
+      controller = new CameraController(canvas, {
+        getCamera: () => useCameraStore.getState(),
+        getGizmo: () => useGizmoStore.getState(),
+        getSceneSnapshot: () => ({ objects: [], selectedObjectId: null }),
+      });
     });
 
     it('prevents context menu on canvas', () => {
@@ -122,7 +139,11 @@ describe('CameraController', () => {
 
   describe('keyboard shortcuts', () => {
     beforeEach(() => {
-      controller = new CameraController(canvas);
+      controller = new CameraController(canvas, {
+        getCamera: () => useCameraStore.getState(),
+        getGizmo: () => useGizmoStore.getState(),
+        getSceneSnapshot: () => ({ objects: [], selectedObjectId: null }),
+      });
     });
 
     it('resets camera on Home key', () => {
@@ -151,7 +172,11 @@ describe('CameraController', () => {
 
   describe('cleanup', () => {
     it('removes event listeners on destroy', () => {
-      controller = new CameraController(canvas);
+      controller = new CameraController(canvas, {
+        getCamera: () => useCameraStore.getState(),
+        getGizmo: () => useGizmoStore.getState(),
+        getSceneSnapshot: () => ({ objects: [], selectedObjectId: null }),
+      });
       const removeEventListener = vi.spyOn(canvas, 'removeEventListener');
       
       controller.destroy();

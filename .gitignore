@@ -21,6 +21,9 @@ pnpm-debug.log*
 # === Test coverage ===
 coverage/
 
+# === Benchmarks (generated) ===
+benchmarks/latest.json
+
 # === Tooling caches ===
 .vite/
 .cache/

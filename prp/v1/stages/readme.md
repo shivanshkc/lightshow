@@ -22,8 +22,6 @@ Each PRP is designed for **one-pass implementation** — containing all necessar
 | [10](./stage-10-gizmo-rotate-scale.md) | Rotation & Scale Gizmos | Large | Rotation rings, scale handles |
 | [11](./stage-11-properties-panel.md) | Properties Panel | Medium | Transform inputs, material controls |
 | [12](./stage-12-scene-ops.md) | Scene Operations | Medium | Delete, duplicate, undo/redo, rename |
-| [13](./stage-13-polish.md) | Polish & UX | Medium | Visual polish, performance, edge cases |
-| [14](./stage-14-export.md) | Export & Persistence | Small | Save/load JSON, export PNG, auto-save |
 
 ---
 
@@ -39,12 +37,12 @@ Stage 1 ──► Stage 2 ──► Stage 3 ──► Stage 4 ──► Stage 5
    │                    Stage 8 ──► Stage 9 ──► Stage 10
    │                       │
    │                       ▼
-   │                    Stage 11 ──► Stage 12 ──► Stage 13 ──► Stage 14
+   │                    Stage 11 ──► Stage 12
    │
    └──────────────────────────────────────────────────────────────────►
 ```
 
-**Critical Path:** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14
+**Critical Path:** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → 11 → 12
 
 ---
 
@@ -71,9 +69,8 @@ Stage 1 ──► Stage 2 ──► Stage 3 ──► Stage 4 ──► Stage 5
 | Controls | 6-8 | ~1 week |
 | Gizmos | 9-10 | ~1-2 weeks |
 | UI | 11-12 | ~1 week |
-| Polish | 13-14 | ~1 week |
 
-**Total: 6-8 weeks** for a solo developer
+**Total: 5-7 weeks** for a solo developer
 
 ---
 

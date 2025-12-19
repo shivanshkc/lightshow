@@ -1,4 +1,4 @@
-import { useSceneStore } from '../../store/sceneStore';
+import { useKernel, useKernelSceneSnapshot } from '@adapters';
 import { Button } from '../ui/Button';
 import { ColorPicker } from '../ui/ColorPicker';
 
@@ -12,7 +12,8 @@ const PRESETS: Array<{
 ];
 
 export function EnvironmentSection() {
-  const { backgroundColor, setBackgroundColor, applyBackgroundPreset } = useSceneStore();
+  const kernel = useKernel();
+  const snap = useKernelSceneSnapshot();
 
   return (
     <div className="p-3 border-b border-border-subtle">
@@ -27,7 +28,7 @@ export function EnvironmentSection() {
             variant="secondary"
             size="sm"
             className="flex-1"
-            onClick={() => applyBackgroundPreset(p.id)}
+            onClick={() => kernel.dispatch({ v: 1, type: 'environment.background.preset', preset: p.id })}
             title={`Set background preset: ${p.label}`}
           >
             {p.label}
@@ -37,8 +38,8 @@ export function EnvironmentSection() {
 
       <ColorPicker
         label="Background Color"
-        value={backgroundColor}
-        onChange={setBackgroundColor}
+        value={snap.backgroundColor}
+        onChange={(color) => kernel.dispatch({ v: 1, type: 'environment.background.set', color })}
       />
     </div>
   );

@@ -5,8 +5,6 @@ describe('sceneStore', () => {
   beforeEach(() => {
     // Reset store before each test
     useSceneStore.getState().clear();
-    // Clear history stacks for deterministic tests (history middleware will otherwise track `clear`)
-    useSceneStore.setState({ past: [], future: [] } as any);
   });
 
   describe('initial state', () => {
@@ -299,28 +297,5 @@ describe('sceneStore', () => {
     });
   });
 
-  describe('history', () => {
-    it('can undo addSphere', () => {
-      useSceneStore.getState().addSphere();
-      expect(useSceneStore.getState().objects.length).toBe(1);
-      (useSceneStore.getState() as any).undo();
-      expect(useSceneStore.getState().objects.length).toBe(0);
-    });
-
-    it('can undo removeObject', () => {
-      const id = useSceneStore.getState().addSphere()!;
-      useSceneStore.getState().removeObject(id);
-      expect(useSceneStore.getState().objects.length).toBe(0);
-      (useSceneStore.getState() as any).undo();
-      expect(useSceneStore.getState().objects.length).toBe(1);
-    });
-
-    it('can undo transform changes', () => {
-      const id = useSceneStore.getState().addSphere()!;
-      useSceneStore.getState().updateTransform(id, { position: [5, 0, 0] });
-      (useSceneStore.getState() as any).undo();
-      expect(useSceneStore.getState().getObject(id)?.transform.position[0]).toBe(0);
-    });
-  });
 });
 

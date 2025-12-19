@@ -1,6 +1,3 @@
-import { useCameraStore } from '../store/cameraStore';
-import { useSceneStore } from '../store/sceneStore';
-import { useGizmoStore } from '../store/gizmoStore';
 import { raycaster } from './Raycaster';
 import { mat4Inverse, mat4Perspective, screenToWorldRay } from './math';
 
@@ -9,6 +6,23 @@ interface ControllerOptions {
   panSensitivity?: number;
   zoomSensitivity?: number;
 }
+
+export type CameraControllerDeps = {
+  getCamera(): {
+    // actions
+    orbit: (deltaAzimuth: number, deltaElevation: number) => void;
+    pan: (deltaX: number, deltaY: number) => void;
+    zoom: (delta: number) => void;
+    focusOn: (point: [number, number, number], distance?: number) => void;
+    reset: () => void;
+    // state + getters used by picking/focus
+    position: [number, number, number];
+    fovY: number;
+    getViewMatrix: () => ReturnType<typeof mat4Perspective>; // Mat4
+  };
+  getSceneSnapshot(): { objects: any[]; selectedObjectId: string | null };
+  getGizmo(): { setMode: (mode: 'translate' | 'rotate' | 'scale' | 'none') => void };
+};
 
 /**
  * Camera controller handling mouse and keyboard input
@@ -24,6 +38,7 @@ interface ControllerOptions {
 export class CameraController {
   private canvas: HTMLCanvasElement;
   private options: Required<ControllerOptions>;
+  private deps: CameraControllerDeps;
 
   private isDragging = false;
   private dragButton = -1;
@@ -56,8 +71,9 @@ export class CameraController {
   // Callback for when camera changes (to reset accumulation)
   public onCameraChange: (() => void) | null = null;
 
-  constructor(canvas: HTMLCanvasElement, options: ControllerOptions = {}) {
+  constructor(canvas: HTMLCanvasElement, deps: CameraControllerDeps, options: ControllerOptions = {}) {
     this.canvas = canvas;
+    this.deps = deps;
     this.options = {
       orbitSensitivity: options.orbitSensitivity ?? 0.005,
       panSensitivity: options.panSensitivity ?? 1,
@@ -168,7 +184,7 @@ export class CameraController {
     this.lastMouseX = e.clientX;
     this.lastMouseY = e.clientY;
 
-    const camera = useCameraStore.getState();
+    const camera = this.deps.getCamera();
 
     if (this.dragButton === 1 || (this.dragButton === 0 && this.isShiftDown)) {
       // Middle button or Shift+Left = Pan
@@ -228,7 +244,7 @@ export class CameraController {
 
     e.preventDefault();
 
-    const camera = useCameraStore.getState();
+    const camera = this.deps.getCamera();
 
     if (e.touches.length === 1) {
       const t = e.touches[0]!;
@@ -279,7 +295,7 @@ export class CameraController {
   private onWheel(e: WheelEvent): void {
     if (!this.enabled) return;
     e.preventDefault();
-    const camera = useCameraStore.getState();
+    const camera = this.deps.getCamera();
     camera.zoom(e.deltaY * this.options.zoomSensitivity);
     this.notifyCameraChange();
   }
@@ -292,37 +308,37 @@ export class CameraController {
     ) {
       return;
     }
+    // If another controller already handled this key, don't interfere.
+    if (e.defaultPrevented) return;
 
     if (e.key === 'Shift') {
       this.isShiftDown = true;
     }
 
     if (e.key === 'Home') {
-      useCameraStore.getState().reset();
+      this.deps.getCamera().reset();
       this.notifyCameraChange();
     }
 
     if (e.key === 'f' || e.key === 'F') {
-      const selectedObject = useSceneStore.getState().getSelectedObject();
-      if (selectedObject) {
-        useCameraStore.getState().focusOn(selectedObject.transform.position);
-        this.notifyCameraChange();
+      const snap = this.deps.getSceneSnapshot();
+      if (snap.selectedObjectId) {
+        const selected = snap.objects.find((o: any) => o.id === snap.selectedObjectId);
+        if (selected?.transform?.position) {
+          this.deps.getCamera().focusOn(selected.transform.position);
+          this.notifyCameraChange();
+        }
       }
-    }
-
-    if (e.key === 'Escape') {
-      useSceneStore.getState().selectObject(null);
-      this.notifyCameraChange();
     }
 
     // Gizmo mode switching (WER only)
     const key = e.key.toLowerCase();
     if (key === 'w') {
-      useGizmoStore.getState().setMode('translate');
+      this.deps.getGizmo().setMode('translate');
     } else if (key === 'e') {
-      useGizmoStore.getState().setMode('rotate');
+      this.deps.getGizmo().setMode('rotate');
     } else if (key === 'r') {
-      useGizmoStore.getState().setMode('scale');
+      this.deps.getGizmo().setMode('scale');
     }
   }
 
@@ -337,7 +353,7 @@ export class CameraController {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const cameraState = useCameraStore.getState();
+    const cameraState = this.deps.getCamera();
     const viewMatrix = cameraState.getViewMatrix();
     const projMatrix = mat4Perspective(
       cameraState.fovY,
@@ -358,20 +374,20 @@ export class CameraController {
       cameraState.position
     );
 
-    const objects = useSceneStore.getState().objects;
+    const objects = this.deps.getSceneSnapshot().objects;
     const hit = raycaster.pickWithRay(ray, objects);
 
     if (hit.objectId) {
-      const obj = useSceneStore.getState().getObject(hit.objectId);
-      if (obj) {
-        useCameraStore.getState().focusOn(obj.transform.position);
+      const obj = objects.find((o: any) => o.id === hit.objectId);
+      if (obj?.transform?.position) {
+        this.deps.getCamera().focusOn(obj.transform.position);
         this.notifyCameraChange();
         return;
       }
     }
 
     // Fallback: focus origin
-    useCameraStore.getState().focusOn([0, 0, 0]);
+    this.deps.getCamera().focusOn([0, 0, 0]);
     this.notifyCameraChange();
   }
 

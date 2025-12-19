@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useSceneStore } from '../../store/sceneStore';
 import { Renderer } from '../../renderer/Renderer';
 import { RotateCcw, RotateCw } from 'lucide-react';
+import { useKernel, useKernelSceneSnapshot } from '@adapters';
 
 interface StatusBarProps {
   rendererRef: React.RefObject<Renderer | null>;
 }
 
 export function StatusBar({ rendererRef }: StatusBarProps) {
-  const objectCount = useSceneStore((state) => state.objects.length);
-  const undo = useSceneStore((s: any) => s.undo);
-  const redo = useSceneStore((s: any) => s.redo);
-  const canUndo = useSceneStore((s: any) => s.canUndo);
-  const canRedo = useSceneStore((s: any) => s.canRedo);
+  const kernel = useKernel();
+  const snap = useKernelSceneSnapshot();
   const [sampleCount, setSampleCount] = useState(0);
   const [fps, setFps] = useState(0);
 
@@ -30,7 +27,7 @@ export function StatusBar({ rendererRef }: StatusBarProps) {
 
   return (
     <footer className="h-6 bg-panel-secondary border-t border-border-subtle flex items-center justify-end px-4 text-xs text-text-muted gap-4">
-      <span>Objects: {objectCount}</span>
+      <span>Objects: {snap.objects.length}</span>
       <span>Samples: {sampleCount}</span>
       <span>FPS: {fps}</span>
 
@@ -41,8 +38,8 @@ export function StatusBar({ rendererRef }: StatusBarProps) {
           type="button"
           title="Undo (Ctrl/Cmd+Z)"
           aria-label="Undo"
-          disabled={!canUndo()}
-          onClick={() => undo()}
+          disabled={!snap.history.canUndo}
+          onClick={() => kernel.dispatch({ v: 1, type: 'history.undo' })}
           className="
             p-1 rounded
             hover:bg-hover transition-colors
@@ -55,8 +52,8 @@ export function StatusBar({ rendererRef }: StatusBarProps) {
           type="button"
           title="Redo (Ctrl/Cmd+Y)"
           aria-label="Redo"
-          disabled={!canRedo()}
-          onClick={() => redo()}
+          disabled={!snap.history.canRedo}
+          onClick={() => kernel.dispatch({ v: 1, type: 'history.redo' })}
           className="
             p-1 rounded
             hover:bg-hover transition-colors
