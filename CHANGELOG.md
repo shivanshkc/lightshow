@@ -1,3 +1,34 @@
+# [2.0.0](https://github.com/shivanshkc/lightshow/compare/v1.1.0...v2.0.0) (2025-12-19)
+
+
+* chore!: release v2 ([4e3381b](https://github.com/shivanshkc/lightshow/commit/4e3381b8b1dada446c2007d4f2a626157b3fc5b7))
+
+
+### Bug Fixes
+
+* mermaid runtime data flow diagram rendering ([579e79b](https://github.com/shivanshkc/lightshow/commit/579e79b2efc017769daec50722baea7adf181e1a))
+
+
+### Features
+
+* add boundary lint rules (public APIs + no cycles) (m01) ([09074c0](https://github.com/shivanshkc/lightshow/commit/09074c02b2d73271811215dea6eff28cd9716f1b))
+* add kernel shell (dispatch/queries/events) (m03) ([c106db4](https://github.com/shivanshkc/lightshow/commit/c106db4ecd347d134500fd76ca0729a134edd98c))
+* add ts/vite path aliases (m01) ([eedb6aa](https://github.com/shivanshkc/lightshow/commit/eedb6aae00f30b584c6142f3a31d57629b1c27df))
+* add v1 zustand backing store adapter (m03) ([7201ff3](https://github.com/shivanshkc/lightshow/commit/7201ff309629e1a70d2b1f6363a55338d6ae3cf5))
+* add v2 module skeletons (kernel/ports/adapters) (m02) ([3acd1af](https://github.com/shivanshkc/lightshow/commit/3acd1af1905fc8b94394ad52a8d7e2a1fb00a305))
+
+
+### Performance Improvements
+
+* add benchmark harness for TTFF + orbit median FPS (m01) ([aa9bfe9](https://github.com/shivanshkc/lightshow/commit/aa9bfe94fad6b17b9952d99913c5171ea468cf83))
+* fix build alias/types (unblock bench) ([2b910c0](https://github.com/shivanshkc/lightshow/commit/2b910c0aeee6bafaef0a370f0e7d0e6ad389c595))
+* record benchmark baseline numbers (m01) ([eec9b5e](https://github.com/shivanshkc/lightshow/commit/eec9b5e7706acec14e845e25abb8917fcdac2c32))
+
+
+### BREAKING CHANGES
+
+* Publish a new major version (v2) via semantic-release.
+
 # [1.1.0](https://github.com/shivanshkc/lightshow/compare/v1.0.0...v1.1.0) (2025-12-16)
 
 
