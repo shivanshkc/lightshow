@@ -56,7 +56,7 @@ export function SegmentedControl<T extends string>({
               aria-pressed={selected}
               onClick={() => onChange(opt.value)}
               className={`
-                px-3 font-semibold
+                px-2.5 font-semibold
                 transition-colors
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:z-10
                 ${isFirst ? '' : 'border-l border-border-default'}
