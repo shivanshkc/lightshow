@@ -23,23 +23,14 @@ function TestWrapper() {
 }
 
 describe('StatusBar', () => {
-  it('renders samples label', () => {
+  it('renders performance widget labels', () => {
     render(<TestWrapper />);
-    expect(screen.getByText(/Samples:/)).toBeDefined();
+    expect(screen.getByText('FPS')).toBeDefined();
+    expect(screen.getByText('Samples')).toBeDefined();
   });
 
-  it('renders FPS label', () => {
-    render(<TestWrapper />);
-    expect(screen.getByText(/FPS:/)).toBeDefined();
-  });
-
-  it('renders objects count label', () => {
-    render(<TestWrapper />);
-    expect(screen.getByText(/Objects:/)).toBeDefined();
-  });
-
-  it('is rendered as footer element', () => {
+  it('does not render legacy footer strip', () => {
     const { container } = render(<TestWrapper />);
-    expect(container.querySelector('footer')).toBeDefined();
+    expect(container.querySelector('footer')).toBeNull();
   });
 });
