@@ -4,6 +4,8 @@ import { useKernel } from '@adapters';
 import { Panel } from '../ui/Panel';
 import { Vec3Input } from '../ui/Vec3Input';
 import { NumberInput } from '../ui/NumberInput';
+import { IconButton } from '../ui/IconButton';
+import { RotateCcw } from 'lucide-react';
 
 interface TransformSectionProps {
   object: SceneObjectSnapshot;
@@ -11,6 +13,19 @@ interface TransformSectionProps {
 
 export function TransformSection({ object }: TransformSectionProps) {
   const kernel = useKernel();
+
+  const handleResetTransform = useCallback(() => {
+    kernel.dispatch({
+      v: 1,
+      type: 'transform.update',
+      objectId: object.id,
+      transform: {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      },
+    });
+  }, [kernel, object.id]);
 
   const handlePositionChange = useCallback(
     (position: [number, number, number]) => {
@@ -60,7 +75,19 @@ export function TransformSection({ object }: TransformSectionProps) {
   ];
 
   return (
-    <Panel title="Transform">
+    <Panel
+      title="Transform"
+      headerRight={
+        <IconButton
+          aria-label="Reset Transform"
+          title="Reset Transform"
+          variant="ghost"
+          size="sm"
+          icon={<RotateCcw className="w-4 h-4" />}
+          onClick={handleResetTransform}
+        />
+      }
+    >
       <div className="space-y-4">
         <Vec3Input
           label="Position"
