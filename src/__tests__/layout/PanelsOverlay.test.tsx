@@ -16,26 +16,34 @@ describe('Floating panels (desktop overlays)', () => {
 
   it('LeftPanel reflects open/closed state in data attribute', () => {
     const { container, rerender } = render(wrap(<LeftPanel />));
-    const aside = container.querySelector('aside');
+    const aside = container.querySelector('aside[data-panel="left"][data-variant="desktop"]');
     expect(aside?.getAttribute('data-open')).toBe('true');
 
     act(() => {
       useUiShellStore.getState().setLeftPanelOpen(false);
     });
     rerender(wrap(<LeftPanel />));
-    expect(container.querySelector('aside')?.getAttribute('data-open')).toBe('false');
+    expect(
+      container
+        .querySelector('aside[data-panel="left"][data-variant="desktop"]')
+        ?.getAttribute('data-open')
+    ).toBe('false');
   });
 
   it('RightPanel reflects open/closed state in data attribute', () => {
     const { container, rerender } = render(wrap(<RightPanel />));
-    const aside = container.querySelector('aside');
+    const aside = container.querySelector('aside[data-panel="right"][data-variant="desktop"]');
     expect(aside?.getAttribute('data-open')).toBe('true');
 
     act(() => {
       useUiShellStore.getState().setRightPanelOpen(false);
     });
     rerender(wrap(<RightPanel />));
-    expect(container.querySelector('aside')?.getAttribute('data-open')).toBe('false');
+    expect(
+      container
+        .querySelector('aside[data-panel="right"][data-variant="desktop"]')
+        ?.getAttribute('data-open')
+    ).toBe('false');
   });
 });
 

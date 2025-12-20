@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { FloatingSurface } from '../ui/FloatingSurface';
 import { useUiShellStore } from './uiShellStore';
 import { UI_LAYOUT } from './layoutConstants';
+import { useMediaQuery } from './useMediaQuery';
 
 export function formatCompactInt(n: number): string {
   const abs = Math.abs(n);
@@ -38,18 +39,20 @@ export const PerformanceWidget = memo(function PerformanceWidget({
   samples,
 }: PerformanceWidgetProps) {
   const isRightPanelOpen = useUiShellStore((s) => s.isRightPanelOpen);
+  const isDesktop = useMediaQuery('(min-width: 1024px)'); // Tailwind lg
   const compactSamples = useMemo(() => formatCompactInt(samples), [samples]);
 
   // Keep fixed width so values don't cause layout jitter.
   // Lockstep motion: anchor to the right panel’s left edge by translating left by
   // (panelWidth + gap) when the panel is open. Panel and widget share timing.
   const shiftPx = UI_LAYOUT.rightPanelWidthPx + UI_LAYOUT.panelWidgetGapPx;
+  const shouldShift = isDesktop && isRightPanelOpen;
 
   return (
     <div
       className="fixed top-3 right-3 z-50 transition-transform duration-200 ease-out"
       style={{
-        transform: isRightPanelOpen ? `translateX(${-shiftPx}px)` : 'translateX(0px)',
+        transform: shouldShift ? `translateX(${-shiftPx}px)` : 'translateX(0px)',
       }}
     >
       <FloatingSurface className="w-[180px] px-3 py-2">

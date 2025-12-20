@@ -24,6 +24,7 @@ vi.mock('lucide-react', () => ({
   PanelRight: () => <span data-testid="panel-right-icon">PanelRight</span>,
   Home: () => <span data-testid="home-icon">Home</span>,
   Focus: () => <span data-testid="focus-icon">Focus</span>,
+  X: () => <span data-testid="x-icon">X</span>,
 }));
 
 describe('App', () => {
@@ -63,24 +64,26 @@ describe('App', () => {
 
   it('renders Add Object section', () => {
     render(<App />);
-    expect(screen.getByText('Add Object')).toBeDefined();
+    expect(screen.getAllByText('Add Object').length).toBeGreaterThan(0);
   });
 
   it('renders Scene Objects section', () => {
     render(<App />);
     // Header includes object count suffix: "Scene Objects (N)"
-    expect(screen.getByText(/Scene Objects/i)).toBeDefined();
+    expect(screen.getAllByText(/Scene Objects/i).length).toBeGreaterThan(0);
   });
 
   it('shows initial scene objects', () => {
     render(<App />);
     // Initial scene includes Cornell Box fixtures
-    expect(screen.getByText('Cornell Floor')).toBeDefined();
-    expect(screen.getByText('Ceiling Light')).toBeDefined();
+    expect(screen.getAllByText('Cornell Floor').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ceiling Light').length).toBeGreaterThan(0);
   });
 
   it('shows properties prompt when nothing selected', () => {
     render(<App />);
-    expect(screen.getByText('Select an object to view properties')).toBeDefined();
+    expect(
+      screen.getAllByText('Select an object to view properties').length
+    ).toBeGreaterThan(0);
   });
 });
