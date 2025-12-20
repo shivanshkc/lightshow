@@ -7,6 +7,7 @@ import { SegmentedControl } from '../ui/SegmentedControl';
 import { useUiShellStore } from './uiShellStore';
 import { useUiGizmoMode } from './useUiGizmoMode';
 import { useMediaQuery } from './useMediaQuery';
+import { triggerResponsiveHome } from './responsiveHome';
 
 type HudMode = 'translate' | 'rotate' | 'scale';
 
@@ -110,7 +111,7 @@ export const MobileHud = memo(function MobileHud() {
               aria-label="Reset Camera"
               title="Reset Camera (Home)"
               icon={<Home className="w-4 h-4" />}
-              onClick={() => dispatchKey('Home')}
+              onClick={triggerResponsiveHome}
             />
             <IconButton
               aria-label="Focus Selection"
