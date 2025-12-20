@@ -3,6 +3,7 @@ import { TransformSection } from '../panels/TransformSection';
 import { MaterialSection } from '../panels/MaterialSection';
 import { ActionSection } from '../panels/ActionSection';
 import { useUiShellStore } from './uiShellStore';
+import { UI_LAYOUT } from './layoutConstants';
 
 export function RightPanel() {
   const snap = useKernelSceneSnapshot();
@@ -23,8 +24,13 @@ export function RightPanel() {
         rounded-xl
         overflow-y-auto
         transition-[transform,opacity] duration-200 ease-out
-        ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-3 pointer-events-none'}
+        ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-[calc(100%+0.75rem)] pointer-events-none'}
       `}
+      style={
+        // Keep the panel width in sync with the widget offset math.
+        // Tailwind width is still the source of truth visually; this is for clarity/future refactors.
+        { width: UI_LAYOUT.rightPanelWidthPx }
+      }
     >
       {selectedObject ? (
         <>

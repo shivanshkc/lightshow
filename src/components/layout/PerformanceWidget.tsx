@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { FloatingSurface } from '../ui/FloatingSurface';
 import { useUiShellStore } from './uiShellStore';
+import { UI_LAYOUT } from './layoutConstants';
 
 export function formatCompactInt(n: number): string {
   const abs = Math.abs(n);
@@ -40,12 +41,17 @@ export const PerformanceWidget = memo(function PerformanceWidget({
   const compactSamples = useMemo(() => formatCompactInt(samples), [samples]);
 
   // Keep fixed width so values don't cause layout jitter.
-  // Position: top-right, but shifted left when right panel is open to avoid overlap.
-  // NOTE: Step 7 will make this reposition animate in lockstep with the panel.
-  const rightPx = isRightPanelOpen ? 12 + 320 + 12 : 12; // margin + panel width + gap
+  // Lockstep motion: anchor to the right panel’s left edge by translating left by
+  // (panelWidth + gap) when the panel is open. Panel and widget share timing.
+  const shiftPx = UI_LAYOUT.rightPanelWidthPx + UI_LAYOUT.panelWidgetGapPx;
 
   return (
-    <div className="fixed top-3 z-50" style={{ right: rightPx }}>
+    <div
+      className="fixed top-3 right-3 z-50 transition-transform duration-200 ease-out"
+      style={{
+        transform: isRightPanelOpen ? `translateX(${-shiftPx}px)` : 'translateX(0px)',
+      }}
+    >
       <FloatingSurface className="w-[180px] px-3 py-2">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 min-w-0">

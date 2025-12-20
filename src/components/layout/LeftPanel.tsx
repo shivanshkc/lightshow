@@ -2,6 +2,7 @@ import { AddObjectSection } from '../panels/AddObjectSection';
 import { EnvironmentSection } from '../panels/EnvironmentSection';
 import { ObjectList } from '../panels/ObjectList';
 import { useUiShellStore } from './uiShellStore';
+import { UI_LAYOUT } from './layoutConstants';
 
 export function LeftPanel() {
   const isOpen = useUiShellStore((s) => s.isLeftPanelOpen);
@@ -17,8 +18,9 @@ export function LeftPanel() {
         rounded-xl
         flex flex-col overflow-hidden
         transition-[transform,opacity] duration-200 ease-out
-        ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-3 pointer-events-none'}
+        ${isOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-[calc(100%+0.75rem)] pointer-events-none'}
       `}
+      style={{ width: UI_LAYOUT.leftPanelWidthPx }}
     >
       <EnvironmentSection />
       <AddObjectSection />
