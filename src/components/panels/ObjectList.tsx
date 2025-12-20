@@ -9,9 +9,10 @@ export function ObjectList() {
 
   return (
     <div className="flex flex-col h-full">
-      <h2 className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle">
-        Scene Objects
-      </h2>
+      <div className="px-3 py-2 text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-border-subtle flex items-center justify-between">
+        <span>Scene Objects</span>
+        <span className="text-text-muted font-medium">({snap.objects.length})</span>
+      </div>
 
       <div className="flex-1 overflow-y-auto">
         {snap.objects.length === 0 ? (

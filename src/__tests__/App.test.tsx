@@ -68,7 +68,8 @@ describe('App', () => {
 
   it('renders Scene Objects section', () => {
     render(<App />);
-    expect(screen.getByText('Scene Objects')).toBeDefined();
+    // Header includes object count suffix: "Scene Objects (N)"
+    expect(screen.getByText(/Scene Objects/i)).toBeDefined();
   });
 
   it('shows initial scene objects', () => {
