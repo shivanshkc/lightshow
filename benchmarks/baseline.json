@@ -7,7 +7,7 @@
     "gpu": "unknown"
   },
   "results": {
-    "ttffMs": 2826.6,
+    "ttffMs": 1280.7,
     "orbitMedianFps": 75.18796985742027,
     "orbitDurationMs": 10000
   },
