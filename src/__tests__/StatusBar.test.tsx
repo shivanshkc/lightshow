@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { StatusBar } from '../components/layout/StatusBar';
 import { useRef } from 'react';
-import { useSceneStore } from '../store/sceneStore';
 import { KernelProvider } from '@adapters';
 
 // Mock Renderer
@@ -24,32 +23,14 @@ function TestWrapper() {
 }
 
 describe('StatusBar', () => {
-  it('renders undo/redo buttons', () => {
-    // Ensure history functions exist (sceneStore is wrapped with history middleware)
-    useSceneStore.setState({ past: [], future: [] } as any);
-
+  it('renders performance widget labels', () => {
     render(<TestWrapper />);
-    expect(screen.getByLabelText('Undo')).toBeDefined();
-    expect(screen.getByLabelText('Redo')).toBeDefined();
+    expect(screen.getByText('FPS')).toBeDefined();
+    expect(screen.getByText('Samples')).toBeDefined();
   });
 
-  it('renders samples label', () => {
-    render(<TestWrapper />);
-    expect(screen.getByText(/Samples:/)).toBeDefined();
-  });
-
-  it('renders FPS label', () => {
-    render(<TestWrapper />);
-    expect(screen.getByText(/FPS:/)).toBeDefined();
-  });
-
-  it('renders objects count label', () => {
-    render(<TestWrapper />);
-    expect(screen.getByText(/Objects:/)).toBeDefined();
-  });
-
-  it('is rendered as footer element', () => {
+  it('does not render legacy footer strip', () => {
     const { container } = render(<TestWrapper />);
-    expect(container.querySelector('footer')).toBeDefined();
+    expect(container.querySelector('footer')).toBeNull();
   });
 });

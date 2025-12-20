@@ -43,27 +43,6 @@ export function ActionSection() {
             Delete
           </Button>
         </div>
-
-        <Button
-          variant="secondary"
-          className="w-full justify-center"
-          disabled={!hasSelection}
-          onClick={() =>
-            snap.selectedObjectId &&
-            kernel.dispatch({
-              v: 1,
-              type: 'transform.update',
-              objectId: snap.selectedObjectId,
-              transform: {
-                position: [0, 0, 0],
-                rotation: [0, 0, 0],
-                scale: [1, 1, 1],
-              },
-            })
-          }
-        >
-          Reset Transform
-        </Button>
       </div>
     </Panel>
   );

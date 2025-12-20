@@ -57,6 +57,15 @@ describe('TransformSection', () => {
     expect(screen.getByText('Position')).toBeDefined();
   });
 
+  it('renders reset transform icon button in the header', () => {
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('sphere') as any} />
+      </KernelProvider>
+    );
+    expect(screen.getByLabelText('Reset Transform')).toBeDefined();
+  });
+
   it('renders rotation label', () => {
     render(
       <KernelProvider>
