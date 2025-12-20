@@ -55,7 +55,14 @@ export const PerformanceWidget = memo(function PerformanceWidget({
         transform: shouldShift ? `translateX(${-shiftPx}px)` : 'translateX(0px)',
       }}
     >
-      <FloatingSurface className="w-[180px] px-3 py-2">
+      <FloatingSurface
+        className="
+          w-[180px] px-3 py-2
+          bg-panel/85
+          border-border-subtle/60
+          shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+        "
+      >
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-text-muted whitespace-nowrap">FPS</span>
