@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Renderer } from '../../renderer/Renderer';
 import { useKernelSceneSnapshot } from '@adapters';
 import { Hud } from './Hud';
+import { PerformanceWidget } from './PerformanceWidget';
 
 interface StatusBarProps {
   rendererRef: React.RefObject<Renderer | null>;
@@ -27,6 +28,7 @@ export function StatusBar({ rendererRef }: StatusBarProps) {
   return (
     <>
       <Hud />
+      <PerformanceWidget fps={fps} samples={sampleCount} />
       <footer className="h-6 bg-panel-secondary border-t border-border-subtle flex items-center justify-end px-4 text-xs text-text-muted gap-4">
         <span>Objects: {snap.objects.length}</span>
         <span>Samples: {sampleCount}</span>
