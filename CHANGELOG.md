@@ -1,3 +1,29 @@
+# [3.0.0](https://github.com/shivanshkc/lightshow/compare/v2.0.0...v3.0.0) (2025-12-20)
+
+
+### Bug Fixes
+
+* **html:** allow proper mobile viewport scaling (do not force desktop site) ([81e8f3f](https://github.com/shivanshkc/lightshow/commit/81e8f3f49b7bcaf9a153fbd98aca9220c4aa1b56))
+* **ui:** remove window-size fallback from responsive camera home ([cc10911](https://github.com/shivanshkc/lightshow/commit/cc10911001612f5772ff631967131de9d1707f33))
+
+
+### Features
+
+* **ui:** add desktop HUD overlay and update status bar tests ([df07b39](https://github.com/shivanshkc/lightshow/commit/df07b395319e88692f3483cb6904da97735c5b7d))
+* **ui:** add IconButton, SegmentedControl, and floating surface primitives ([fbb1092](https://github.com/shivanshkc/lightshow/commit/fbb10920b1e1e28a550bff46dcd11af03f136612))
+* **ui:** add mobile bottom bar HUD and exclusive bottom sheets ([4ad183a](https://github.com/shivanshkc/lightshow/commit/4ad183a6f94cd5dd422630db11b11ae857516bcc))
+* **ui:** add top-right performance widget (fps + samples) ([398d93e](https://github.com/shivanshkc/lightshow/commit/398d93ef6860294355705e322ce2d6404d560a8d))
+* **ui:** add UI shell state store + tests (no visual changes) ([30d3376](https://github.com/shivanshkc/lightshow/commit/30d33763593bb41536cdae26bde2879abde5e041))
+* **ui:** anchor performance widget to right panel with lockstep motion ([8474803](https://github.com/shivanshkc/lightshow/commit/847480376e9a3cd088e3b65fada8513a6dec4184))
+* **ui:** convert scene and properties panels to floating overlays ([22dde73](https://github.com/shivanshkc/lightshow/commit/22dde73b98b553d7d60c8c4cc35a39b92316aab5))
+* **ui:** move reset transform action into Transform header ([9bb05e1](https://github.com/shivanshkc/lightshow/commit/9bb05e188cdbf790a3a6446f0a090b74dae9202e))
+* **ui:** show object count in Scene Objects header ([06ee517](https://github.com/shivanshkc/lightshow/commit/06ee5171977f7db1bd3c664c060b08a5b2e5095d))
+
+
+### BREAKING CHANGES
+
+* **ui:** trigger v3 release
+
 # [2.0.0](https://github.com/shivanshkc/lightshow/compare/v1.1.0...v2.0.0) (2025-12-19)
 
 
