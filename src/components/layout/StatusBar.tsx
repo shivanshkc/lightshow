@@ -3,7 +3,7 @@ import { Renderer } from '../../renderer/Renderer';
 import { Hud } from './Hud';
 import { PerformanceWidget } from './PerformanceWidget';
 import { MobileHud } from './MobileHud';
-import { applyResponsiveHomeDistanceForCanvasRect, getCanvasRect, UI_CAMERA_EVENTS } from './responsiveHome';
+import { applyResponsiveHomeDistance, getCanvasRect, UI_CAMERA_EVENTS } from './responsiveHome';
 import { useCameraStore } from '@store';
 
 interface StatusBarProps {
@@ -20,11 +20,8 @@ export function StatusBar({ rendererRef }: StatusBarProps) {
       const cam = useCameraStore.getState();
       cam.reset();
       const rect = getCanvasRect();
-      if (rect) {
-        applyResponsiveHomeDistanceForCanvasRect(rect.width, rect.height);
-      } else {
-        applyResponsiveHomeDistanceForCanvasRect(window.innerWidth, window.innerHeight);
-      }
+      if (!rect) return;
+      applyResponsiveHomeDistance(rect.width, rect.height);
       rendererRef.current?.resetAccumulation();
     };
     window.addEventListener(UI_CAMERA_EVENTS.home, onHome);

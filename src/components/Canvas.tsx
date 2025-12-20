@@ -5,7 +5,7 @@ import { CameraController } from '../core/CameraController';
 import { GizmoRaycaster } from '../gizmos/GizmoRaycaster';
 import { LIMITS } from '../utils/limits';
 import { computeGizmoDragCommand, createRendererDepsFromStores, createCanvasDepsFromStores, useKernel } from '@adapters';
-import { applyResponsiveHomeDistanceForCanvasRect } from './layout/responsiveHome';
+import { applyResponsiveHomeDistance } from './layout/responsiveHome';
 import {
   mat4Inverse,
   mat4Perspective,
@@ -111,7 +111,7 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         // Responsive "home" framing: set camera distance based on the actual canvas aspect
         // BEFORE the renderer starts, so the first frame matches the final home framing.
         // (No visible jump on load.)
-        applyResponsiveHomeDistanceForCanvasRect(rect.width, rect.height);
+        applyResponsiveHomeDistance(rect.width, rect.height);
 
         renderer.start();
         setStatus('ready');

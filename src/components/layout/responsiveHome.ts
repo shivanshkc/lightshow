@@ -39,10 +39,7 @@ function computeDistanceToFitHalfExtent(
  * This computes the distance from the actual canvas rect + camera fov, so it looks the
  * same on refresh and on Home (no mismatches).
  */
-export function applyResponsiveHomeDistanceForCanvasRect(
-  width: number,
-  height: number
-): void {
+export function applyResponsiveHomeDistance(width: number, height: number): void {
   const s = useCameraStore.getState();
   const aspect = Math.max(0.2, width / Math.max(1, height));
   const fovY = s.fovY;
