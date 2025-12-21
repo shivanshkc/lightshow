@@ -13,15 +13,17 @@ export class GizmoRaycaster {
     ray: Ray,
     gizmoPosition: Vec3,
     gizmoScale: number,
-    mode: GizmoMode = 'translate'
+    mode: GizmoMode = 'translate',
+    pickTolerance: number = 0
   ): GizmoAxis {
+    const tol = Number.isFinite(pickTolerance) ? Math.max(0, pickTolerance) : 0;
     switch (mode) {
       case 'translate':
-        return this.pickTranslate(ray, gizmoPosition, gizmoScale);
+        return this.pickTranslate(ray, gizmoPosition, gizmoScale, tol);
       case 'rotate':
-        return this.pickRotate(ray, gizmoPosition, gizmoScale);
+        return this.pickRotate(ray, gizmoPosition, gizmoScale, tol);
       case 'scale':
-        return this.pickScale(ray, gizmoPosition, gizmoScale);
+        return this.pickScale(ray, gizmoPosition, gizmoScale, tol);
       default:
         return null;
     }
@@ -33,11 +35,12 @@ export class GizmoRaycaster {
   private static pickTranslate(
     ray: Ray,
     gizmoPosition: Vec3,
-    gizmoScale: number
+    gizmoScale: number,
+    pickTolerance: number
   ): GizmoAxis {
     // Gizmo dimensions (scaled)
     const arrowLength = 1.25 * gizmoScale;
-    const arrowRadius = 0.1 * gizmoScale;
+    const arrowRadius = 0.1 * gizmoScale + pickTolerance;
     const planeSize = 0.3 * gizmoScale;
     const planeOffset = 0.35 * gizmoScale;
 
@@ -79,7 +82,8 @@ export class GizmoRaycaster {
         u,
         v,
         planeOffset,
-        planeSize
+        planeSize,
+        pickTolerance
       );
       if (t !== null && t < closestDistance) {
         closestDistance = t;
@@ -96,12 +100,13 @@ export class GizmoRaycaster {
   private static pickRotate(
     ray: Ray,
     gizmoPosition: Vec3,
-    gizmoScale: number
+    gizmoScale: number,
+    pickTolerance: number
   ): GizmoAxis {
     const ringRadius = 1.0 * gizmoScale;
-    const tubeRadius = 0.06 * gizmoScale; // Slightly larger for easier picking
+    const tubeRadius = 0.06 * gizmoScale + pickTolerance; // Slightly larger for easier picking (plus tolerance)
     const trackballRadius = 1.15 * gizmoScale;
-    const trackballTubeRadius = 0.05 * gizmoScale;
+    const trackballTubeRadius = 0.05 * gizmoScale + pickTolerance;
 
     let closestAxis: GizmoAxis = null;
     let closestDistance = Infinity;
@@ -150,12 +155,13 @@ export class GizmoRaycaster {
   private static pickScale(
     ray: Ray,
     gizmoPosition: Vec3,
-    gizmoScale: number
+    gizmoScale: number,
+    pickTolerance: number
   ): GizmoAxis {
     const lineLength = 1.0 * gizmoScale;
-    const lineRadius = 0.05 * gizmoScale;
-    const cubeSize = 0.12 * gizmoScale;
-    const centerCubeSize = 0.15 * gizmoScale;
+    const lineRadius = 0.05 * gizmoScale + pickTolerance;
+    const cubeSize = 0.12 * gizmoScale + pickTolerance * 2;
+    const centerCubeSize = 0.15 * gizmoScale + pickTolerance * 2;
 
     let closestAxis: GizmoAxis = null;
     let closestDistance = Infinity;
@@ -446,7 +452,8 @@ export class GizmoRaycaster {
     u: Vec3,
     v: Vec3,
     offset: number,
-    size: number
+    size: number,
+    pickTolerance: number = 0
   ): number | null {
     // Plane equation: dot(P - planePoint, normal) = 0
     // Ray: P = origin + t * direction
@@ -478,11 +485,12 @@ export class GizmoRaycaster {
     const vCoord = dot(hitLocal, v);
     
     // Check if within quad bounds
+    const tol = Number.isFinite(pickTolerance) ? Math.max(0, pickTolerance) : 0;
     if (
-      uCoord >= offset &&
-      uCoord <= offset + size &&
-      vCoord >= offset &&
-      vCoord <= offset + size
+      uCoord >= offset - tol &&
+      uCoord <= offset + size + tol &&
+      vCoord >= offset - tol &&
+      vCoord <= offset + size + tol
     ) {
       return t;
     }
