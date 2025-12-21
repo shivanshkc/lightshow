@@ -1,5 +1,6 @@
-import { Camera, SceneBuffer, type SceneObject } from '@core';
+import { Camera, SceneBuffer, mat3FromRotation, mat3MultiplyVec3, type SceneObject, type Vec3 } from '@core';
 import raytracerWGSL from './shaders/raytracer.wgsl?raw';
+import { BUILTIN_MESH_COUNT, buildBuiltinMeshLibrary, type BuiltinMeshId } from './meshLibrary';
 
 /**
  * Manages the raytracing compute pipeline
@@ -21,6 +22,16 @@ export class RaytracingPipeline {
   private settingsBuffer: GPUBuffer;
   private sceneBuffer: SceneBuffer;
 
+  // Mesh library buffers (Step 06 plumbing; not used by shader tracing yet)
+  private meshSceneHeaderBuffer: GPUBuffer;
+  private meshMetaBuffer: GPUBuffer;
+  private meshVertexBuffer: GPUBuffer;
+  private meshIndexBuffer: GPUBuffer;
+  private meshBlasNodesBuffer: GPUBuffer;
+  private meshInstancesBuffer: GPUBuffer;
+
+  private meshAabbs: Array<{ min: Vec3; max: Vec3 }>;
+
   private width: number = 0;
   private height: number = 0;
   private frameIndex: number = 0;
@@ -38,6 +49,75 @@ export class RaytracingPipeline {
 
     // Create scene buffer
     this.sceneBuffer = new SceneBuffer(device);
+
+    // Build CPU-side mesh library and upload GPU buffers (static for this release).
+    const lib = buildBuiltinMeshLibrary();
+    if (lib.meshCount !== BUILTIN_MESH_COUNT) {
+      throw new Error(`Unexpected meshCount=${lib.meshCount}, expected ${BUILTIN_MESH_COUNT}`);
+    }
+    this.meshAabbs = lib.meshAabbs;
+
+    // Mesh scene header (uniform to stay under maxStorageBuffersPerShaderStage on more GPUs)
+    this.meshSceneHeaderBuffer = device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    // Write initial meshCount; instanceCount will be written on scene upload.
+    {
+      const header = new ArrayBuffer(16);
+      const u32 = new Uint32Array(header);
+      u32[0] = 0; // instanceCount
+      u32[1] = lib.meshCount; // meshCount
+      this.device.queue.writeBuffer(this.meshSceneHeaderBuffer, 0, header);
+    }
+
+    this.meshMetaBuffer = device.createBuffer({
+      size: lib.meshMeta.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.meshMetaBuffer,
+      0,
+      lib.meshMeta.buffer,
+      lib.meshMeta.byteOffset,
+      lib.meshMeta.byteLength
+    );
+
+    this.meshVertexBuffer = device.createBuffer({
+      size: lib.vertices.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.meshVertexBuffer,
+      0,
+      lib.vertices.buffer,
+      lib.vertices.byteOffset,
+      lib.vertices.byteLength
+    );
+
+    this.meshIndexBuffer = device.createBuffer({
+      size: lib.indices.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      this.meshIndexBuffer,
+      0,
+      lib.indices.buffer,
+      lib.indices.byteOffset,
+      lib.indices.byteLength
+    );
+
+    this.meshBlasNodesBuffer = device.createBuffer({
+      size: lib.blasNodes.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(this.meshBlasNodesBuffer, 0, lib.blasNodes);
+
+    // Instances buffer: up to 256 visible instances, 128 bytes each (matches WGSL MeshInstance layout in Step 06)
+    this.meshInstancesBuffer = device.createBuffer({
+      size: 256 * 128,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
 
     // Create bind group layout (with accumulation buffer and settings)
     this.bindGroupLayout = device.createBindGroupLayout({
@@ -74,6 +154,37 @@ export class RaytracingPipeline {
           binding: 5,
           visibility: GPUShaderStage.COMPUTE,
           buffer: { type: 'read-only-storage' }, // Scene objects
+        },
+        // Mesh tracing buffers (Step 06 plumbing; not used by traceScene yet)
+        {
+          binding: 6,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'uniform' }, // Mesh scene header
+        },
+        {
+          binding: 7,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // Mesh meta
+        },
+        {
+          binding: 8,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // Mesh vertices
+        },
+        {
+          binding: 9,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // Mesh indices
+        },
+        {
+          binding: 10,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // BLAS nodes
+        },
+        {
+          binding: 11,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: 'read-only-storage' }, // Instances
         },
       ],
     });
@@ -211,6 +322,30 @@ export class RaytracingPipeline {
             offset: 256, // After header (256-byte aligned)
           },
         },
+        {
+          binding: 6,
+          resource: { buffer: this.meshSceneHeaderBuffer },
+        },
+        {
+          binding: 7,
+          resource: { buffer: this.meshMetaBuffer },
+        },
+        {
+          binding: 8,
+          resource: { buffer: this.meshVertexBuffer },
+        },
+        {
+          binding: 9,
+          resource: { buffer: this.meshIndexBuffer },
+        },
+        {
+          binding: 10,
+          resource: { buffer: this.meshBlasNodesBuffer },
+        },
+        {
+          binding: 11,
+          resource: { buffer: this.meshInstancesBuffer },
+        },
       ],
     });
   }
@@ -273,6 +408,135 @@ export class RaytracingPipeline {
    */
   updateScene(objects: readonly SceneObject[]): void {
     this.sceneBuffer.upload(objects as SceneObject[]);
+    this.uploadMeshInstances(objects as SceneObject[]);
+  }
+
+  private uploadMeshInstances(objects: SceneObject[]): void {
+    const visible = objects.filter((o) => o.visible);
+    const count = Math.min(visible.length, 256);
+
+    // Header (instanceCount, meshCount)
+    const header = new ArrayBuffer(16);
+    const headerU32 = new Uint32Array(header);
+    headerU32[0] = count;
+    headerU32[1] = BUILTIN_MESH_COUNT;
+    this.device.queue.writeBuffer(this.meshSceneHeaderBuffer, 0, header);
+
+    // Instance layout: 128 bytes = 32 floats (with u32 overlay), matching WGSL MeshInstance.
+    const INSTANCE_FLOATS = 32;
+    const staging = new Float32Array(count * INSTANCE_FLOATS);
+    const u32 = new Uint32Array(staging.buffer);
+
+    for (let i = 0; i < count; i++) {
+      const obj = visible[i]!;
+      const base = i * INSTANCE_FLOATS;
+
+      // Transform
+      staging[base + 0] = obj.transform.position[0];
+      staging[base + 1] = obj.transform.position[1];
+      staging[base + 2] = obj.transform.position[2];
+      u32[base + 3] = this.primitiveToMeshId(obj.type);
+
+      staging[base + 4] = obj.transform.scale[0];
+      staging[base + 5] = obj.transform.scale[1];
+      staging[base + 6] = obj.transform.scale[2];
+      staging[base + 7] = 0;
+
+      staging[base + 8] = obj.transform.rotation[0];
+      staging[base + 9] = obj.transform.rotation[1];
+      staging[base + 10] = obj.transform.rotation[2];
+      staging[base + 11] = 0;
+
+      // Material (same mapping as SceneBuffer)
+      staging[base + 16] = obj.material.color[0];
+      staging[base + 17] = obj.material.color[1];
+      staging[base + 18] = obj.material.color[2];
+      u32[base + 19] = this.materialTypeToGpu(obj.material.type);
+      staging[base + 20] = obj.material.ior;
+      staging[base + 21] = obj.material.intensity;
+
+      // Instance AABB (world space) at slots [24..29]
+      const meshId = this.primitiveToMeshId(obj.type) as BuiltinMeshId;
+      const aabb = this.computeInstanceAabb(obj, this.meshAabbs[meshId]!);
+      staging[base + 24] = aabb.min[0];
+      staging[base + 25] = aabb.min[1];
+      staging[base + 26] = aabb.min[2];
+      staging[base + 28] = aabb.max[0];
+      staging[base + 29] = aabb.max[1];
+      staging[base + 30] = aabb.max[2];
+    }
+
+    this.device.queue.writeBuffer(this.meshInstancesBuffer, 0, staging);
+  }
+
+  private primitiveToMeshId(type: SceneObject['type']): number {
+    switch (type) {
+      case 'sphere':
+        return 0;
+      case 'cuboid':
+        return 1;
+      case 'cylinder':
+        return 2;
+      case 'cone':
+        return 3;
+      case 'capsule':
+        return 4;
+      case 'torus':
+        return 5;
+    }
+  }
+
+  private materialTypeToGpu(type: SceneObject['material']['type']): number {
+    switch (type) {
+      case 'plastic':
+        return 0;
+      case 'metal':
+        return 1;
+      case 'glass':
+        return 2;
+      case 'light':
+        return 3;
+    }
+  }
+
+  private computeInstanceAabb(
+    obj: SceneObject,
+    meshAabb: { min: Vec3; max: Vec3 }
+  ): { min: Vec3; max: Vec3 } {
+    // Scale object-space bounds (support negative scale by min/max of endpoints).
+    const sx = obj.transform.scale[0];
+    const sy = obj.transform.scale[1];
+    const sz = obj.transform.scale[2];
+    const minX = Math.min(meshAabb.min[0] * sx, meshAabb.max[0] * sx);
+    const maxX = Math.max(meshAabb.min[0] * sx, meshAabb.max[0] * sx);
+    const minY = Math.min(meshAabb.min[1] * sy, meshAabb.max[1] * sy);
+    const maxY = Math.max(meshAabb.min[1] * sy, meshAabb.max[1] * sy);
+    const minZ = Math.min(meshAabb.min[2] * sz, meshAabb.max[2] * sz);
+    const maxZ = Math.max(meshAabb.min[2] * sz, meshAabb.max[2] * sz);
+
+    const corners: Vec3[] = [
+      [minX, minY, minZ],
+      [minX, minY, maxZ],
+      [minX, maxY, minZ],
+      [minX, maxY, maxZ],
+      [maxX, minY, minZ],
+      [maxX, minY, maxZ],
+      [maxX, maxY, minZ],
+      [maxX, maxY, maxZ],
+    ];
+
+    const rot = mat3FromRotation(obj.transform.rotation);
+    const pos = obj.transform.position;
+
+    let outMin: Vec3 = [Infinity, Infinity, Infinity];
+    let outMax: Vec3 = [-Infinity, -Infinity, -Infinity];
+    for (const c of corners) {
+      const r = mat3MultiplyVec3(rot, c);
+      const w: Vec3 = [r[0] + pos[0], r[1] + pos[1], r[2] + pos[2]];
+      outMin = [Math.min(outMin[0], w[0]), Math.min(outMin[1], w[1]), Math.min(outMin[2], w[2])];
+      outMax = [Math.max(outMax[0], w[0]), Math.max(outMax[1], w[1]), Math.max(outMax[2], w[2])];
+    }
+    return { min: outMin, max: outMax };
   }
 
   /**
@@ -327,5 +591,11 @@ export class RaytracingPipeline {
     this.cameraBuffer.destroy();
     this.settingsBuffer.destroy();
     this.sceneBuffer.destroy();
+    this.meshSceneHeaderBuffer.destroy();
+    this.meshMetaBuffer.destroy();
+    this.meshVertexBuffer.destroy();
+    this.meshIndexBuffer.destroy();
+    this.meshBlasNodesBuffer.destroy();
+    this.meshInstancesBuffer.destroy();
   }
 }

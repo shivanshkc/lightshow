@@ -120,6 +120,67 @@ struct SceneObject {
   _material_pad2: vec4<f32>,
 }
 
+// ============================================
+// Mesh Tracing Data Structures (Step 06 plumbing)
+// ============================================
+
+struct MeshSceneHeader {
+  instanceCount: u32,
+  meshCount: u32,
+  _pad: vec2<u32>,
+}
+
+struct MeshMeta {
+  vertexOffset: u32,
+  vertexCount: u32,
+  indexOffset: u32,
+  indexCount: u32,
+  nodeOffset: u32,
+  nodeCount: u32,
+  _pad: vec2<u32>,
+}
+
+struct MeshVertex {
+  position: vec4<f32>,
+  normal: vec4<f32>,
+}
+
+// BVH node layout matches CPU packing in src/renderer/meshLibrary.ts (48 bytes).
+struct BlasNode {
+  aabbMin: vec3<f32>,
+  left: i32,
+  aabbMax: vec3<f32>,
+  right: i32,
+  triIndexOffset: u32,
+  triCount: u32,
+  _pad: vec2<u32>,
+}
+
+// Instance layout matches CPU packing in RaytracingPipeline.uploadMeshInstances (128 bytes).
+struct MeshInstance {
+  // Transform section (64 bytes)
+  position: vec3<f32>,
+  meshId: u32,
+  scale: vec3<f32>,
+  _pad0: f32,
+  rotation: vec3<f32>,
+  _pad1: f32,
+  _transform_pad: vec4<f32>,
+
+  // Material section (32 bytes + padding)
+  color: vec3<f32>,
+  materialType: u32,
+  ior: f32,
+  intensity: f32,
+  _mat_pad: vec2<f32>,
+
+  // Instance bounds (32 bytes)
+  aabbMin: vec3<f32>,
+  _pad2: f32,
+  aabbMax: vec3<f32>,
+  _pad3: f32,
+}
+
 // Material type constants
 const MAT_PLASTIC: u32 = 0u;
 const MAT_METAL: u32 = 1u;
@@ -162,6 +223,15 @@ struct AccumulationData {
 @group(0) @binding(3) var<storage, read_write> accumulationBuffer: array<AccumulationData>;
 @group(0) @binding(4) var<storage, read> sceneHeader: SceneHeader;
 @group(0) @binding(5) var<storage, read> sceneObjects: array<SceneObject>;
+
+// Mesh tracing bindings (not used by traceScene yet; Step 06 plumbing only)
+// NOTE: This is a uniform (not storage) to stay under maxStorageBuffersPerShaderStage on more GPUs.
+@group(0) @binding(6) var<uniform> meshSceneHeader: MeshSceneHeader;
+@group(0) @binding(7) var<storage, read> meshMeta: array<MeshMeta>;
+@group(0) @binding(8) var<storage, read> meshVertices: array<MeshVertex>;
+@group(0) @binding(9) var<storage, read> meshIndices: array<u32>;
+@group(0) @binding(10) var<storage, read> meshBlasNodes: array<BlasNode>;
+@group(0) @binding(11) var<storage, read> meshInstances: array<MeshInstance>;
 
 // ============================================
 // Ray Structure

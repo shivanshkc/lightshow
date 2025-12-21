@@ -68,6 +68,26 @@ describe('Dynamic Scene Data (Stage 3)', () => {
     expect(raytracerShader).toContain('sceneObjects');
   });
 
+  it('includes mesh tracing buffer bindings (Step 06 plumbing)', () => {
+    expect(raytracerShader).toContain('struct MeshMeta');
+    expect(raytracerShader).toContain('struct BlasNode');
+    expect(raytracerShader).toContain('struct MeshInstance');
+
+    expect(raytracerShader).toContain('@binding(6)');
+    expect(raytracerShader).toContain('@binding(7)');
+    expect(raytracerShader).toContain('@binding(8)');
+    expect(raytracerShader).toContain('@binding(9)');
+    expect(raytracerShader).toContain('@binding(10)');
+    expect(raytracerShader).toContain('@binding(11)');
+
+    expect(raytracerShader).toContain('meshSceneHeader');
+    expect(raytracerShader).toContain('meshMeta');
+    expect(raytracerShader).toContain('meshVertices');
+    expect(raytracerShader).toContain('meshIndices');
+    expect(raytracerShader).toContain('meshBlasNodes');
+    expect(raytracerShader).toContain('meshInstances');
+  });
+
   it('reads from sceneObjects array', () => {
     expect(raytracerShader).toContain('sceneObjects: array<SceneObject>');
   });
