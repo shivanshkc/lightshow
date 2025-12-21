@@ -4,7 +4,13 @@ export type Vec3 = [number, number, number];
 
 export type Ray = { origin: Vec3; direction: Vec3 };
 
-export type PrimitiveType = 'sphere' | 'cuboid';
+export type PrimitiveType =
+  | 'sphere'
+  | 'cuboid'
+  | 'cylinder'
+  | 'cone'
+  | 'capsule'
+  | 'torus';
 
 export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
 
@@ -90,7 +96,15 @@ export function parseCommand(input: unknown): Command | null {
     }
     case 'object.add': {
       const primitive = input.primitive;
-      if (primitive !== 'sphere' && primitive !== 'cuboid') return null;
+      if (
+        primitive !== 'sphere' &&
+        primitive !== 'cuboid' &&
+        primitive !== 'cylinder' &&
+        primitive !== 'cone' &&
+        primitive !== 'capsule' &&
+        primitive !== 'torus'
+      )
+        return null;
       return { v: 1, type, primitive };
     }
     case 'object.remove':

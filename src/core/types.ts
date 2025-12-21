@@ -6,7 +6,13 @@
 export type ObjectId = string;
 
 // Supported primitive types
-export type PrimitiveType = 'sphere' | 'cuboid';
+export type PrimitiveType =
+  | 'sphere'
+  | 'cuboid'
+  | 'cylinder'
+  | 'cone'
+  | 'capsule'
+  | 'torus';
 
 // Material type enum
 export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
@@ -94,6 +100,58 @@ export function createDefaultCuboid(): Omit<SceneObject, 'id'> {
   return {
     name: 'Cuboid',
     type: 'cuboid',
+    transform: createDefaultTransform(),
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default cylinder object (without id)
+ */
+export function createDefaultCylinder(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cylinder',
+    type: 'cylinder',
+    transform: createDefaultTransform(),
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default cone object (without id)
+ */
+export function createDefaultCone(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cone',
+    type: 'cone',
+    transform: createDefaultTransform(),
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default capsule object (without id)
+ */
+export function createDefaultCapsule(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Capsule',
+    type: 'capsule',
+    transform: createDefaultTransform(),
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default torus object (without id)
+ */
+export function createDefaultTorus(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Torus',
+    type: 'torus',
     transform: createDefaultTransform(),
     material: createDefaultMaterial(),
     visible: true,

@@ -61,11 +61,23 @@ describe('adapters/zustand ZustandSceneBackingStore', () => {
   it('object.add invalidates render when object is created', () => {
     const backing = new ZustandSceneBackingStore();
 
-    const res = backing.apply({ v: 1, type: 'object.add', primitive: 'sphere' });
+    const primitives = [
+      'sphere',
+      'cuboid',
+      'cylinder',
+      'cone',
+      'capsule',
+      'torus',
+    ] as const;
 
-    expect(res.stateChanged).toBe(true);
-    expect(res.renderInvalidated).toBe(true);
-    expect(useSceneStore.getState().objects.length).toBe(1);
+    for (const primitive of primitives) {
+      useSceneStore.getState().clear();
+      const res = backing.apply({ v: 1, type: 'object.add', primitive });
+      expect(res.stateChanged).toBe(true);
+      expect(res.renderInvalidated).toBe(true);
+      expect(useSceneStore.getState().objects.length).toBe(1);
+      expect(useSceneStore.getState().objects[0]?.type).toBe(primitive);
+    }
   });
 
   it('transform.update changes state and invalidates render', () => {

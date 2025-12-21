@@ -15,6 +15,10 @@ vi.mock('../components/Canvas', () => ({
 vi.mock('lucide-react', () => ({
   Circle: () => <span data-testid="circle-icon">Circle</span>,
   Box: () => <span data-testid="box-icon">Box</span>,
+  Database: () => <span data-testid="database-icon">Database</span>,
+  Triangle: () => <span data-testid="triangle-icon">Triangle</span>,
+  Pill: () => <span data-testid="pill-icon">Pill</span>,
+  Donut: () => <span data-testid="donut-icon">Donut</span>,
   Eye: () => <span data-testid="eye-icon">Eye</span>,
   EyeOff: () => <span data-testid="eyeoff-icon">EyeOff</span>,
   Trash2: () => <span data-testid="trash-icon">Trash</span>,

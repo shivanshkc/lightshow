@@ -44,6 +44,22 @@ describe('ports/commands contract', () => {
     const wrong = { v: 2, type: 'history.undo' };
     expect(parseCommand(wrong)).toBeNull();
   });
+
+  it('accepts object.add for all supported primitives', () => {
+    const primitives = [
+      'sphere',
+      'cuboid',
+      'cylinder',
+      'cone',
+      'capsule',
+      'torus',
+    ] as const;
+
+    for (const primitive of primitives) {
+      const cmd = { v: 1, type: 'object.add', primitive } as const;
+      expect(parseCommand(cmd)).toEqual(cmd);
+    }
+  });
 });
 
 
