@@ -5,5 +5,6 @@ export * from './CameraController';
 export * from './Raycaster';
 export * from './SceneBuffer';
 export * from './meshes';
+export * from './bvh';
 
 
