@@ -7,6 +7,7 @@ import {
   createDefaultCylinder,
   createDefaultCone,
   createDefaultCapsule,
+  createDefaultTorus,
 } from '../core/types';
 
 describe('Raycaster', () => {
@@ -150,6 +151,51 @@ describe('Raycaster', () => {
       expect(result.objectId).toBe('cap-1');
       expect(result.point).not.toBeNull();
       expect(result.distance).toBeCloseTo(4, 1); // Hit at z=1 (radius 1)
+    });
+
+    it('hits a torus at origin', () => {
+      const torus: SceneObject = {
+        id: 'torus-1',
+        ...createDefaultTorus(),
+        name: 'Test Torus',
+        transform: {
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [0.75, 0.25, 0.25], // R=0.75, r=0.25
+        },
+      };
+
+      const ray = {
+        origin: [0, 0, 5] as [number, number, number],
+        direction: [0, 0, -1] as [number, number, number],
+      };
+
+      const result = raycaster.pickWithRay(ray, [torus]);
+
+      expect(result.objectId).toBe('torus-1');
+      expect(result.point).not.toBeNull();
+      expect(result.distance).toBeCloseTo(4, 1); // first hit near z=1.0
+    });
+
+    it('misses a torus when ray is offset in y', () => {
+      const torus: SceneObject = {
+        id: 'torus-1',
+        ...createDefaultTorus(),
+        name: 'Test Torus',
+        transform: {
+          position: [0, 0, 0],
+          rotation: [0, 0, 0],
+          scale: [0.75, 0.25, 0.25],
+        },
+      };
+
+      const ray = {
+        origin: [0, 2, 5] as [number, number, number],
+        direction: [0, 0, -1] as [number, number, number],
+      };
+
+      const result = raycaster.pickWithRay(ray, [torus]);
+      expect(result.objectId).toBeNull();
     });
 
     it('misses objects not in ray path', () => {

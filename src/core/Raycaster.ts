@@ -9,6 +9,7 @@ import {
   intersectRayCylinderCapped,
   intersectRayConeCapped,
   intersectRayCapsule,
+  intersectRayTorusQuartic,
   mat3FromRotation,
   mat3Transpose,
   mat3MultiplyVec3,
@@ -94,8 +95,7 @@ export class Raycaster {
           break;
         }
         case 'torus': {
-          // CPU torus intersection is introduced in Step 04 (quartic).
-          result = { hit: false, t: Infinity };
+          result = intersectRayTorusQuartic(localRay, obj.transform.scale[0], obj.transform.scale[1]);
           break;
         }
       }

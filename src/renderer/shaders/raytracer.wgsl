@@ -135,6 +135,113 @@ const OBJ_CAPSULE: u32 = 4u;
 const OBJ_TORUS: u32 = 5u;
 
 // ============================================
+// Polynomial solvers (real roots)
+// ============================================
+
+fn cbrt(x: f32) -> f32 {
+  return sign(x) * pow(abs(x), 1.0 / 3.0);
+}
+
+// Solve cubic: x^3 + a x^2 + b x + c = 0, returning the maximum real root.
+fn solveCubicMaxRealRoot(a: f32, b: f32, c: f32) -> f32 {
+  // Depress: x = t - a/3 => t^3 + p t + q = 0
+  let a3 = a / 3.0;
+  let p = b - a * a3;
+  let q = 2.0 * a3 * a3 * a3 - a3 * b + c;
+
+  let halfQ = q / 2.0;
+  let thirdP = p / 3.0;
+  let disc = halfQ * halfQ + thirdP * thirdP * thirdP;
+
+  if (disc >= 0.0) {
+    let s = sqrt(disc);
+    let u = cbrt(-halfQ + s);
+    let v = cbrt(-halfQ - s);
+    return (u + v) - a3;
+  }
+
+  // Three real roots; maximum is k=0.
+  let t = 2.0 * sqrt(-thirdP);
+  let phi = acos(clamp((-halfQ) / sqrt(-(thirdP * thirdP * thirdP)), -1.0, 1.0));
+  let r0 = t * cos(phi / 3.0) - a3;
+  let r1 = t * cos((phi + 2.0 * PI) / 3.0) - a3;
+  let r2 = t * cos((phi + 4.0 * PI) / 3.0) - a3;
+  return max(r0, max(r1, r2));
+}
+
+// Solve quartic in depressed form: x^4 + p x^2 + q x + r = 0.
+// Returns smallest positive root in x-space, or MAX_FLOAT if none.
+fn solveQuarticDepressedSmallestPositive(p: f32, q: f32, r: f32) -> f32 {
+  let EPS: f32 = 1e-10;
+
+  // Biquadratic when q ≈ 0: x^4 + p x^2 + r = 0
+  if (abs(q) < 1e-12) {
+    let disc = p * p - 4.0 * r;
+    if (disc < 0.0) {
+      return MAX_FLOAT;
+    }
+    let s = sqrt(disc);
+    let z0 = (-p - s) / 2.0;
+    let z1 = (-p + s) / 2.0;
+    var best: f32 = MAX_FLOAT;
+
+    if (z0 >= 0.0) {
+      let sx = sqrt(z0);
+      let x0 = -sx;
+      let x1 = sx;
+      if (x0 > 0.001 && x0 < best) { best = x0; }
+      if (x1 > 0.001 && x1 < best) { best = x1; }
+    }
+    if (z1 >= 0.0) {
+      let sx = sqrt(z1);
+      let x0 = -sx;
+      let x1 = sx;
+      if (x0 > 0.001 && x0 < best) { best = x0; }
+      if (x1 > 0.001 && x1 < best) { best = x1; }
+    }
+
+    return best;
+  }
+
+  // Ferrari: y^3 + 2p y^2 + (p^2 - 4r) y - q^2 = 0
+  let y = solveCubicMaxRealRoot(2.0 * p, p * p - 4.0 * r, -q * q);
+  let ySafe = max(y, EPS);
+  let u = sqrt(ySafe);
+  let invU = 1.0 / u;
+
+  let v = (p + ySafe - q * invU) / 2.0;
+  let w = (p + ySafe + q * invU) / 2.0;
+
+  var best: f32 = MAX_FLOAT;
+
+  // x^2 + u x + v = 0
+  {
+    let disc1 = u * u - 4.0 * v;
+    if (disc1 >= 0.0) {
+      let s = sqrt(disc1);
+      let x0 = (-u - s) / 2.0;
+      let x1 = (-u + s) / 2.0;
+      if (x0 > 0.001 && x0 < best) { best = x0; }
+      if (x1 > 0.001 && x1 < best) { best = x1; }
+    }
+  }
+
+  // x^2 - u x + w = 0
+  {
+    let disc2 = u * u - 4.0 * w;
+    if (disc2 >= 0.0) {
+      let s = sqrt(disc2);
+      let x0 = (u - s) / 2.0;
+      let x1 = (u + s) / 2.0;
+      if (x0 > 0.001 && x0 < best) { best = x0; }
+      if (x1 > 0.001 && x1 < best) { best = x1; }
+    }
+  }
+
+  return best;
+}
+
+// ============================================
 // Render Settings
 // ============================================
 
@@ -499,6 +606,76 @@ fn intersectCapsule(ray: Ray, radius: f32, halfHeightTotal: f32) -> HitRecord {
   return best;
 }
 
+// Torus intersection via quartic solve.
+// Torus centered at origin, ring around local +Y axis.
+// majorRadius = R, minorRadius = r.
+fn intersectTorusQuartic(ray: Ray, majorRadius: f32, minorRadius: f32) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  if (!(majorRadius > 0.0) || !(minorRadius > 0.0)) {
+    return result;
+  }
+
+  let R = majorRadius;
+  let r = minorRadius;
+
+  let G = dot(ray.direction, ray.direction);
+  let H = 2.0 * dot(ray.origin, ray.direction);
+  let I = dot(ray.origin, ray.origin) + R * R - r * r;
+
+  let L = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
+  let K = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z);
+  let J = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z;
+
+  let a4 = G * G;
+  let a3 = 2.0 * G * H;
+  let a2 = H * H + 2.0 * G * I - 4.0 * R * R * L;
+  let a1 = 2.0 * H * I - 4.0 * R * R * K;
+  let a0 = I * I - 4.0 * R * R * J;
+
+  if (abs(a4) < 1e-20) {
+    return result;
+  }
+
+  // Normalize to monic: t^4 + A t^3 + B t^2 + C t + D
+  let invA4 = 1.0 / a4;
+  let A = a3 * invA4;
+  let B = a2 * invA4;
+  let C = a1 * invA4;
+  let D = a0 * invA4;
+
+  // Depress: t = x - A/4 => x^4 + p x^2 + q x + rr
+  let A2 = A * A;
+  let p = B - (3.0 / 8.0) * A2;
+  let q = C - 0.5 * A * B + (1.0 / 8.0) * A * A2;
+  let rr = D - 0.25 * A * C + (1.0 / 16.0) * A2 * B - (3.0 / 256.0) * A2 * A2;
+
+  let xBest = solveQuarticDepressedSmallestPositive(p, q, rr);
+  if (xBest == MAX_FLOAT) {
+    return result;
+  }
+
+  let t = xBest - (A / 4.0);
+  if (t < 0.001) {
+    return result;
+  }
+
+  let pos = ray.origin + t * ray.direction;
+
+  // Normal from gradient of implicit surface:
+  // F = (dot(pos,pos) + R^2 - r^2)^2 - 4 R^2 (x^2+z^2)
+  let S = dot(pos, pos) + R * R - r * r;
+  let k = S - 2.0 * R * R;
+  let n = normalize(vec3<f32>(pos.x * k, pos.y * S, pos.z * k));
+
+  result.hit = true;
+  result.t = t;
+  result.position = pos;
+  result.normal = n;
+  return result;
+}
+
 // ============================================
 // Ray Generation
 // ============================================
@@ -561,8 +738,10 @@ fn traceScene(ray: Ray) -> HitResult {
       hit = intersectConeCapped(localRay, obj.scale.x, obj.scale.y);
     } else if (obj.objectType == OBJ_CAPSULE) {
       hit = intersectCapsule(localRay, obj.scale.x, obj.scale.y);
+    } else if (obj.objectType == OBJ_TORUS) {
+      hit = intersectTorusQuartic(localRay, obj.scale.x, obj.scale.y);
     } else {
-      // Torus (and any unknown types) is handled in a later step. Deterministically "no hit".
+      // Deterministically "no hit" for unknown types.
       hit.hit = false;
     }
     

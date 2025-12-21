@@ -33,6 +33,14 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn intersectCapsule');
   });
 
+  it('contains torus quartic intersection function', () => {
+    expect(raytracerShader).toContain('fn intersectTorusQuartic');
+  });
+
+  it('contains quartic solver helper', () => {
+    expect(raytracerShader).toContain('fn solveQuarticDepressedSmallestPositive');
+  });
+
   it('contains ray generation function', () => {
     expect(raytracerShader).toContain('fn generateRay');
   });

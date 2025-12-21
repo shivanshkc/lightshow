@@ -602,3 +602,148 @@ export function intersectRayCapsule(ray: Ray, radius: number, halfHeightTotal: n
   return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
 }
 
+function cbrt(x: number): number {
+  // Math.cbrt is available, but keep it explicit for consistency across environments.
+  return Math.cbrt(x);
+}
+
+/**
+ * Solve a cubic: x^3 + a x^2 + b x + c = 0.
+ * Returns the maximum real root (sufficient for Ferrari's method where we want y >= 0).
+ */
+function solveCubicMaxRealRoot(a: number, b: number, c: number): number {
+  // Depress: x = t - a/3 => t^3 + p t + q = 0
+  const a3 = a / 3;
+  const p = b - a * a3; // b - a^2/3
+  const q = 2 * a3 * a3 * a3 - a3 * b + c; // 2a^3/27 - ab/3 + c
+
+  const halfQ = q / 2;
+  const thirdP = p / 3;
+  const disc = halfQ * halfQ + thirdP * thirdP * thirdP;
+
+  if (disc >= 0) {
+    const s = Math.sqrt(disc);
+    const u = cbrt(-halfQ + s);
+    const v = cbrt(-halfQ - s);
+    return u + v - a3;
+  }
+
+  // Three real roots. Take the maximum (k=0).
+  const phi = Math.acos(Math.max(-1, Math.min(1, (-halfQ) / Math.sqrt(-(thirdP * thirdP * thirdP)))));
+  const t = 2 * Math.sqrt(-thirdP);
+  const root0 = t * Math.cos(phi / 3) - a3;
+  const root1 = t * Math.cos((phi + 2 * Math.PI) / 3) - a3;
+  const root2 = t * Math.cos((phi + 4 * Math.PI) / 3) - a3;
+  return Math.max(root0, root1, root2);
+}
+
+/**
+ * Ray-torus intersection via quartic solve.
+ * Torus is centered at origin, ring around local +Y axis.
+ * majorRadius = R, minorRadius = r.
+ */
+export function intersectRayTorusQuartic(ray: Ray, majorRadius: number, minorRadius: number): { hit: boolean; t: number } {
+  if (!isFinitePositive(majorRadius) || !isFinitePositive(minorRadius)) return { hit: false, t: Infinity };
+
+  const ox = ray.origin[0];
+  const oy = ray.origin[1];
+  const oz = ray.origin[2];
+  const dx = ray.direction[0];
+  const dy = ray.direction[1];
+  const dz = ray.direction[2];
+
+  const R = majorRadius;
+  const r = minorRadius;
+
+  // Coefficients for:
+  // (G t^2 + H t + I)^2 - 4 R^2 (L t^2 + K t + J) = 0
+  const G = dx * dx + dy * dy + dz * dz;
+  const H = 2 * (ox * dx + oy * dy + oz * dz);
+  const I = ox * ox + oy * oy + oz * oz + R * R - r * r;
+  const L = dx * dx + dz * dz;
+  const K = 2 * (ox * dx + oz * dz);
+  const J = ox * ox + oz * oz;
+
+  const a4 = G * G;
+  const a3 = 2 * G * H;
+  const a2 = H * H + 2 * G * I - 4 * R * R * L;
+  const a1 = 2 * H * I - 4 * R * R * K;
+  const a0 = I * I - 4 * R * R * J;
+
+  if (!Number.isFinite(a4) || Math.abs(a4) < 1e-20) return { hit: false, t: Infinity };
+
+  // Normalize to monic: t^4 + A t^3 + B t^2 + C t + D
+  const A = a3 / a4;
+  const B = a2 / a4;
+  const C = a1 / a4;
+  const D = a0 / a4;
+
+  // Depress: t = x - A/4 => x^4 + p x^2 + q x + r
+  const A2 = A * A;
+  const p = B - (3 / 8) * A2;
+  const q = C - (1 / 2) * A * B + (1 / 8) * A * A2;
+  const rr = D - (1 / 4) * A * C + (1 / 16) * A2 * B - (3 / 256) * A2 * A2;
+
+  // Biquadratic fast path when q ≈ 0: x^4 + p x^2 + r = 0
+  const EPS = 1e-10;
+  const shift = A / 4;
+  if (Math.abs(q) < 1e-12) {
+    // Solve z^2 + p z + rr = 0 where z = x^2
+    const disc = p * p - 4 * rr;
+    if (disc < 0) return { hit: false, t: Infinity };
+    const s = Math.sqrt(disc);
+    const z0 = (-p - s) / 2;
+    const z1 = (-p + s) / 2;
+    let bestT = Infinity;
+    for (const z of [z0, z1]) {
+      if (z >= 0) {
+        const sx = Math.sqrt(z);
+        for (const x of [-sx, sx]) {
+          const t = x - shift;
+          if (t > 0.001 && t < bestT) bestT = t;
+        }
+      }
+    }
+    return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+  }
+
+  // Ferrari: solve resolvent cubic for y = u^2:
+  // y^3 + 2p y^2 + (p^2 - 4r) y - q^2 = 0
+  const y = solveCubicMaxRealRoot(2 * p, p * p - 4 * rr, -q * q);
+  const ySafe = y > EPS ? y : EPS;
+  const u = Math.sqrt(ySafe);
+  const invU = 1 / u;
+
+  const v = (p + ySafe - q * invU) / 2;
+  const w = (p + ySafe + q * invU) / 2;
+
+  // Solve quadratics:
+  // x^2 + u x + v = 0
+  // x^2 - u x + w = 0
+  let bestT = Infinity;
+
+  const disc1 = u * u - 4 * v;
+  if (disc1 >= 0) {
+    const s = Math.sqrt(disc1);
+    const x0 = (-u - s) / 2;
+    const x1 = (-u + s) / 2;
+    const t0 = x0 - shift;
+    const t1 = x1 - shift;
+    if (t0 > 0.001 && t0 < bestT) bestT = t0;
+    if (t1 > 0.001 && t1 < bestT) bestT = t1;
+  }
+
+  const disc2 = u * u - 4 * w;
+  if (disc2 >= 0) {
+    const s = Math.sqrt(disc2);
+    const x0 = (u - s) / 2;
+    const x1 = (u + s) / 2;
+    const t0 = x0 - shift;
+    const t1 = x1 - shift;
+    if (t0 > 0.001 && t0 < bestT) bestT = t0;
+    if (t1 > 0.001 && t1 < bestT) bestT = t1;
+  }
+
+  return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+}
+
