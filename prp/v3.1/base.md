@@ -1,5 +1,5 @@
 
-# Lightshow — v4 PRP: Touchscreen Gizmo Manipulation (“Hit-test wins”)
+# Lightshow — v3.1 PRP: Touchscreen Gizmo Manipulation (“Hit-test wins”)
 
 This PRP defines a stepwise, testable plan to make **transform gizmos usable on touchscreens** while preserving existing desktop behavior and without regressing performance.
 
