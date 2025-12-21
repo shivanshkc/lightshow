@@ -62,8 +62,27 @@ export class ZustandSceneBackingStore implements KernelBackingStore {
       }
 
       case 'object.add': {
-        const id =
-          command.primitive === 'sphere' ? s.addSphere() : s.addCuboid();
+        let id: string | null = null;
+        switch (command.primitive) {
+          case 'sphere':
+            id = s.addSphere();
+            break;
+          case 'cuboid':
+            id = s.addCuboid();
+            break;
+          case 'cylinder':
+            id = s.addCylinder();
+            break;
+          case 'cone':
+            id = s.addCone();
+            break;
+          case 'torus':
+            id = s.addTorus();
+            break;
+          case 'capsule':
+            id = s.addCapsule();
+            break;
+        }
         return { stateChanged: id !== null, renderInvalidated: id !== null };
       }
 

@@ -4,6 +4,10 @@ import {
   createDefaultMaterial,
   createDefaultSphere,
   createDefaultCuboid,
+  createDefaultCylinder,
+  createDefaultCone,
+  createDefaultTorus,
+  createDefaultCapsule,
   validateMaterial,
   MATERIAL_TYPES,
   MATERIAL_PRESETS,
@@ -213,15 +217,91 @@ describe('SceneObject', () => {
       expect(cuboid.material).toBeDefined();
     });
   });
+
+  describe('createDefaultCylinder', () => {
+    it('has type cylinder', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.type).toBe('cylinder');
+    });
+
+    it('has default name', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.name).toBe('Cylinder');
+    });
+
+    it('has default encoded scale', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.transform.scale).toEqual([1, 0.5, 1]);
+    });
+  });
+
+  describe('createDefaultCone', () => {
+    it('has type cone', () => {
+      const cone = createDefaultCone();
+      expect(cone.type).toBe('cone');
+    });
+
+    it('has default name', () => {
+      const cone = createDefaultCone();
+      expect(cone.name).toBe('Cone');
+    });
+
+    it('has default encoded scale', () => {
+      const cone = createDefaultCone();
+      expect(cone.transform.scale).toEqual([1, 0.5, 1]);
+    });
+  });
+
+  describe('createDefaultTorus', () => {
+    it('has type torus', () => {
+      const torus = createDefaultTorus();
+      expect(torus.type).toBe('torus');
+    });
+
+    it('has default name', () => {
+      const torus = createDefaultTorus();
+      expect(torus.name).toBe('Torus');
+    });
+
+    it('has default encoded scale', () => {
+      const torus = createDefaultTorus();
+      expect(torus.transform.scale).toEqual([0.75, 0.25, 0.25]);
+    });
+  });
+
+  describe('createDefaultCapsule', () => {
+    it('has type capsule', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.type).toBe('capsule');
+    });
+
+    it('has default name', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.name).toBe('Capsule');
+    });
+
+    it('has default encoded scale', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.transform.scale).toEqual([1, 1.5, 1]);
+    });
+  });
 });
 
 describe('Type Safety', () => {
-  it('PrimitiveType is union of sphere and cuboid', () => {
+  it('PrimitiveType includes all supported primitives', () => {
     const sphere: PrimitiveType = 'sphere';
     const cuboid: PrimitiveType = 'cuboid';
+    const cylinder: PrimitiveType = 'cylinder';
+    const cone: PrimitiveType = 'cone';
+    const torus: PrimitiveType = 'torus';
+    const capsule: PrimitiveType = 'capsule';
     
     expect(sphere).toBe('sphere');
     expect(cuboid).toBe('cuboid');
+    expect(cylinder).toBe('cylinder');
+    expect(cone).toBe('cone');
+    expect(torus).toBe('torus');
+    expect(capsule).toBe('capsule');
   });
 
   it('MaterialType is union of four types', () => {

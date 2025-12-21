@@ -6,7 +6,7 @@
 export type ObjectId = string;
 
 // Supported primitive types
-export type PrimitiveType = 'sphere' | 'cuboid';
+export type PrimitiveType = 'sphere' | 'cuboid' | 'cylinder' | 'cone' | 'torus' | 'capsule';
 
 // Material type enum
 export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
@@ -17,8 +17,7 @@ export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
 export interface Transform {
   position: [number, number, number];
   rotation: [number, number, number]; // Euler angles in radians
-  scale: [number, number, number];    // For cuboid: width, height, depth
-                                      // For sphere: [radius, radius, radius] (uniform)
+  scale: [number, number, number]; // Encodes primitive parameters. See PRPs for conventions.
 }
 
 /**
@@ -95,6 +94,66 @@ export function createDefaultCuboid(): Omit<SceneObject, 'id'> {
     name: 'Cuboid',
     type: 'cuboid',
     transform: createDefaultTransform(),
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default cylinder object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [radius, halfHeight, radius]
+ * Default: radius=1, height=1 => halfHeight=0.5 => [1, 0.5, 1]
+ */
+export function createDefaultCylinder(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cylinder',
+    type: 'cylinder',
+    transform: { ...createDefaultTransform(), scale: [1, 0.5, 1] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default cone object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [baseRadius, halfHeight, baseRadius]
+ * Default: radius=1, height=1 => halfHeight=0.5 => [1, 0.5, 1]
+ */
+export function createDefaultCone(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cone',
+    type: 'cone',
+    transform: { ...createDefaultTransform(), scale: [1, 0.5, 1] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default torus object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [R, r, r]
+ * Default: inner=0.5, outer=1 => R=0.75, r=0.25 => [0.75, 0.25, 0.25]
+ */
+export function createDefaultTorus(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Torus',
+    type: 'torus',
+    transform: { ...createDefaultTransform(), scale: [0.75, 0.25, 0.25] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default capsule object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [radius, halfHeightTotal, radius]
+ * Default: radius=1, height=3 => halfHeightTotal=1.5 => [1, 1.5, 1]
+ */
+export function createDefaultCapsule(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Capsule',
+    type: 'capsule',
+    transform: { ...createDefaultTransform(), scale: [1, 1.5, 1] },
     material: createDefaultMaterial(),
     visible: true,
   };

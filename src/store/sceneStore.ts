@@ -7,6 +7,10 @@ import {
   Material,
   createDefaultSphere,
   createDefaultCuboid,
+  createDefaultCylinder,
+  createDefaultCone,
+  createDefaultTorus,
+  createDefaultCapsule,
 } from '../core/types';
 import { LIMITS } from '../utils/limits';
 
@@ -456,6 +460,10 @@ interface SceneState {
   // Object management
   addSphere: () => ObjectId | null;
   addCuboid: () => ObjectId | null;
+  addCylinder: () => ObjectId | null;
+  addCone: () => ObjectId | null;
+  addTorus: () => ObjectId | null;
+  addCapsule: () => ObjectId | null;
   removeObject: (id: ObjectId) => void;
   duplicateObject: (id: ObjectId) => ObjectId | null;
   renameObject: (id: ObjectId, name: string) => void;
@@ -511,6 +519,58 @@ export const useSceneStore = create<SceneState>()(
           name: `Cuboid ${count}`,
         };
         set((state) => ({ objects: [...state.objects, cuboid] }));
+        return id;
+      },
+
+      addCylinder: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'cylinder').length + 1;
+        const cylinder: SceneObject = {
+          id,
+          ...createDefaultCylinder(),
+          name: `Cylinder ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, cylinder] }));
+        return id;
+      },
+
+      addCone: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'cone').length + 1;
+        const cone: SceneObject = {
+          id,
+          ...createDefaultCone(),
+          name: `Cone ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, cone] }));
+        return id;
+      },
+
+      addTorus: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'torus').length + 1;
+        const torus: SceneObject = {
+          id,
+          ...createDefaultTorus(),
+          name: `Torus ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, torus] }));
+        return id;
+      },
+
+      addCapsule: () => {
+        if (get().objects.length >= LIMITS.maxObjects) return null;
+        const id = nanoid();
+        const count = get().objects.filter((o) => o.type === 'capsule').length + 1;
+        const capsule: SceneObject = {
+          id,
+          ...createDefaultCapsule(),
+          name: `Capsule ${count}`,
+        };
+        set((state) => ({ objects: [...state.objects, capsule] }));
         return id;
       },
 
