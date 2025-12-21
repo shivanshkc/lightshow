@@ -69,6 +69,12 @@ export function installBenchBridge(): void {
     const endAt = last + durationMs;
 
     const startAzimuth = useCameraStore.getState().azimuth;
+    const sweepHalfRangeRad = (30 * Math.PI) / 180;
+    const minAzimuth = startAzimuth - sweepHalfRangeRad;
+    const maxAzimuth = startAzimuth + sweepHalfRangeRad;
+    const orbitStepRad = 0.01; // ~0.6 rad/s at 60fps (~34 deg/s)
+    let dir: 1 | -1 = 1;
+    let traveledAzimuth = 0;
     let frames = 0;
 
     const orbitMedianFps = await new Promise<number>((resolve) => {
@@ -77,8 +83,16 @@ export function installBenchBridge(): void {
         const dt = now - last;
         last = now;
 
-        // Drive orbit (small constant angular velocity).
-        useCameraStore.getState().orbit(0.01, 0.0);
+        // Drive camera in a back-and-forth sweep over the Cornell box opening.
+        // This focuses the benchmark on the "worst-case" viewpoint instead of a full 360 orbit.
+        const state = useCameraStore.getState();
+        const az = state.azimuth;
+        if (az >= maxAzimuth) dir = -1;
+        if (az <= minAzimuth) dir = 1;
+
+        const dAz = orbitStepRad * dir;
+        traveledAzimuth += Math.abs(dAz);
+        state.orbit(dAz, 0.0);
         renderer?.resetAccumulation();
         frames++;
 
@@ -99,8 +113,8 @@ export function installBenchBridge(): void {
       requestAnimationFrame(step);
     });
 
-    const endAzimuth = useCameraStore.getState().azimuth;
-    const orbitDeltaAzimuth = Math.abs(endAzimuth - startAzimuth);
+    // For a ping-pong sweep, start/end can be similar, so use total traveled distance.
+    const orbitDeltaAzimuth = traveledAzimuth;
 
     // If the page is backgrounded/occluded, rAF can throttle badly; this makes orbit appear "stuck".
     // Fail fast so the CDP runner can retry or report a real failure instead of silently producing bad data.

@@ -184,6 +184,9 @@ async function launchChrome({ url }) {
     '--disable-renderer-backgrounding',
     // Avoid macOS/Win occlusion heuristics that can freeze/throttle rAF when the window is covered.
     '--disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling',
+    // Prefer a large, stable viewport for the benchmark.
+    // Note: "start-maximized" is not reliable on all platforms, so we also enforce it via CDP.
+    '--start-maximized',
     '--window-size=1280,720',
     '--remote-debugging-port=0',
     // Keep WebGPU available on older channels; harmless if already enabled.
@@ -340,6 +343,29 @@ async function main() {
 
           await cdp.send('Page.enable', {}, { sessionId });
           await cdp.send('Runtime.enable', {}, { sessionId });
+
+          // Ensure Chrome window is maximized (or as close as possible) for consistent rendering load.
+          // This is more reliable than startup flags alone, especially on macOS.
+          try {
+            const w = await cdp.send('Browser.getWindowForTarget', { targetId });
+            const windowId = w?.windowId;
+            if (typeof windowId === 'number') {
+              try {
+                await cdp.send('Browser.setWindowBounds', {
+                  windowId,
+                  bounds: { windowState: 'maximized' },
+                });
+              } catch {
+                // Some environments may not support "maximized"; try fullscreen as a fallback.
+                await cdp.send('Browser.setWindowBounds', {
+                  windowId,
+                  bounds: { windowState: 'fullscreen' },
+                });
+              }
+            }
+          } catch {
+            // ignore (non-fatal)
+          }
 
           await cdp.send('Page.navigate', { url: previewUrl }, { sessionId });
           await cdp.waitForEvent('Page.loadEventFired', { timeoutMs: 60_000, sessionId });
