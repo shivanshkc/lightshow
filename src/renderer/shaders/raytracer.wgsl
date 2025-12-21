@@ -315,8 +315,8 @@ fn intersectTriangleDetailed(ray: Ray, v0: vec3<f32>, v1: vec3<f32>, v2: vec3<f3
   let p = cross(ray.direction, e2);
   let det = dot(e1, p);
 
-  // Single-sided. For two-sided support later, use abs(det) and adjust invDet sign.
-  if (det < 1e-8) {
+  // Two-sided to support rays entering/exiting closed solids (e.g., glass).
+  if (abs(det) < 1e-8) {
     return out;
   }
 
@@ -359,12 +359,25 @@ fn intersectMeshBlas(rayLocal: Ray, meshId: u32) -> HitRecord {
     return closest;
   }
 
-  // Iterative traversal with an explicit stack.
+  // Iterative traversal with an explicit stack + near-first ordering.
   // Root node index is m.nodeOffset + 0.
   const STACK_MAX: i32 = 64;
-  var stack: array<i32, 64>;
+  var stackIdx: array<i32, 64>;
+  var stackTMin: array<f32, 64>;
+  var stackTMax: array<f32, 64>;
   var sp: i32 = 0;
-  stack[0] = i32(m.nodeOffset);
+
+  // Intersect root AABB once and carry tMin/tMax through the traversal stack to
+  // avoid re-testing AABBs when popping nodes.
+  let rootIndex = i32(m.nodeOffset);
+  let rootNode = meshBlasNodes[u32(rootIndex)];
+  let rootHit = intersectAabb(rayLocal, rootNode.aabbMin, rootNode.aabbMax);
+  if (!rootHit.hit) {
+    return closest;
+  }
+  stackIdx[0] = rootIndex;
+  stackTMin[0] = rootHit.tMin;
+  stackTMax[0] = rootHit.tMax;
 
   // Track best barycentrics so we can interpolate normal.
   var bestU: f32 = 0.0;
@@ -375,12 +388,20 @@ fn intersectMeshBlas(rayLocal: Ray, meshId: u32) -> HitRecord {
 
   loop {
     if (sp < 0) { break; }
-    let nodeIndex = stack[sp];
+    let nodeIndex = stackIdx[sp];
+    let nodeTMin = stackTMin[sp];
+    let nodeTMax = stackTMax[sp];
     sp -= 1;
 
+    // Closest-hit pruning: if we already have a hit, skip nodes that start beyond it.
+    if (closest.hit && nodeTMin > closest.t) {
+      continue;
+    }
+
     let node = meshBlasNodes[u32(nodeIndex)];
-    let aabbHit = intersectAabb(rayLocal, node.aabbMin, node.aabbMax);
-    if (!aabbHit.hit) {
+    // Note: node AABB was already tested at push-time; nodeTMin/nodeTMax are valid here.
+    // Optional far bound pruning (rarely helps, but is cheap).
+    if (closest.hit && nodeTMax < 0.0) {
       continue;
     }
 
@@ -411,16 +432,55 @@ fn intersectMeshBlas(rayLocal: Ray, meshId: u32) -> HitRecord {
       continue;
     }
 
-    // Interior: push children. For now, no ordering by tMin (can be optimized later).
-    if (sp + 2 >= STACK_MAX) {
+    // Interior: near-first ordering using child AABB tMin.
+    // We compute child AABB hits to:
+    // - avoid pushing misses
+    // - push nearer child last (LIFO) so it is processed first
+    let leftNode = meshBlasNodes[u32(node.left)];
+    let rightNode = meshBlasNodes[u32(node.right)];
+
+    let leftHit = intersectAabb(rayLocal, leftNode.aabbMin, leftNode.aabbMax);
+    let rightHit = intersectAabb(rayLocal, rightNode.aabbMin, rightNode.aabbMax);
+
+    // Apply closest-hit pruning at child level (WGSL 'let' is immutable, so use flags).
+    var leftOk = leftHit.hit;
+    var rightOk = rightHit.hit;
+    if (closest.hit) {
+      if (leftOk && leftHit.tMin > closest.t) { leftOk = false; }
+      if (rightOk && rightHit.tMin > closest.t) { rightOk = false; }
+    }
+
+    let needed = i32(leftOk) + i32(rightOk);
+    if (needed == 0) {
+      continue;
+    }
+    if (sp + needed >= STACK_MAX) {
       // Stack overflow: stop traversal and return best-so-far.
       break;
     }
 
-    sp += 1;
-    stack[sp] = node.left;
-    sp += 1;
-    stack[sp] = node.right;
+    if (leftOk && rightOk) {
+      let leftNear = leftHit.tMin <= rightHit.tMin;
+      // Push farther first
+      sp += 1;
+      stackIdx[sp] = select(node.left, node.right, leftNear);
+      stackTMin[sp] = select(leftHit.tMin, rightHit.tMin, leftNear);
+      stackTMax[sp] = select(leftHit.tMax, rightHit.tMax, leftNear);
+      sp += 1;
+      stackIdx[sp] = select(node.right, node.left, leftNear);
+      stackTMin[sp] = select(rightHit.tMin, leftHit.tMin, leftNear);
+      stackTMax[sp] = select(rightHit.tMax, leftHit.tMax, leftNear);
+    } else if (leftOk) {
+      sp += 1;
+      stackIdx[sp] = node.left;
+      stackTMin[sp] = leftHit.tMin;
+      stackTMax[sp] = leftHit.tMax;
+    } else {
+      sp += 1;
+      stackIdx[sp] = node.right;
+      stackTMin[sp] = rightHit.tMin;
+      stackTMax[sp] = rightHit.tMax;
+    }
   }
 
   if (!closest.hit) {
@@ -434,7 +494,11 @@ fn intersectMeshBlas(rayLocal: Ray, meshId: u32) -> HitRecord {
   let n0 = meshVertices[bestI0].normal.xyz;
   let n1 = meshVertices[bestI1].normal.xyz;
   let n2 = meshVertices[bestI2].normal.xyz;
-  closest.normal = normalize(w * n0 + bestU * n1 + bestV * n2);
+  var n = normalize(w * n0 + bestU * n1 + bestV * n2);
+  // Ensure normal is consistently oriented against the incoming ray direction so
+  // frontFace tests (dot(ray.dir, normal) < 0) behave correctly for glass/metal.
+  n = select(-n, n, dot(rayLocal.direction, n) < 0.0);
+  closest.normal = n;
 
   return closest;
 }
@@ -616,36 +680,62 @@ fn traceScene(ray: Ray) -> HitResult {
   closest.hit = false;
   closest.t = 999999.0;
   closest.objectIndex = -1;
-  
-  let objectCount = sceneHeader.objectCount;
-  
-  for (var i = 0u; i < objectCount; i++) {
-    let obj = sceneObjects[i];
-    
-    // Transform ray to object space (apply inverse rotation)
-    let rotMat = rotationMatrix(obj.rotation);
-    let invRotMat = transpose(rotMat);
-    
-    var localRay: Ray;
-    localRay.origin = invRotMat * (ray.origin - obj.position);
-    localRay.direction = invRotMat * ray.direction;
-    
-    var hit: HitRecord;
-    
-    if (obj.objectType == 0u) {
-      // Sphere - scale.x is radius (uniform scale)
-      hit = intersectSphere(localRay, vec3<f32>(0.0), obj.scale.x);
-    } else {
-      // Cuboid - scale is half-extents
-      hit = intersectBox(localRay, vec3<f32>(0.0), obj.scale);
+
+  let instanceCount = meshSceneHeader.instanceCount;
+
+  // Safe inverse scale for non-uniform scale; avoids division by ~0.
+  // NOTE: negative scale is supported; it flips handedness, but we rely on consistent winding + normals.
+  // For now, this only affects ray transform and normal transform.
+  for (var i = 0u; i < instanceCount; i++) {
+    let inst = meshInstances[i];
+
+    // World-space instance AABB cull
+    let aabbHit = intersectAabb(ray, inst.aabbMin, inst.aabbMax);
+    if (!aabbHit.hit) {
+      continue;
     }
-    
-    if (hit.hit && hit.t < closest.t) {
+    if (aabbHit.tMin > closest.t) {
+      continue;
+    }
+
+    let rotMat = rotationMatrix(inst.rotation);
+    let invRotMat = transpose(rotMat);
+
+    let sx = select(inst.scale.x, 1e-8, abs(inst.scale.x) < 1e-8);
+    let sy = select(inst.scale.y, 1e-8, abs(inst.scale.y) < 1e-8);
+    let sz = select(inst.scale.z, 1e-8, abs(inst.scale.z) < 1e-8);
+    let invScale = vec3<f32>(1.0 / sx, 1.0 / sy, 1.0 / sz);
+
+    // Transform world ray into mesh-local space:
+    // local = (invRot * (world - position)) / scale
+    var localRay: Ray;
+    let o = invRotMat * (ray.origin - inst.position);
+    localRay.origin = o * invScale;
+    let d = invRotMat * ray.direction;
+    // IMPORTANT: do NOT normalize after applying inverse non-uniform scale.
+    // The intersection parameter t is defined in the ray's parameterization; renormalizing changes it.
+    localRay.direction = d * invScale;
+
+    let localHit = intersectMeshBlas(localRay, inst.meshId);
+    if (!localHit.hit) {
+      continue;
+    }
+
+    // Transform hit point back to world: world = position + rot * (local * scale)
+    let pLocal = localHit.position;
+    let pWorld = inst.position + rotMat * (pLocal * inst.scale);
+    let tWorld = dot(pWorld - ray.origin, ray.direction);
+
+    if (tWorld > 0.001 && tWorld < closest.t) {
+      // Normal transform: inv-transpose of rot*scale => rot * (n / scale)
+      let nLocal = localHit.normal;
+      let nAdj = vec3<f32>(nLocal.x / sx, nLocal.y / sy, nLocal.z / sz);
+      let nWorld = normalize(rotMat * nAdj);
+
       closest.hit = true;
-      closest.t = hit.t;
-      closest.position = ray.origin + hit.t * ray.direction;
-      // Transform normal back to world space
-      closest.normal = normalize(rotMat * hit.normal);
+      closest.t = tWorld;
+      closest.position = pWorld;
+      closest.normal = nWorld;
       closest.objectIndex = i32(i);
     }
   }
@@ -688,7 +778,7 @@ fn trace(primaryRay: Ray, rng: ptr<function, u32>) -> vec3<f32> {
       break;
     }
     
-    let obj = sceneObjects[hit.objectIndex];
+    let obj = meshInstances[u32(hit.objectIndex)];
     var newDir: vec3<f32>;
     var newOrigin: vec3<f32>;
     

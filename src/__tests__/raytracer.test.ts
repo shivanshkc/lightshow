@@ -30,6 +30,19 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn intersectMeshBlas');
   });
 
+  it('includes traversal pruning/ordering hints (Step 09-5)', () => {
+    // Best-effort shader-content assertions (not semantic verification).
+    expect(raytracerShader).toContain('aabbHit.tMin > closest.t');
+    expect(raytracerShader).toContain('leftHit.tMin');
+    expect(raytracerShader).toContain('rightHit.tMin');
+  });
+
+  it('uses mesh intersection path in traceScene (Step 09)', () => {
+    expect(raytracerShader).toContain('meshInstances');
+    expect(raytracerShader).toContain('meshSceneHeader.instanceCount');
+    expect(raytracerShader).toContain('intersectMeshBlas');
+  });
+
   it('contains ray generation function', () => {
     expect(raytracerShader).toContain('fn generateRay');
   });
