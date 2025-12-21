@@ -1,10 +1,10 @@
-import type { ObjectId } from './commands';
+import type { ObjectId, PrimitiveType } from './commands';
 import type { MaterialType, Vec3 } from './commands';
 
 export type SceneObjectSnapshot = {
   id: ObjectId;
   name: string;
-  type: 'sphere' | 'cuboid';
+  type: PrimitiveType;
   visible: boolean;
   transform: {
     position: Vec3;

@@ -178,6 +178,33 @@ describe('ScaleGizmo', () => {
       expect(result[1]).toBe(result[2]);
     });
 
+    it('capsule X scale affects radius (x and z together)', () => {
+      const result = ScaleGizmo.calculateScale(
+        'x',
+        startScale,
+        [0, 0],
+        [50, 0],
+        'capsule'
+      );
+      expect(result[0]).not.toBe(1);
+      expect(result[2]).not.toBe(1);
+      expect(result[0]).toBe(result[2]);
+      expect(result[1]).toBe(1);
+    });
+
+    it('capsule Y scale affects height (y only)', () => {
+      const result = ScaleGizmo.calculateScale(
+        'y',
+        startScale,
+        [0, 0],
+        [50, 0],
+        'capsule'
+      );
+      expect(result[1]).not.toBe(1);
+      expect(result[0]).toBe(1);
+      expect(result[2]).toBe(1);
+    });
+
     it('enforces minimum scale of 0.1', () => {
       const result = ScaleGizmo.calculateScale(
         'x',

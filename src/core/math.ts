@@ -575,6 +575,48 @@ export function intersectRayConeCapped(ray: Ray, baseRadius: number, halfHeight:
 }
 
 /**
+ * Ray-cylinder side intersection (finite, NO caps).
+ * Cylinder is centered at origin, aligned to local +Y axis.
+ * Radius = r, side surface only, clamped to y = ±halfHeight.
+ */
+export function intersectRayCylinderSide(ray: Ray, radius: number, halfHeight: number): { hit: boolean; t: number } {
+  if (!isFinitePositive(radius) || !isFinitePositive(halfHeight)) return { hit: false, t: Infinity };
+
+  const ox = ray.origin[0];
+  const oy = ray.origin[1];
+  const oz = ray.origin[2];
+  const dx = ray.direction[0];
+  const dy = ray.direction[1];
+  const dz = ray.direction[2];
+
+  const r2 = radius * radius;
+
+  // Side surface: x^2 + z^2 = r^2
+  const a = dx * dx + dz * dz;
+  const b = 2 * (ox * dx + oz * dz);
+  const c = ox * ox + oz * oz - r2;
+
+  if (Math.abs(a) <= 1e-12) return { hit: false, t: Infinity };
+
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return { hit: false, t: Infinity };
+
+  const s = Math.sqrt(disc);
+  const t0 = (-b - s) / (2 * a);
+  const t1 = (-b + s) / (2 * a);
+
+  let bestT = Infinity;
+  for (const t of [t0, t1]) {
+    if (t > 0.001 && t < bestT) {
+      const y = oy + dy * t;
+      if (y >= -halfHeight && y <= halfHeight) bestT = t;
+    }
+  }
+
+  return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+}
+
+/**
  * Ray-capsule intersection in object space.
  * Capsule is aligned to local +Y axis.
  * Encoding: radius = scale.x, halfHeightTotal = scale.y
@@ -585,19 +627,26 @@ export function intersectRayCapsule(ray: Ray, radius: number, halfHeightTotal: n
   const segmentHalf = Math.max(halfHeightTotal - radius, 0);
 
   let bestT = Infinity;
+  const EPS = 1e-6;
 
-  // Cylinder part (if any)
+  // Cylinder part (if any) — NOTE: capsule has NO flat end caps.
   if (segmentHalf > 0) {
-    const cyl = intersectRayCylinderCapped(ray, radius, segmentHalf);
+    const cyl = intersectRayCylinderSide(ray, radius, segmentHalf);
     if (cyl.hit) bestT = Math.min(bestT, cyl.t);
   }
 
-  // Spherical caps
+  // Hemispherical caps (restrict to y >= +segmentHalf and y <= -segmentHalf).
   const top = intersectRaySphere(ray, [0, segmentHalf, 0], radius);
-  if (top.hit) bestT = Math.min(bestT, top.t);
+  if (top.hit) {
+    const py = ray.origin[1] + ray.direction[1] * top.t;
+    if (py >= segmentHalf - EPS) bestT = Math.min(bestT, top.t);
+  }
 
   const bottom = intersectRaySphere(ray, [0, -segmentHalf, 0], radius);
-  if (bottom.hit) bestT = Math.min(bestT, bottom.t);
+  if (bottom.hit) {
+    const py = ray.origin[1] + ray.direction[1] * bottom.t;
+    if (py <= -segmentHalf + EPS) bestT = Math.min(bestT, bottom.t);
+  }
 
   return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
 }
@@ -690,8 +739,8 @@ export function intersectRayTorusQuartic(ray: Ray, majorRadius: number, minorRad
   if (Math.abs(q) < 1e-12) {
     // Solve z^2 + p z + rr = 0 where z = x^2
     const disc = p * p - 4 * rr;
-    if (disc < 0) return { hit: false, t: Infinity };
-    const s = Math.sqrt(disc);
+    if (disc < -1e-8) return { hit: false, t: Infinity };
+    const s = Math.sqrt(Math.max(disc, 0));
     const z0 = (-p - s) / 2;
     const z1 = (-p + s) / 2;
     let bestT = Infinity;
@@ -723,8 +772,8 @@ export function intersectRayTorusQuartic(ray: Ray, majorRadius: number, minorRad
   let bestT = Infinity;
 
   const disc1 = u * u - 4 * v;
-  if (disc1 >= 0) {
-    const s = Math.sqrt(disc1);
+  if (disc1 >= -1e-8) {
+    const s = Math.sqrt(Math.max(disc1, 0));
     const x0 = (-u - s) / 2;
     const x1 = (-u + s) / 2;
     const t0 = x0 - shift;
@@ -734,8 +783,8 @@ export function intersectRayTorusQuartic(ray: Ray, majorRadius: number, minorRad
   }
 
   const disc2 = u * u - 4 * w;
-  if (disc2 >= 0) {
-    const s = Math.sqrt(disc2);
+  if (disc2 >= -1e-8) {
+    const s = Math.sqrt(Math.max(disc2, 0));
     const x0 = (u - s) / 2;
     const x1 = (u + s) / 2;
     const t0 = x0 - shift;

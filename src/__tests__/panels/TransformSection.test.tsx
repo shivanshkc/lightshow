@@ -6,7 +6,7 @@ import { KernelProvider } from '@adapters';
 import type { Kernel } from '@kernel';
 
 // Create a mock scene object
-const createMockObject = (type: 'sphere' | 'cuboid') => ({
+const createMockObject = (type: 'sphere' | 'cuboid' | 'cylinder' | 'cone' | 'torus' | 'capsule') => ({
   id: 'test-1',
   name: 'Test Object',
   type,
@@ -94,6 +94,26 @@ describe('TransformSection', () => {
       </KernelProvider>
     );
     expect(screen.getByText('Radius')).toBeDefined();
+  });
+
+  it('shows Radius + Height for cylinders', () => {
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('cylinder') as any} />
+      </KernelProvider>
+    );
+    expect(screen.getByText('Radius')).toBeDefined();
+    expect(screen.getByText('Height')).toBeDefined();
+  });
+
+  it('shows Inner radius + Outer radius for torus', () => {
+    render(
+      <KernelProvider>
+        <TransformSection object={createMockObject('torus') as any} />
+      </KernelProvider>
+    );
+    expect(screen.getByText('Inner radius')).toBeDefined();
+    expect(screen.getByText('Outer radius')).toBeDefined();
   });
 
   it('shows Scale label for cuboids', () => {

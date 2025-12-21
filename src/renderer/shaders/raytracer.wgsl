@@ -135,113 +135,6 @@ const OBJ_CAPSULE: u32 = 4u;
 const OBJ_TORUS: u32 = 5u;
 
 // ============================================
-// Polynomial solvers (real roots)
-// ============================================
-
-fn cbrt(x: f32) -> f32 {
-  return sign(x) * pow(abs(x), 1.0 / 3.0);
-}
-
-// Solve cubic: x^3 + a x^2 + b x + c = 0, returning the maximum real root.
-fn solveCubicMaxRealRoot(a: f32, b: f32, c: f32) -> f32 {
-  // Depress: x = t - a/3 => t^3 + p t + q = 0
-  let a3 = a / 3.0;
-  let p = b - a * a3;
-  let q = 2.0 * a3 * a3 * a3 - a3 * b + c;
-
-  let halfQ = q / 2.0;
-  let thirdP = p / 3.0;
-  let disc = halfQ * halfQ + thirdP * thirdP * thirdP;
-
-  if (disc >= 0.0) {
-    let s = sqrt(disc);
-    let u = cbrt(-halfQ + s);
-    let v = cbrt(-halfQ - s);
-    return (u + v) - a3;
-  }
-
-  // Three real roots; maximum is k=0.
-  let t = 2.0 * sqrt(-thirdP);
-  let phi = acos(clamp((-halfQ) / sqrt(-(thirdP * thirdP * thirdP)), -1.0, 1.0));
-  let r0 = t * cos(phi / 3.0) - a3;
-  let r1 = t * cos((phi + 2.0 * PI) / 3.0) - a3;
-  let r2 = t * cos((phi + 4.0 * PI) / 3.0) - a3;
-  return max(r0, max(r1, r2));
-}
-
-// Solve quartic in depressed form: x^4 + p x^2 + q x + r = 0.
-// Returns smallest positive root in x-space, or MAX_FLOAT if none.
-fn solveQuarticDepressedSmallestPositive(p: f32, q: f32, r: f32) -> f32 {
-  let EPS: f32 = 1e-10;
-
-  // Biquadratic when q ≈ 0: x^4 + p x^2 + r = 0
-  if (abs(q) < 1e-12) {
-    let disc = p * p - 4.0 * r;
-    if (disc < 0.0) {
-      return MAX_FLOAT;
-    }
-    let s = sqrt(disc);
-    let z0 = (-p - s) / 2.0;
-    let z1 = (-p + s) / 2.0;
-    var best: f32 = MAX_FLOAT;
-
-    if (z0 >= 0.0) {
-      let sx = sqrt(z0);
-      let x0 = -sx;
-      let x1 = sx;
-      if (x0 > 0.001 && x0 < best) { best = x0; }
-      if (x1 > 0.001 && x1 < best) { best = x1; }
-    }
-    if (z1 >= 0.0) {
-      let sx = sqrt(z1);
-      let x0 = -sx;
-      let x1 = sx;
-      if (x0 > 0.001 && x0 < best) { best = x0; }
-      if (x1 > 0.001 && x1 < best) { best = x1; }
-    }
-
-    return best;
-  }
-
-  // Ferrari: y^3 + 2p y^2 + (p^2 - 4r) y - q^2 = 0
-  let y = solveCubicMaxRealRoot(2.0 * p, p * p - 4.0 * r, -q * q);
-  let ySafe = max(y, EPS);
-  let u = sqrt(ySafe);
-  let invU = 1.0 / u;
-
-  let v = (p + ySafe - q * invU) / 2.0;
-  let w = (p + ySafe + q * invU) / 2.0;
-
-  var best: f32 = MAX_FLOAT;
-
-  // x^2 + u x + v = 0
-  {
-    let disc1 = u * u - 4.0 * v;
-    if (disc1 >= 0.0) {
-      let s = sqrt(disc1);
-      let x0 = (-u - s) / 2.0;
-      let x1 = (-u + s) / 2.0;
-      if (x0 > 0.001 && x0 < best) { best = x0; }
-      if (x1 > 0.001 && x1 < best) { best = x1; }
-    }
-  }
-
-  // x^2 - u x + w = 0
-  {
-    let disc2 = u * u - 4.0 * w;
-    if (disc2 >= 0.0) {
-      let s = sqrt(disc2);
-      let x0 = (u - s) / 2.0;
-      let x1 = (u + s) / 2.0;
-      if (x0 > 0.001 && x0 < best) { best = x0; }
-      if (x1 > 0.001 && x1 < best) { best = x1; }
-    }
-  }
-
-  return best;
-}
-
-// ============================================
 // Render Settings
 // ============================================
 
@@ -489,6 +382,57 @@ fn intersectCylinderCapped(ray: Ray, radius: f32, halfHeight: f32) -> HitRecord 
   return result;
 }
 
+// Cylinder side-only intersection (finite, NO caps).
+// Used by capsule to avoid flat end caps.
+fn intersectCylinderSide(ray: Ray, radius: f32, halfHeight: f32) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  if (!(radius > 0.0) || !(halfHeight > 0.0)) {
+    return result;
+  }
+
+  let r2 = radius * radius;
+  var bestT: f32 = MAX_FLOAT;
+
+  let a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
+  let b = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z);
+  let c = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z - r2;
+
+  if (abs(a) <= 1e-12) {
+    return result;
+  }
+
+  let disc = b * b - 4.0 * a * c;
+  if (disc < 0.0) {
+    return result;
+  }
+
+  let s = sqrt(disc);
+  let t0 = (-b - s) / (2.0 * a);
+  let t1 = (-b + s) / (2.0 * a);
+
+  for (var j = 0u; j < 2u; j++) {
+    let t = select(t0, t1, j == 1u);
+    if (t > 0.001 && t < bestT) {
+      let y = ray.origin.y + t * ray.direction.y;
+      if (y >= -halfHeight && y <= halfHeight) {
+        bestT = t;
+      }
+    }
+  }
+
+  if (bestT == MAX_FLOAT) {
+    return result;
+  }
+
+  result.hit = true;
+  result.t = bestT;
+  result.position = ray.origin + bestT * ray.direction;
+  result.normal = normalize(vec3<f32>(result.position.x, 0.0, result.position.z));
+  return result;
+}
+
 // Capped cone intersection (finite, solid).
 // Cone is centered at origin, aligned to local +Y axis.
 // Convention (PRP v3.2): base cap at y=-halfHeight with radius=baseRadius; apex at y=+halfHeight with radius=0.
@@ -570,8 +514,11 @@ fn intersectConeCapped(ray: Ray, baseRadius: f32, halfHeight: f32) -> HitRecord 
   return result;
 }
 
-// Capsule intersection (solid): cylinder segment + hemispherical ends.
+// Capsule intersection (solid): cylinder side + hemispherical ends (no flat caps).
 // Encoding: radius = scale.x, halfHeightTotal = scale.y; segmentHalf = max(halfHeightTotal - radius, 0).
+// Notes:
+// - End caps are restricted to hemispheres to avoid overlap with the cylinder region.
+// - Final normal is computed via closest-point-on-axis to avoid visible seams in refraction.
 fn intersectCapsule(ray: Ray, radius: f32, halfHeightTotal: f32) -> HitRecord {
   var result: HitRecord;
   result.hit = false;
@@ -581,34 +528,56 @@ fn intersectCapsule(ray: Ray, radius: f32, halfHeightTotal: f32) -> HitRecord {
   }
 
   let segmentHalf = max(halfHeightTotal - radius, 0.0);
+  let EPS: f32 = 1e-5;
 
   var best: HitRecord;
   best.hit = false;
   best.t = MAX_FLOAT;
 
   if (segmentHalf > 0.0) {
-    let cyl = intersectCylinderCapped(ray, radius, segmentHalf);
+    let cyl = intersectCylinderSide(ray, radius, segmentHalf);
     if (cyl.hit && cyl.t < best.t) {
       best = cyl;
     }
   }
 
+  // Top hemisphere: require y >= +segmentHalf.
   let top = intersectSphere(ray, vec3<f32>(0.0, segmentHalf, 0.0), radius);
   if (top.hit && top.t < best.t) {
-    best = top;
+    if (top.position.y >= segmentHalf - EPS) {
+      best = top;
+    }
   }
 
+  // Bottom hemisphere: require y <= -segmentHalf.
   let bottom = intersectSphere(ray, vec3<f32>(0.0, -segmentHalf, 0.0), radius);
   if (bottom.hit && bottom.t < best.t) {
-    best = bottom;
+    if (bottom.position.y <= -segmentHalf + EPS) {
+      best = bottom;
+    }
+  }
+
+  // Seam-free normal computation:
+  // For a capsule, the geometric normal at hit point p is the normalized vector from the closest point
+  // on the capsule axis segment to p. This avoids visible seams in refraction near the cylinder↔cap join.
+  if (best.hit) {
+    let p = best.position;
+    let yClamped = clamp(p.y, -segmentHalf, segmentHalf);
+    let q = vec3<f32>(0.0, yClamped, 0.0);
+    best.normal = normalize(p - q);
   }
 
   return best;
 }
 
-// Torus intersection via quartic solve.
-// Torus centered at origin, ring around local +Y axis.
-// majorRadius = R, minorRadius = r.
+// Torus intersection (implicit surface) via a stabilized quartic solve (still a quartic method).
+// Torus is centered at origin with its ring around local +Y axis.
+// Parameters:
+// - majorRadius = R (distance from center to tube centerline)
+// - minorRadius = r (tube radius)
+// Implementation note:
+// We use a numerically-stabilized quartic approach (popularized by Inigo Quílez) because the
+// straightforward Ferrari solve can produce float32 artifacts (bands / missing wedges) in edge cases.
 fn intersectTorusQuartic(ray: Ray, majorRadius: f32, minorRadius: f32) -> HitRecord {
   var result: HitRecord;
   result.hit = false;
@@ -620,59 +589,125 @@ fn intersectTorusQuartic(ray: Ray, majorRadius: f32, minorRadius: f32) -> HitRec
   let R = majorRadius;
   let r = minorRadius;
 
-  let G = dot(ray.direction, ray.direction);
-  let H = 2.0 * dot(ray.origin, ray.direction);
-  let I = dot(ray.origin, ray.origin) + R * R - r * r;
+  // Inigo Quilez-style torus quartic intersection with numeric stabilization.
+  // Adapted to our convention: torus ring is around local +Y axis (so terms use y instead of z).
+  let Ra2 = R * R;
+  let ra2 = r * r;
 
-  let L = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
-  let K = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z);
-  let J = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z;
+  let ro = ray.origin;
+  let rd = ray.direction;
 
-  let a4 = G * G;
-  let a3 = 2.0 * G * H;
-  let a2 = H * H + 2.0 * G * I - 4.0 * R * R * L;
-  let a1 = 2.0 * H * I - 4.0 * R * R * K;
-  let a0 = I * I - 4.0 * R * R * J;
+  let m = dot(ro, ro);
+  let ndot = dot(ro, rd);
 
-  if (abs(a4) < 1e-20) {
+  // Bounding sphere of radius (R+r).
+  {
+    let h = ndot * ndot - m + (R + r) * (R + r);
+    if (h < 0.0) {
+      return result;
+    }
+  }
+
+  // Quartic construction
+  var po: f32 = 1.0;
+
+  var kk = (m - ra2 - Ra2) / 2.0;
+  var k3 = ndot;
+  var k2 = ndot * ndot + Ra2 * rd.y * rd.y + kk;
+  var k1 = kk * ndot + Ra2 * ro.y * rd.y;
+  var k0 = kk * kk + Ra2 * ro.y * ro.y - Ra2 * ra2;
+
+  // Stabilization: prevent |c1| from being too close to zero via reciprocal transform.
+  if (abs(k3 * (k3 * k3 - k2) + k1) < 0.01) {
+    po = -1.0;
+    let tmp = k1;
+    k1 = k3;
+    k3 = tmp;
+    k0 = 1.0 / k0;
+    k1 = k1 * k0;
+    k2 = k2 * k0;
+    k3 = k3 * k0;
+  }
+
+  var c2 = 2.0 * k2 - 3.0 * k3 * k3;
+  var c1 = k3 * (k3 * k3 - k2) + k1;
+  var c0 = k3 * (k3 * (-3.0 * k3 * k3 + 4.0 * k2) - 8.0 * k1) + 4.0 * k0;
+
+  c2 = c2 / 3.0;
+  c1 = c1 * 2.0;
+  c0 = c0 / 3.0;
+
+  let Q = c2 * c2 + c0;
+  let RR = 3.0 * c0 * c2 - c2 * c2 * c2 - c1 * c1;
+
+  let h = RR * RR - Q * Q * Q;
+  var z: f32 = 0.0;
+  if (h < 0.0) {
+    // 4 intersections
+    let sQ = sqrt(max(Q, 0.0));
+    // Guard divide by zero
+    let denom = max(sQ * Q, 1e-12);
+    z = 2.0 * sQ * cos(acos(clamp(RR / denom, -1.0, 1.0)) / 3.0);
+  } else {
+    // 2 intersections
+    let sQ = pow(sqrt(max(h, 0.0)) + abs(RR), 1.0 / 3.0);
+    z = sign(RR) * abs(sQ + Q / max(sQ, 1e-12));
+  }
+  z = c2 - z;
+
+  var d1 = z - 3.0 * c2;
+  var d2 = z * z - 3.0 * c0;
+  if (abs(d1) < 1.0e-4) {
+    if (d2 < 0.0) {
+      return result;
+    }
+    d2 = sqrt(max(d2, 0.0));
+  } else {
+    if (d1 < 0.0) {
+      return result;
+    }
+    d1 = sqrt(d1 / 2.0);
+    d2 = c1 / d1;
+  }
+
+  var bestT: f32 = MAX_FLOAT;
+
+  // First quadratic pair
+  var hh = d1 * d1 - z + d2;
+  if (hh > 0.0) {
+    let sh = sqrt(hh);
+    var t1 = -d1 - sh - k3; t1 = select(t1, 2.0 / t1, po < 0.0);
+    var t2 = -d1 + sh - k3; t2 = select(t2, 2.0 / t2, po < 0.0);
+    if (t1 > 0.001) { bestT = min(bestT, t1); }
+    if (t2 > 0.001) { bestT = min(bestT, t2); }
+  }
+
+  // Second quadratic pair
+  hh = d1 * d1 - z - d2;
+  if (hh > 0.0) {
+    let sh = sqrt(hh);
+    var t1 = d1 - sh - k3; t1 = select(t1, 2.0 / t1, po < 0.0);
+    var t2 = d1 + sh - k3; t2 = select(t2, 2.0 / t2, po < 0.0);
+    if (t1 > 0.001) { bestT = min(bestT, t1); }
+    if (t2 > 0.001) { bestT = min(bestT, t2); }
+  }
+
+  if (bestT == MAX_FLOAT) {
     return result;
   }
 
-  // Normalize to monic: t^4 + A t^3 + B t^2 + C t + D
-  let invA4 = 1.0 / a4;
-  let A = a3 * invA4;
-  let B = a2 * invA4;
-  let C = a1 * invA4;
-  let D = a0 * invA4;
-
-  // Depress: t = x - A/4 => x^4 + p x^2 + q x + rr
-  let A2 = A * A;
-  let p = B - (3.0 / 8.0) * A2;
-  let q = C - 0.5 * A * B + (1.0 / 8.0) * A * A2;
-  let rr = D - 0.25 * A * C + (1.0 / 16.0) * A2 * B - (3.0 / 256.0) * A2 * A2;
-
-  let xBest = solveQuarticDepressedSmallestPositive(p, q, rr);
-  if (xBest == MAX_FLOAT) {
-    return result;
-  }
-
-  let t = xBest - (A / 4.0);
-  if (t < 0.001) {
-    return result;
-  }
-
-  let pos = ray.origin + t * ray.direction;
+  let pos = ro + bestT * rd;
 
   // Normal from gradient of implicit surface:
   // F = (dot(pos,pos) + R^2 - r^2)^2 - 4 R^2 (x^2+z^2)
   let S = dot(pos, pos) + R * R - r * r;
-  let k = S - 2.0 * R * R;
-  let n = normalize(vec3<f32>(pos.x * k, pos.y * S, pos.z * k));
+  let kN = S - 2.0 * R * R;
+  let normalTorus = normalize(vec3<f32>(pos.x * kN, pos.y * S, pos.z * kN));
 
   result.hit = true;
-  result.t = t;
+  result.t = bestT;
   result.position = pos;
-  result.normal = n;
+  result.normal = normalTorus;
   return result;
 }
 

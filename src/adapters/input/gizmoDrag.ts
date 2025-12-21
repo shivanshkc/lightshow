@@ -1,4 +1,4 @@
-import type { Command } from '@ports';
+import type { Command, PrimitiveType } from '@ports';
 import type { Vec3, Ray } from '@core';
 import { mat4Inverse, mat4Perspective, screenToWorldRay, sub } from '@core';
 import { TranslateGizmo, RotateGizmo, ScaleGizmo } from '@gizmos';
@@ -26,7 +26,7 @@ export type DragFrameInput = {
   mode: GizmoMode;
   axis: GizmoAxis;
   objectId: string;
-  objectType: 'sphere' | 'cuboid';
+  objectType: PrimitiveType;
   objectPosition: Vec3;
   startPosition: Vec3;
   startRotation: Vec3 | null;
@@ -140,12 +140,25 @@ export function computeGizmoDragCommand(input: DragFrameInput): Command | null {
   }
 
   if (mode === 'scale' && startScale) {
-    const scaleAxis =
+    let scaleAxis =
       axis === 'uniform' || axis === 'xy' || axis === 'xz' || axis === 'yz' || axis === 'xyz'
         ? 'uniform'
         : axis === 'trackball'
           ? 'uniform'
           : axis;
+
+    // Preserve primitive parameter invariants:
+    // - cuboid: full axis scaling
+    // - cylinder/cone/capsule: allow y (height) and x/z (radius) scaling (ScaleGizmo enforces x=z)
+    // - sphere/torus: uniform only
+    const supportsAxisScale =
+      objectType === 'cuboid' ||
+      objectType === 'cylinder' ||
+      objectType === 'cone' ||
+      objectType === 'capsule';
+    if (!supportsAxisScale) {
+      scaleAxis = 'uniform';
+    }
 
     let newScale = ScaleGizmo.calculateScale(
       scaleAxis as any,

@@ -16,6 +16,22 @@ export function AddObjectSection() {
     kernel.dispatch({ v: 1, type: 'object.add', primitive: 'cuboid' });
   };
 
+  const handleAddCylinder = () => {
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'cylinder' });
+  };
+
+  const handleAddCone = () => {
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'cone' });
+  };
+
+  const handleAddTorus = () => {
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'torus' });
+  };
+
+  const handleAddCapsule = () => {
+    kernel.dispatch({ v: 1, type: 'object.add', primitive: 'capsule' });
+  };
+
   return (
     <div className="p-3 border-b border-border-subtle">
       <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">
@@ -26,10 +42,9 @@ export function AddObjectSection() {
           Maximum object limit reached ({LIMITS.maxObjects})
         </div>
       )}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={handleAddSphere}
-          className="flex-1"
           variant="secondary"
           disabled={atLimit}
         >
@@ -38,12 +53,32 @@ export function AddObjectSection() {
         </Button>
         <Button
           onClick={handleAddCuboid}
-          className="flex-1"
           variant="secondary"
           disabled={atLimit}
         >
           <Box className="w-4 h-4 mr-2" />
           Cuboid
+        </Button>
+
+        <Button onClick={handleAddCylinder} variant="secondary" disabled={atLimit}>
+          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
+          <Circle className="w-4 h-4 mr-2" />
+          Cylinder
+        </Button>
+        <Button onClick={handleAddCone} variant="secondary" disabled={atLimit}>
+          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
+          <Circle className="w-4 h-4 mr-2" />
+          Cone
+        </Button>
+        <Button onClick={handleAddTorus} variant="secondary" disabled={atLimit}>
+          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
+          <Circle className="w-4 h-4 mr-2" />
+          Torus
+        </Button>
+        <Button onClick={handleAddCapsule} variant="secondary" disabled={atLimit}>
+          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
+          <Circle className="w-4 h-4 mr-2" />
+          Capsule
         </Button>
       </div>
     </div>
