@@ -31,6 +31,9 @@ Replace the shader’s scene tracing logic to use per-instance AABB culling and 
   - `selectedObjectIndex` interpreted as visible-index
 - Keep material shading behavior identical (light terminates; metal reflects; glass refracts; plastic diffuse).
 
+### Performance follow-up (explicit)
+This step focuses on correctness and switching the active tracing path. BLAS traversal optimizations (closest-hit pruning and near-first ordering) are explicitly handled in **Step 09-5 — Optimize WGSL BLAS traversal**.
+
 ## Unit test plan
 - **Update** `src/__tests__/raytracer.test.ts`:
   - Stop asserting presence of `intersectSphere`/`intersectBox` only when the implementation actually removes them (that removal may be Step 11).

@@ -22,6 +22,9 @@ Implement BVH (BLAS) traversal in WGSL against the new mesh buffers, producing c
 - Keep it deterministic and robust:
   - cap stack size and define behavior if exceeded (e.g., stop traversal and return “no hit” with a debug flag off by default)
 
+### Performance note (explicit)
+This step is correctness-first. Distance-based pruning (using `tMin > closestT`) and near-first child ordering are intentionally deferred to **Step 09-5 — Optimize WGSL BLAS traversal** to keep review and debugging scoped.
+
 ## Unit test plan
 - **Update** `src/__tests__/raytracer.test.ts`:
   - Assert presence of BLAS traversal functions and AABB intersection helper.
