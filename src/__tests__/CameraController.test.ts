@@ -106,13 +106,35 @@ describe('CameraController', () => {
 
       const touchStart = new Event('touchstart', { bubbles: true, cancelable: true }) as any;
       touchStart.touches = [{ clientX: 100, clientY: 100, identifier: 1 }];
+      Object.defineProperty(touchStart, 'preventDefault', { value: vi.fn() });
       canvas.dispatchEvent(touchStart);
 
       const touchMove = new Event('touchmove', { bubbles: true, cancelable: true }) as any;
       touchMove.touches = [{ clientX: 120, clientY: 100, identifier: 1 }];
+      Object.defineProperty(touchMove, 'preventDefault', { value: vi.fn() });
       canvas.dispatchEvent(touchMove);
 
       expect(useCameraStore.getState().azimuth).not.toBe(initialAzimuth);
+    });
+
+    it('ignores tiny one-finger touch jitter (does not call onCameraChange)', () => {
+      const initialAzimuth = useCameraStore.getState().azimuth;
+      const callback = vi.fn();
+      controller.onCameraChange = callback;
+
+      const touchStart = new Event('touchstart', { bubbles: true, cancelable: true }) as any;
+      touchStart.touches = [{ clientX: 100, clientY: 100, identifier: 1 }];
+      Object.defineProperty(touchStart, 'preventDefault', { value: vi.fn() });
+      canvas.dispatchEvent(touchStart);
+
+      const touchMove = new Event('touchmove', { bubbles: true, cancelable: true }) as any;
+      // 1px move: should be within deadzone.
+      touchMove.touches = [{ clientX: 101, clientY: 100, identifier: 1 }];
+      Object.defineProperty(touchMove, 'preventDefault', { value: vi.fn() });
+      canvas.dispatchEvent(touchMove);
+
+      expect(useCameraStore.getState().azimuth).toBe(initialAzimuth);
+      expect(callback).not.toHaveBeenCalled();
     });
 
     it('handles two-finger pinch zoom', () => {
@@ -123,6 +145,7 @@ describe('CameraController', () => {
         { clientX: 100, clientY: 100, identifier: 1 },
         { clientX: 200, clientY: 100, identifier: 2 },
       ];
+      Object.defineProperty(touchStart, 'preventDefault', { value: vi.fn() });
       canvas.dispatchEvent(touchStart);
 
       const touchMove = new Event('touchmove', { bubbles: true, cancelable: true }) as any;
@@ -131,6 +154,7 @@ describe('CameraController', () => {
         { clientX: 90, clientY: 100, identifier: 1 },
         { clientX: 210, clientY: 100, identifier: 2 },
       ];
+      Object.defineProperty(touchMove, 'preventDefault', { value: vi.fn() });
       canvas.dispatchEvent(touchMove);
 
       expect(useCameraStore.getState().distance).toBeLessThan(initialDistance);

@@ -52,6 +52,12 @@ export class CameraController {
   private lastTouchDistance = 0;
   private lastTouchMidX = 0;
   private lastTouchMidY = 0;
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private touchPastDeadzone = false;
+
+  // Small deadzone to avoid treating tap jitter as a camera move (prevents spurious accumulation resets).
+  private static readonly TOUCH_DEADZONE_PX = 3;
 
   private boundHandlers: {
     mousedown: (e: MouseEvent) => void;
@@ -222,6 +228,9 @@ export class CameraController {
       const t = e.touches[0]!;
       this.lastMouseX = t.clientX;
       this.lastMouseY = t.clientY;
+      this.touchStartX = t.clientX;
+      this.touchStartY = t.clientY;
+      this.touchPastDeadzone = false;
       this.canvas.style.cursor = 'grabbing';
       return;
     }
@@ -252,6 +261,17 @@ export class CameraController {
       const deltaY = t.clientY - this.lastMouseY;
       this.lastMouseX = t.clientX;
       this.lastMouseY = t.clientY;
+
+      // Ignore tiny touch jitter near the start of a gesture (taps are never perfectly stationary).
+      if (!this.touchPastDeadzone) {
+        const dx0 = t.clientX - this.touchStartX;
+        const dy0 = t.clientY - this.touchStartY;
+        const dist0 = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+        if (dist0 < CameraController.TOUCH_DEADZONE_PX) {
+          return;
+        }
+        this.touchPastDeadzone = true;
+      }
 
       // One-finger orbit
       camera.orbit(
