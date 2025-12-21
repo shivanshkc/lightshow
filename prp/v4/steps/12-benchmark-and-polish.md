@@ -54,6 +54,23 @@ Run the benchmark gate after Owner approval, address any material regressions, a
 ## Rollback notes (what to revert if needed)
 - Revert any performance tweaks that caused correctness regressions; keep correctness as the primary goal.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**:
+  - Any leftover unused exports/re-exports from intermediate rollout steps (especially `index.ts` barrels).
+  - Any debug-only helpers or temporary code paths added for rollout safety that are no longer needed after Step 11.
+  - Any stale documentation references that mention analytic intersections or pre-mesh scene buffers.
+- **Removal plan**:
+  - **This step**: Final repo hygiene pass:
+    - delete any remaining unused code/assets/docs identified during the rollout
+    - ensure there is exactly one active intersection path (mesh-based)
+  - **Deferred**: None (this is the final cleanup gate).
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - After Owner approval: `npm run bench` passes without material regression.
+  - Best-effort repo-wide search confirms removed/obsolete symbols do not exist:
+    - analytic intersection identifiers (sphere/box)
+    - any temporary rollout-only identifiers documented in earlier steps
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

@@ -52,6 +52,17 @@ Replace CPU-side picking (`Raycaster`) to select objects using mesh-based inters
 ## Rollback notes (what to revert if needed)
 - Revert `Raycaster` changes and restore analytic picking until mesh picking is fixed.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**:
+  - CPU analytic picking helpers (`intersectRaySphere`, `intersectRayBox`) become obsolete once picking is mesh-based, but must not be removed until confirmed unused repo-wide.
+- **Removal plan**:
+  - **This step**: Update call sites so CPU picking no longer depends on analytic intersections.
+  - **Deferred**:
+    - Remove unused analytic helpers from `@core` only in **Step 11** (or earlier if a repo-wide search confirms they are unused and all tests pass).
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Confirm `Raycaster` contains no references to `intersectRaySphere` / `intersectRayBox`.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

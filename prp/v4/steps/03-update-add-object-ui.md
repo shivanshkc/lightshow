@@ -49,6 +49,16 @@ Expose the new primitives (Cylinder/Cone/Capsule/Torus) in the UI’s “Add Obj
 ## Rollback notes (what to revert if needed)
 - Revert changes to `AddObjectSection` and any associated tests.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**:
+  - Any UI tests or UI assumptions that hard-code “only Sphere/Cuboid buttons exist” become obsolete.
+- **Removal plan**:
+  - **This step**: Update/remove obsolete test expectations to match the new UI.
+  - **Deferred**: None.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Ensure no unused click handlers/imported icons remain in `AddObjectSection.tsx`.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

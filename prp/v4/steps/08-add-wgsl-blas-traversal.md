@@ -47,6 +47,16 @@ Implement BVH (BLAS) traversal in WGSL against the new mesh buffers, producing c
 ## Rollback notes (what to revert if needed)
 - Revert WGSL BLAS traversal additions and related test updates.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**: None (additive; not yet the active tracing path).
+- **Removal plan**:
+  - **This step**: No removals.
+  - **Deferred**:
+    - Any obsolete analytic-only WGSL helpers will be removed in **Step 11** once mesh tracing is fully switched.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Ensure traversal helpers are referenced by `traceScene` immediately in Step 09; do not leave unused traversal code behind.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

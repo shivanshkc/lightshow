@@ -53,6 +53,15 @@ Enable creating `cylinder`, `cone`, `capsule`, and `torus` scene objects via the
 ## Rollback notes (what to revert if needed)
 - Revert new factory functions, store methods, and adapter routing changes.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**: None.
+- **Removal plan**:
+  - **This step**: No removals.
+  - **Deferred**: None.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Ensure no unused store methods/factories were added (TypeScript + lint should catch unused exports if they are exported; otherwise verify they are referenced by store/adapters).
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

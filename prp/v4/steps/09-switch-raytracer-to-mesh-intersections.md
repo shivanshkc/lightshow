@@ -69,6 +69,18 @@ Replace the shader’s scene tracing logic to use per-instance AABB culling and 
 ## Rollback notes (what to revert if needed)
 - Revert `traceScene` mesh switch; keep mesh buffers in place for later iteration.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**:
+  - Analytic intersection functions (`intersectSphere`, `intersectBox`) and any analytic-only per-object logic become obsolete once `traceScene` is switched, but may still exist temporarily for safe sequencing.
+- **Removal plan**:
+  - **This step**: Do not delete analytic code yet if tests or other paths still reference it; keep the removal strictly sequenced.
+  - **Deferred**:
+    - Remove analytic WGSL intersections and any analytic-only CPU helpers in **Step 11 — Remove analytic intersections and finalize uniform mesh tracing**.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - `raytracer.wgsl` no longer routes `traceScene` through analytic intersections.
+  - Ensure there are no unused WGSL helpers introduced by the mesh switch (best-effort grep for unused functions, plus shader-content tests).
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

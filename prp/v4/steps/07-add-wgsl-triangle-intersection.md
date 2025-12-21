@@ -43,6 +43,16 @@ Add a robust, numerically safe triangle intersection routine to the raytracer sh
 ## Rollback notes (what to revert if needed)
 - Revert WGSL changes and the associated shader-content test updates.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**: None (additive; no behavior switched yet).
+- **Removal plan**:
+  - **This step**: No removals.
+  - **Deferred**:
+    - Any obsolete analytic-only WGSL helpers will be removed in **Step 11** once the mesh path is fully in use.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Ensure new WGSL helpers are referenced (or will be referenced immediately in Step 08/09) to avoid accumulating unused shader code.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

@@ -160,6 +160,14 @@ NFR3. Determinism: generated primitive meshes and their BLAS must be determinist
 
 NFR4. No cross-layer coupling: changes must respect `docs/architecture.md` dependency rules and “public API only” imports.
 
+NFR5. Code cleanup / no-dead-code (mandatory): by the end of the rollout, there must be no dead, unused, or obsolete code left behind from superseded implementations. Concretely:
+- remove unused functions/classes/components/stores/adapters/ports/utilities as they become obsolete
+- remove unused exports/re-exports (including module barrel `index.ts` exports)
+- remove or update tests that target obsolete behavior
+- remove unused assets/config and update documentation references
+- update all call sites to new APIs and delete old APIs once unreferenced
+Cleanup must be sequenced safely (do not delete code that is still required by earlier steps) and must respect the decoupled architecture (no cross-layer shortcuts).
+
 ---
 
 ## Architecture & design constraints (derived from docs)
@@ -243,6 +251,7 @@ CM3. Selection index semantics in the renderer must remain in terms of visible o
 - [ ] `npm test -- --run` passes.
 - [ ] `npm run lint` passes.
 - [ ] After Owner approval, `npm run bench` shows no material regression relative to baseline for agreed metrics.
+- [ ] No dead code: analytic intersection paths and other superseded APIs are removed; unused exports/imports are eliminated; tests/docs are updated; repository remains clean (tests + lint + bench pass).
 
 ---
 

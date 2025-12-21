@@ -82,6 +82,15 @@ Introduce deterministic mesh generators in `@core` for the six built-in primitiv
 ## Rollback notes (what to revert if needed)
 - Revert newly added `@core` mesh generator files and their tests.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**: None (new functionality only).
+- **Removal plan**:
+  - **This step**: No removals.
+  - **Deferred**: None.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Ensure newly added `@core` exports are referenced by at least one call site in later steps before merging the rollout; otherwise keep them unexported until first use.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

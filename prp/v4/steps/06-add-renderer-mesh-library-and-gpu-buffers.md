@@ -56,6 +56,16 @@ Introduce GPU-side buffers for a mesh library (geometry + BLAS) and instance dat
 ## Rollback notes (what to revert if needed)
 - Revert buffer additions and revert WGSL binding additions.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**: None yet (this step is additive plumbing).
+- **Removal plan**:
+  - **This step**: No removals.
+  - **Deferred**:
+    - Analytic intersection and any analytic-only buffers become obsolete only after the mesh tracing switch; removal is explicitly handled in **Step 11 — Remove analytic intersections and finalize uniform mesh tracing**.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Verify all newly added WGSL bindings are actually bound by `RaytracingPipeline` to avoid “declared but not bound” drift.
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.

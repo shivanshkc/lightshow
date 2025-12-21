@@ -49,6 +49,23 @@ Remove analytic primitive intersection code paths (sphere/box) from WGSL and CPU
 ## Rollback notes (what to revert if needed)
 - Revert shader and CPU intersection removals to restore analytic path temporarily.
 
+## Cleanup
+- **Obsolete code introduced/identified in this step**:
+  - Analytic WGSL intersection functions: `intersectSphere`, `intersectBox` and any related analytic-only helpers.
+  - CPU analytic helpers in `@core` (`intersectRaySphere`, `intersectRayBox`) if no longer referenced.
+  - Tests asserting analytic intersection function presence.
+  - Any unused buffer managers or data paths that existed solely for analytic tracing (if applicable).
+- **Removal plan**:
+  - **This step**: Perform the actual deletions for analytic intersection paths and update tests/docs accordingly.
+  - **Deferred**:
+    - If any analytic helper is still referenced for non-raytracing features, do not delete it; instead document the remaining dependency explicitly and schedule removal in **Step 12** after resolving that dependency.
+- **Verification (no dead code)**:
+  - `npm test -- --run` and `npm run lint` pass.
+  - Repo-wide search confirms no references remain:
+    - `intersectSphere`, `intersectBox`
+    - `intersectRaySphere`, `intersectRayBox`
+  - `src/renderer/README.md` no longer references analytic primitive intersections (if it did).
+
 ## Required agent workflow (must be repeated verbatim in EVERY step doc)
 1. Read this atomic step document fully and build a thorough understanding. If any detail is unclear, ask the Owner targeted questions before coding.
 2. If documentation updates are needed to reflect newly confirmed understanding, draft the doc changes and ask the Owner for approval **before proceeding**.
