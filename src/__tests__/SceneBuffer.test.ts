@@ -4,6 +4,7 @@ import {
   MAX_OBJECTS,
   HEADER_SIZE_BYTES,
   MATERIAL_TYPE_MAP,
+  OBJECT_TYPE_MAP,
 } from '../core/SceneBuffer';
 import { PrimitiveType, MaterialType } from '../core/types';
 
@@ -29,16 +30,19 @@ describe('SceneBuffer', () => {
   });
 
   describe('object encoding', () => {
-    it('sphere type encodes to 0', () => {
-      const type = 'sphere';
-      const encoded = type === 'sphere' ? 0 : 1;
-      expect(encoded).toBe(0);
-    });
+    it('maps all primitive types to stable objectType discriminators', () => {
+      const entries: Array<[PrimitiveType, number]> = [
+        ['sphere', 0],
+        ['cuboid', 1],
+        ['cylinder', 2],
+        ['cone', 3],
+        ['capsule', 4],
+        ['torus', 5],
+      ];
 
-    it('cuboid type encodes to 1', () => {
-      const type = 'cuboid' as PrimitiveType;
-      const encoded = type === 'sphere' ? 0 : 1;
-      expect(encoded).toBe(1);
+      for (const [type, expected] of entries) {
+        expect(OBJECT_TYPE_MAP[type]).toBe(expected);
+      }
     });
   });
 

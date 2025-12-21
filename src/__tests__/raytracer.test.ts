@@ -21,6 +21,18 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn intersectBox');
   });
 
+  it('contains cylinder intersection function', () => {
+    expect(raytracerShader).toContain('fn intersectCylinderCapped');
+  });
+
+  it('contains cone intersection function', () => {
+    expect(raytracerShader).toContain('fn intersectConeCapped');
+  });
+
+  it('contains capsule intersection function', () => {
+    expect(raytracerShader).toContain('fn intersectCapsule');
+  });
+
   it('contains ray generation function', () => {
     expect(raytracerShader).toContain('fn generateRay');
   });

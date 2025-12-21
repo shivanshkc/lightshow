@@ -126,6 +126,14 @@ const MAT_METAL: u32 = 1u;
 const MAT_GLASS: u32 = 2u;
 const MAT_LIGHT: u32 = 3u;
 
+// Object type constants (must match src/core/SceneBuffer.ts OBJECT_TYPE_MAP)
+const OBJ_SPHERE: u32 = 0u;
+const OBJ_CUBOID: u32 = 1u;
+const OBJ_CYLINDER: u32 = 2u;
+const OBJ_CONE: u32 = 3u;
+const OBJ_CAPSULE: u32 = 4u;
+const OBJ_TORUS: u32 = 5u;
+
 // ============================================
 // Render Settings
 // ============================================
@@ -293,6 +301,204 @@ fn intersectBox(ray: Ray, center: vec3<f32>, halfExtents: vec3<f32>) -> HitRecor
   return result;
 }
 
+// Capped cylinder intersection (finite, solid).
+// Cylinder is centered at origin, aligned to local +Y axis.
+// Radius = r, cap planes at y = ±halfHeight.
+fn intersectCylinderCapped(ray: Ray, radius: f32, halfHeight: f32) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  if (!(radius > 0.0) || !(halfHeight > 0.0)) {
+    return result;
+  }
+
+  let r2 = radius * radius;
+  var bestT: f32 = MAX_FLOAT;
+  var bestN: vec3<f32> = vec3<f32>(0.0);
+
+  // Side surface: x^2 + z^2 = r^2
+  let a = ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z;
+  let b = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z);
+  let c = ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z - r2;
+
+  if (abs(a) > 1e-12) {
+    let disc = b * b - 4.0 * a * c;
+    if (disc >= 0.0) {
+      let s = sqrt(disc);
+      let t0 = (-b - s) / (2.0 * a);
+      let t1 = (-b + s) / (2.0 * a);
+
+      // Check both roots (near may be outside y-range)
+      for (var j = 0u; j < 2u; j++) {
+        let t = select(t0, t1, j == 1u);
+        if (t > 0.001 && t < bestT) {
+          let y = ray.origin.y + t * ray.direction.y;
+          if (y >= -halfHeight && y <= halfHeight) {
+            let p = ray.origin + t * ray.direction;
+            bestT = t;
+            bestN = normalize(vec3<f32>(p.x, 0.0, p.z));
+          }
+        }
+      }
+    }
+  }
+
+  // Caps: y = ±halfHeight, radial <= r
+  if (abs(ray.direction.y) > 1e-12) {
+    // bottom cap y = -halfHeight, normal -Y
+    {
+      let t = (-halfHeight - ray.origin.y) / ray.direction.y;
+      if (t > 0.001 && t < bestT) {
+        let x = ray.origin.x + t * ray.direction.x;
+        let z = ray.origin.z + t * ray.direction.z;
+        if (x * x + z * z <= r2) {
+          bestT = t;
+          bestN = vec3<f32>(0.0, -1.0, 0.0);
+        }
+      }
+    }
+    // top cap y = +halfHeight, normal +Y
+    {
+      let t = (halfHeight - ray.origin.y) / ray.direction.y;
+      if (t > 0.001 && t < bestT) {
+        let x = ray.origin.x + t * ray.direction.x;
+        let z = ray.origin.z + t * ray.direction.z;
+        if (x * x + z * z <= r2) {
+          bestT = t;
+          bestN = vec3<f32>(0.0, 1.0, 0.0);
+        }
+      }
+    }
+  }
+
+  if (bestT == MAX_FLOAT) {
+    return result;
+  }
+
+  result.hit = true;
+  result.t = bestT;
+  result.position = ray.origin + bestT * ray.direction;
+  result.normal = bestN;
+  return result;
+}
+
+// Capped cone intersection (finite, solid).
+// Cone is centered at origin, aligned to local +Y axis.
+// Convention (PRP v3.2): base cap at y=-halfHeight with radius=baseRadius; apex at y=+halfHeight with radius=0.
+fn intersectConeCapped(ray: Ray, baseRadius: f32, halfHeight: f32) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  if (!(baseRadius > 0.0) || !(halfHeight > 0.0)) {
+    return result;
+  }
+
+  var bestT: f32 = MAX_FLOAT;
+  var bestN: vec3<f32> = vec3<f32>(0.0);
+
+  // Implicit: x^2 + z^2 - k^2 * (halfHeight - y)^2 = 0, where k = baseRadius / (2*halfHeight)
+  let k = baseRadius / (2.0 * halfHeight);
+  let k2 = k * k;
+  let q0 = halfHeight - ray.origin.y;
+
+  let a = (ray.direction.x * ray.direction.x + ray.direction.z * ray.direction.z) - k2 * (ray.direction.y * ray.direction.y);
+  let b = 2.0 * (ray.origin.x * ray.direction.x + ray.origin.z * ray.direction.z) + 2.0 * k2 * q0 * ray.direction.y;
+  let c = (ray.origin.x * ray.origin.x + ray.origin.z * ray.origin.z) - k2 * (q0 * q0);
+
+  if (abs(a) > 1e-12) {
+    let disc = b * b - 4.0 * a * c;
+    if (disc >= 0.0) {
+      let s = sqrt(disc);
+      let t0 = (-b - s) / (2.0 * a);
+      let t1 = (-b + s) / (2.0 * a);
+
+      for (var j = 0u; j < 2u; j++) {
+        let t = select(t0, t1, j == 1u);
+        if (t > 0.001 && t < bestT) {
+          let y = ray.origin.y + t * ray.direction.y;
+          if (y >= -halfHeight && y <= halfHeight) {
+            let p = ray.origin + t * ray.direction;
+            // Gradient of F: (2x, 2*k^2*(halfHeight - y), 2z)
+            let gy = k2 * (halfHeight - p.y);
+            bestT = t;
+            bestN = normalize(vec3<f32>(p.x, gy, p.z));
+          }
+        }
+      }
+    }
+  } else if (abs(b) > 1e-12) {
+    let t = -c / b;
+    if (t > 0.001) {
+      let y = ray.origin.y + t * ray.direction.y;
+      if (y >= -halfHeight && y <= halfHeight) {
+        let p = ray.origin + t * ray.direction;
+        let gy = k2 * (halfHeight - p.y);
+        bestT = t;
+        bestN = normalize(vec3<f32>(p.x, gy, p.z));
+      }
+    }
+  }
+
+  // Base cap at y = -halfHeight with radius = baseRadius, normal -Y
+  if (abs(ray.direction.y) > 1e-12) {
+    let t = (-halfHeight - ray.origin.y) / ray.direction.y;
+    if (t > 0.001 && t < bestT) {
+      let x = ray.origin.x + t * ray.direction.x;
+      let z = ray.origin.z + t * ray.direction.z;
+      if (x * x + z * z <= baseRadius * baseRadius) {
+        bestT = t;
+        bestN = vec3<f32>(0.0, -1.0, 0.0);
+      }
+    }
+  }
+
+  if (bestT == MAX_FLOAT) {
+    return result;
+  }
+
+  result.hit = true;
+  result.t = bestT;
+  result.position = ray.origin + bestT * ray.direction;
+  result.normal = bestN;
+  return result;
+}
+
+// Capsule intersection (solid): cylinder segment + hemispherical ends.
+// Encoding: radius = scale.x, halfHeightTotal = scale.y; segmentHalf = max(halfHeightTotal - radius, 0).
+fn intersectCapsule(ray: Ray, radius: f32, halfHeightTotal: f32) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  if (!(radius > 0.0) || !(halfHeightTotal > 0.0)) {
+    return result;
+  }
+
+  let segmentHalf = max(halfHeightTotal - radius, 0.0);
+
+  var best: HitRecord;
+  best.hit = false;
+  best.t = MAX_FLOAT;
+
+  if (segmentHalf > 0.0) {
+    let cyl = intersectCylinderCapped(ray, radius, segmentHalf);
+    if (cyl.hit && cyl.t < best.t) {
+      best = cyl;
+    }
+  }
+
+  let top = intersectSphere(ray, vec3<f32>(0.0, segmentHalf, 0.0), radius);
+  if (top.hit && top.t < best.t) {
+    best = top;
+  }
+
+  let bottom = intersectSphere(ray, vec3<f32>(0.0, -segmentHalf, 0.0), radius);
+  if (bottom.hit && bottom.t < best.t) {
+    best = bottom;
+  }
+
+  return best;
+}
+
 // ============================================
 // Ray Generation
 // ============================================
@@ -343,12 +549,21 @@ fn traceScene(ray: Ray) -> HitResult {
     
     var hit: HitRecord;
     
-    if (obj.objectType == 0u) {
+    if (obj.objectType == OBJ_SPHERE) {
       // Sphere - scale.x is radius (uniform scale)
       hit = intersectSphere(localRay, vec3<f32>(0.0), obj.scale.x);
-    } else {
+    } else if (obj.objectType == OBJ_CUBOID) {
       // Cuboid - scale is half-extents
       hit = intersectBox(localRay, vec3<f32>(0.0), obj.scale);
+    } else if (obj.objectType == OBJ_CYLINDER) {
+      hit = intersectCylinderCapped(localRay, obj.scale.x, obj.scale.y);
+    } else if (obj.objectType == OBJ_CONE) {
+      hit = intersectConeCapped(localRay, obj.scale.x, obj.scale.y);
+    } else if (obj.objectType == OBJ_CAPSULE) {
+      hit = intersectCapsule(localRay, obj.scale.x, obj.scale.y);
+    } else {
+      // Torus (and any unknown types) is handled in a later step. Deterministically "no hit".
+      hit.hit = false;
     }
     
     if (hit.hit && hit.t < closest.t) {
