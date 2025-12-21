@@ -1,284 +1,267 @@
+# Mesh-based primitives (ray tracing) — PRP v4
 
-# Lightshow — v4 PRP: Touchscreen Gizmo Manipulation (“Hit-test wins”)
+## Overview / problem statement
 
-This PRP defines a stepwise, testable plan to make **transform gizmos usable on touchscreens** while preserving existing desktop behavior and without regressing performance.
+Lightshow currently supports two primitives: **sphere** and **cuboid**. Both are ray traced using **dedicated analytic intersection functions** in `src/renderer/shaders/raytracer.wgsl` (`intersectSphere`, `intersectBox`). This approach does not scale to adding more primitives and is incompatible with the near-future requirement of importing arbitrary meshes (OBJ/glTF).
 
----
+This PRP defines a new rendering approach where all primitives are represented as **triangle meshes** and are ray traced via **triangle intersection**. To keep performance acceptable, the system must introduce a **per-mesh BVH** (BLAS) and be designed so a **TLAS** can be added later with minimal churn.
 
-## 0) Context / problem statement
-
-Today, on touch devices, **all touch-drag gestures go to camera control**, making it effectively impossible to translate/rotate/scale via gizmos. The root cause is:
-
-- Gizmo interaction (hover, start drag, update drag, end drag) is implemented only for **mouse events** in `src/components/Canvas.tsx`.
-- Touch input is used only for **tap-to-select** in `Canvas`, while continuous touch gestures are handled by `src/core/CameraController.ts` (orbit/pan/zoom).
-
-Additionally, on narrow screens the **Mobile HUD hides W/E/R**, leaving touch-first devices with **no way to switch gizmo modes** (and thus no way to access rotate/scale on phones). This must be fixed in this release.
+This PRP is **authoritative** for requirements; implementation must remain within the project’s decoupled architecture (see `docs/architecture.md` and `docs/components.md`).
 
 ---
 
-## 1) Target behavior (final UX spec)
+## Goals (explicit)
 
-### 1.0 Gizmo mode switching is available on all screen sizes
+G1. Add the following built-in primitives (mesh-based) to the editor:
+- Sphere (UV sphere)
+- Cuboid
+- Cylinder (closed/capped)
+- Cone (closed/capped)
+- Capsule (closed)
+- Torus (closed)
 
-- Users must be able to switch gizmo modes (**translate/rotate/scale**) on **all screen widths**, including phone-sized screens.
-- On small screens, the control may be more compact (e.g. smaller segmented control), but it must remain **discoverable** and **one-tap reachable**.
+G2. Replace analytic intersections (`intersectSphere`, `intersectBox`) with a uniform mesh-raytracing path:
+- Triangle intersection for all primitives.
+- Per-mesh acceleration structure (BLAS / BVH) to avoid brute-force triangle tests for all triangles.
 
-### 1.1 Core rule: “hit-test wins”
+G3. Preserve the existing decoupled architecture:
+- UI dispatches `Command`s and reads `KernelQueries`.
+- Renderer consumes snapshot data via injected deps and must not import stores directly.
+- Cross-module imports must use module `index.ts` public APIs (no deep `@core/*` imports).
 
-For **single-finger** touch:
-- On touch down, if the touch point **hits a gizmo axis/handle**, begin a gizmo drag session (translate/rotate/scale) immediately.
-- Otherwise, touch remains camera-first (existing orbit behavior), and tap-to-select remains supported.
+G4. Be “TLAS-ready”:
+- Initial release may loop instances, but data structures and shader interfaces must allow introduction of a TLAS later without redesigning BLAS or triangle hit logic.
 
-For **two+ fingers** touch:
-- Never starts gizmo drag.
-- Always camera (existing pinch/pan behavior).
-
-### 1.2 Multi-touch during a gizmo drag (simplicity rule)
-
-If a second finger is placed **during** an active gizmo drag:
-- Ignore extra touches and continue gizmo drag based on the primary touch.
-- End the gizmo drag when the primary touch ends/cancels.
-
-### 1.3 Touch hit slop
-
-Touch gizmo axis picking uses a **fixed 24 CSS px hit slop**, meaning “close enough” to a handle should count as a hit on touch.
-
-Implementation may use a world-space tolerance derived from 24 CSS px at the gizmo’s approximate depth. The subjective requirement is: **axis acquisition feels ~24px forgiving** on touch.
-
-### 1.4 Non-goals
-
-- No new UI modes (no “Edit vs Navigate” toggle).
-- No redesign of camera gestures.
-- No changes to renderer behavior, scene semantics, or kernel history semantics beyond reusing existing APIs (`history.group.begin/end`, existing transform commands).
-- No new dependencies.
-
----
-
-## 2) Hard constraints (architecture / module boundaries)
-
-Lightshow is built from decoupled modules. The implementation must only modify the relevant components and must respect module boundaries and public APIs.
-
-### 2.1 Allowed to modify (expected)
-
-- `src/components/Canvas.tsx` (viewport input wiring for gizmos/selection)
-- `src/components/layout/MobileHud.tsx` and `src/components/layout/Hud.tsx` (gizmo mode switcher availability across breakpoints)
-- `src/core/CameraController.ts` (only if required to support correct suppression/resumption of camera touch state)
-- `src/gizmos/GizmoRaycaster.ts` (to support touch tolerance in picking)
-- `src/core/*` (only small, pure helpers if necessary and well-justified)
-- `src/__tests__/*` (unit tests covering the new behavior)
-- `docs/*` (only if needed; must request user approval before changing docs)
-
-### 2.2 Must not modify
-
-- `src/kernel/**`, `src/ports/**` contracts (unless explicitly required and approved)
-- `src/renderer/**` or shaders (should be irrelevant)
-- unrelated UI/panels/layout
-
-### 2.3 Import rules
-
-- Obey “public API only” aliased imports (e.g. import from `@core`, `@gizmos`, etc. entrypoints when applicable).
-- Avoid new import cycles (ESLint enforces `import/no-cycle`).
-
----
-
-## 3) Required agent workflow (MANDATORY)
-
-The AI agent implementing this PRP must follow this workflow:
-
-1) Read the current atomic step, build a thorough understanding, and ask the user questions if needed.
-2) If documentation needs updates based on new understanding, **propose doc changes and ask the user for approval** before proceeding.
-3) For each atomic step, in order:
-   - Implement the step (only in relevant components)
-   - Add/adjust unit tests
-   - Run the full test suite: `npm test -- --run`
-   - Run lint: `npm run lint`
-   - Update docs if needed (ask for approval first)
-   - Provide **manual test actions** for the user
-   - Wait for user verification/approval; iterate if requested
-   - After approval: run benchmarks: `npm run bench`
-   - If benchmarks pass: propose a commit message; **commit only after user approval**
-
----
-
-## 4) Acceptance criteria (final state)
-
-### 4.1 Automated
-
+G5. Keep the codebase green at every step:
 - `npm test -- --run` passes.
 - `npm run lint` passes.
-- `npm run bench` passes with no regression gates violated.
-
-### 4.2 Manual (touch device)
-
-- On a phone-sized screen, there is a visible way to switch gizmo mode (W/E/R), and switching updates the active gizmo.
-- With an object selected and gizmo mode set (W/E/R), a **single finger** can:
-  - grab a gizmo handle and **translate** the object
-  - grab a gizmo ring/handle and **rotate** the object
-  - grab a scale handle and **scale** the object
-- Touching **not** on the gizmo still orbits the camera (existing behavior).
-- Two-finger gestures (pinch zoom + pan) still work as before.
-- During gizmo drag: camera motion is suppressed; on drag end: camera resumes.
-- Undo/redo grouping during a continuous touch drag remains “one undo step” (history group begin/end).
+- Benchmarks (`npm run bench`) are run only after Owner approval for the relevant step, and must not regress materially.
 
 ---
 
-## 5) Atomic implementation plan (sequential, testable steps)
+## Non-goals (explicit)
 
-Each step below must be **atomic**, **testable**, and should not require additional refactors.
+NG1. External mesh import (OBJ/glTF) is **out of scope** for this release.
 
-### Step 1 — Ensure W/E/R gizmo mode switching exists on all screen sizes
+NG2. TLAS implementation is **out of scope** for this release (but design must be TLAS-ready).
 
-**Goal**: On narrow screens (including phones), users must be able to switch between translate/rotate/scale from the HUD (no keyboard required).
+NG3. LOD (level-of-detail), adaptive tessellation, or user-adjustable mesh resolution are **out of scope**. Primitives use **fixed-resolution meshes**.
 
-**Implementation (expected scope)**:
-- Update `src/components/layout/MobileHud.tsx` so gizmo mode switching is always available (even on phones).
-- Use a **cycle button on phones** (narrow screens):
-  - A single icon button (or compact text button) that cycles: `translate → rotate → scale → translate`.
-  - The control must be one-tap reachable.
-  - Accessibility:
-    - `aria-label` must describe the action, e.g. `Cycle Gizmo Mode (W/E/R)`.
-    - `title` should indicate both current mode and the next mode, e.g. `Mode: Translate → Rotate`.
-  - Visual:
-    - The button should display the current mode in a compact way (e.g. `W`, `E`, `R` or an icon), but the accessible label must be explicit.
-- Use the existing `SegmentedControl` on larger “mobile-but-not-phone” widths (e.g. tablets):
-  - Prefer `size="md"` (or `sm` if needed for spacing).
-- Do not move mode switching into an overflow menu for this release.
-- Keep the rest of the HUD control order/behavior unchanged.
+NG4. Adding new UI primitives beyond the six listed (e.g., quad, disk/plane) is **out of scope**.
 
-**Tests**:
-- Add a new test file (e.g. `src/__tests__/MobileHud.test.tsx`) that asserts:
-  - On “phone-sized” conditions, the cycle button renders and clicking it cycles the gizmo mode.
-  - On wider mobile conditions, the segmented W/E/R control renders and clicking a segment changes gizmo mode.
-- Update any existing HUD tests if necessary to reflect the new invariant (“W/E/R always reachable somewhere”).
+NG5. Changing material models (plastic/metal/glass/light) is **out of scope**, except where required to support mesh intersections (e.g., correct normals/t values).
 
-**Manual test actions**:
-- Resize the browser/devtools to phone width (or use a phone):
-  - Confirm the Mobile HUD shows a **mode cycle** control.
-  - Tap it repeatedly and confirm the mode cycles translate → rotate → scale.
-- Resize to tablet width:
-  - Confirm the Mobile HUD shows the segmented W/E/R control.
-  - Tap W/E/R and confirm the gizmo mode changes accordingly.
-
-**Exit criteria**:
-- Tests/lint pass; bench passes after user approval.
+NG6. Adding volumetric rendering beyond surface-based dielectrics (e.g., heterogeneous volumes, participating media) is **out of scope**.
 
 ---
 
-### Step 2 — Add a pure helper to convert 24 CSS px into a world-space tolerance
+## User stories / use-cases
 
-**Goal**: Provide a deterministic way to derive a world-space tolerance at a given depth and viewport height, without changing runtime behavior yet.
+US1. As a user, I can add a Cylinder/Cone/Capsule/Torus from the “Add Object” panel, select it, transform it, and assign any existing material including glass.
 
-**Implementation (expected scope)**:
-- Add a small pure function such as:
-  - `pixelsToWorldUnitsAtDepth(pixelsCss: number, depth: number, fovY: number, viewportHeightCss: number): number`
-- Place it in a relevant module that doesn’t violate boundaries (prefer `@core` if it’s camera-math adjacent).
+US2. As a user, glass primitives look “solid” (enter/exit refraction) just like the current sphere/cuboid glass behavior.
 
-**Tests**:
-- Add unit tests validating:
-  - monotonicity: increasing pixels increases world tolerance
-  - increasing depth increases world tolerance
-  - increasing viewport height decreases world tolerance
-  - basic sanity against the formula \(2 * depth * tan(fovY/2) / viewportHeight\)
+US3. As a user, selection/picking works consistently for all primitives (clicking an object selects the correct object; selection highlight works).
 
-**Manual test actions**:
-- None required (pure helper + tests only).
-
-**Exit criteria**:
-- Tests/lint pass; bench passes after user approval.
+US4. As a developer, the renderer is structured to later add imported meshes and TLAS without cross-layer coupling.
 
 ---
 
-### Step 3 — Extend gizmo picking to support a configurable “extra tolerance”
+## Definitions (shared vocabulary)
 
-**Goal**: Make `GizmoRaycaster.pick(...)` optionally accept an extra pick tolerance (world units), defaulting to 0, so existing callers remain unchanged.
-
-**Implementation (expected scope)**:
-- Update `GizmoRaycaster.pick` signature to accept an optional `pickTolerance?: number` (default `0`).
-- Apply that tolerance consistently across modes:
-  - translate: inflate arrow radius and plane bounds
-  - rotate: inflate tube radius / acceptance distance
-  - scale: inflate line radius and cube AABB size
-- Ensure default behavior is unchanged when tolerance is omitted.
-
-**Tests**:
-- Add new focused tests (e.g. `src/__tests__/GizmoRaycaster.test.ts`) that construct rays that:
-  - miss by a small margin with tolerance = 0
-  - hit when tolerance > margin
-- Cover at least one representative case for:
-  - translate axis pick (`'x'|'y'|'z'`)
-  - rotate ring pick (`'x'|'y'|'z'` or `'xyz'` trackball)
-  - scale pick (`'xyz'` or axis)
-
-**Manual test actions**:
-- None required (math-only change + tests).
-
-**Exit criteria**:
-- Tests/lint pass; bench passes after user approval.
+- **Mesh**: Triangle geometry defined by vertex positions and triangle indices. In this release, meshes are generated procedurally for built-in primitives.
+- **Instance**: A scene object referencing a mesh, with transform + material. Multiple instances may reference the same mesh.
+- **BLAS**: Bottom-level acceleration structure (BVH) built over a mesh’s triangles.
+- **TLAS**: Top-level acceleration structure (BVH) built over instances (out of scope now, but design must allow it later).
+- **Watertight / closed mesh**: A surface mesh with no holes/cracks such that a ray entering a dielectric can later exit correctly.
 
 ---
 
-### Step 4 — Add touch-driven gizmo drag to `Canvas` (hit-test wins)
+## Functional requirements (numbered, testable)
 
-**Goal**: Implement single-finger touch gizmo manipulation in `src/components/Canvas.tsx` using the final UX spec, without breaking camera gestures or selection.
+### Primitive availability & creation
 
-**Implementation (expected scope)**:
-- Add touch gesture handling for gizmos:
-  - `touchstart`: if 1 touch and gizmo-hit → start drag, begin history group, disable camera
-  - `touchmove`: if dragging → update transform (reuse existing drag compute path)
-  - `touchend` / `touchcancel`: if dragging → end drag, end history group, re-enable camera
-- Use touch hit slop:
-  - compute depth estimate (camera-space z) for the selected object’s gizmo origin
-  - compute `worldTolerance` from 24 CSS px using Step 1 helper
-  - pass it into `GizmoRaycaster.pick(..., pickTolerance)`
-- Maintain existing tap-to-select behavior when the touch does **not** start gizmo drag.
-- Ensure camera is suppressed only during a gizmo drag (by disabling `CameraController`).
+FR1. The application must support `PrimitiveType` values:
+- `sphere`
+- `cuboid`
+- `cylinder`
+- `cone`
+- `capsule`
+- `torus`
 
-**Tests**:
-- Add unit/integration tests that simulate touch events and assert:
-  - touch start on gizmo begins drag (gizmo store state changes to dragging; history group begin is dispatched)
-  - touch move updates transform via commands (at least verify dispatch called with a transform command)
-  - touch end ends drag and re-enables camera (history group end dispatched)
-  - touch start not on gizmo does not start drag and still allows tap-to-select semantics
-- If Canvas wiring is difficult to test end-to-end, extract the “touch gizmo gesture reducer” into a small pure helper and unit test it; keep UI wiring thin.
+FR2. The UI must expose “Add Object” actions for all primitives in FR1. Each action must:
+- dispatch a kernel command `object.add` with the corresponding primitive type
+- respect the existing object limit (`LIMITS.maxObjects`)
 
-**Manual test actions** (for the user):
-- On a touch device:
-  - Select an object (tap).
-  - Set gizmo mode to translate/rotate/scale.
-  - Touch down on a handle and drag: object transforms; camera does not orbit.
-  - Touch down off gizmo and drag: camera orbits.
-  - Use two fingers: pinch zoom and pan behave as before.
-  - Undo/redo after a drag: one undo step should revert the whole drag.
+FR3. The backing store adapter for scene state must implement `object.add` for all new primitives without violating layering (i.e., renderer/store are not imported into the kernel).
 
-**Exit criteria**:
-- Tests/lint pass; bench passes after user approval.
+### Mesh-based representation
+
+FR4. Every primitive in FR1 must be represented by a triangle mesh and ray traced using **triangle intersection**, not analytic primitive intersections.
+
+FR5. Each built-in primitive mesh must provide:
+- `positions`: array of 3D points (float32)
+- `indices`: triangle index buffer (u32 or u16; u32 preferred for import readiness)
+- `normals`: per-vertex normals sufficient for smooth shading (except cuboid which must use per-face normals)
+
+FR6. Shading normals must behave as follows:
+- **Cuboid**: flat shading (hard edges) via per-face normals.
+- **Sphere/Cylinder/Cone/Capsule/Torus**: smooth shading on curved surfaces.
+- Cylinder/Cone caps must have flat normals and a hard edge where caps meet the side surface (no vertex sharing between cap ring and side ring).
+
+FR7. The current “glass looks solid” behavior must be preserved for mesh primitives by treating glass as a dielectric surface:
+- on each surface hit, determine entering vs exiting using `frontFace` logic based on the hit normal
+- apply refraction/reflection as currently done in the shader
+
+### Acceleration structures (BLAS now; TLAS-ready design)
+
+FR8. The renderer must build and use a per-mesh BVH (BLAS) for ray-mesh intersections.
+
+FR9. The initial implementation may iterate all visible instances in the shader, but must include a fast per-instance AABB reject test before BLAS traversal.
+
+FR10. The GPU-facing data model must represent:
+- a mesh library (geometry + BLAS) addressable by `meshId`
+- an instance list where each instance references `meshId`
+
+FR11. The design must make it possible to add TLAS later without redefining BLAS or triangle-hit logic. Concretely:
+- shader functions for “intersect a mesh via BLAS” must be reusable by a future TLAS traversal
+- instance data layout must remain valid when instance iteration is replaced by TLAS traversal
+
+### Transform semantics & compatibility
+
+FR12. Existing transform semantics must remain compatible:
+- Cuboid `transform.scale` continues to represent **half-extents** (see “Compatibility” section).
+- Non-uniform `scale: [x,y,z]` must be supported for all primitives.
+
+FR13. Ray intersection results must be correct in world space:
+- returned hit position is in world space
+- returned normal is in world space and normalized
+- returned `t` is the distance along the world ray direction (compatible with existing shading + selection highlight logic)
+
+### Picking/selection
+
+FR14. CPU-side picking (`src/core/Raycaster.ts`) must support selection of all primitives in FR1 and must not depend on analytic sphere/box intersections.
+
+FR15. Renderer selection highlight must continue to function:
+- selected-object index semantics remain “index in the visible objects stream”
+- highlight must be stable (non-jittered ray) as currently implemented
 
 ---
 
-### Step 5 — Tighten camera controller touch state interaction (only if needed)
+## Non-functional requirements (performance, reliability, UX constraints)
 
-**Goal**: Ensure no sticky camera-touch state exists after toggling `setEnabled(false/true)` during a touch-driven gizmo drag.
+NFR1. Performance: interactive rendering must not regress materially relative to baseline for the default scene. The benchmark harness (`npm run bench`) is the gate; acceptable regression thresholds must be discussed/approved per step before running benchmarks.
 
-**Implementation (expected scope)**:
-- If observed issues exist (e.g., camera continues orbiting after gizmo drag ends, or touch state sticks):
-  - update `CameraController.setEnabled(false)` to also clear touch gesture state (e.g., `isTouching = false`, reset cached touch distances).
-- Keep changes minimal and localized.
+NFR2. Reliability: the renderer must not crash or generate NaNs for:
+- degenerate triangles in generated primitives (should not exist, but code must be robust)
+- rays parallel to triangles/caps (handle near-zero determinants safely)
 
-**Tests**:
-- Add a focused unit test for `CameraController` only if the change is non-trivial (optional; prefer coverage via Canvas tests).
+NFR3. Determinism: generated primitive meshes and their BLAS must be deterministic for a given configuration (same indices/vertices across runs).
 
-**Manual test actions**:
-- Repeat Step 3 manual checks, focusing on transitions into/out of gizmo drag.
-
-**Exit criteria**:
-- Tests/lint pass; bench passes after user approval.
+NFR4. No cross-layer coupling: changes must respect `docs/architecture.md` dependency rules and “public API only” imports.
 
 ---
 
-## 6) Notes / performance guardrails
+## Architecture & design constraints (derived from docs)
 
-- Avoid per-frame allocations; touch handlers should allocate minimally and reuse existing refs (similar to mouse path).
-- Do not introduce new continuous polling; all updates must be event-driven.
-- Any additional math helpers must be pure and cheap.
+AC1. Follow module boundaries as defined in `docs/architecture.md`:
+- `@ports` is dependency-free and defines the command/query/event contracts.
+- `@kernel` depends only on `@ports` and must not import WebGPU/Zustand/UI.
+- `@renderer` consumes `@ports` contracts via injected deps; must not import stores directly.
+- `@components` dispatch commands + read queries; must not import store singletons directly (only via adapters).
 
+AC2. Cross-module imports must go through module entrypoints (`index.ts`). Imports like `@core/*` are disallowed.
+
+AC3. No cyclic imports are allowed (enforced by ESLint `import/no-cycle`).
+
+AC4. Renderer update rules must remain allocation-light:
+- do not introduce per-frame allocations proportional to object count
+- scene uploads should remain tied to reference changes in snapshot objects (as today)
+
+---
+
+## Data model / API / state changes
+
+### Ports (`@ports`)
+
+DM1. Update `src/ports/commands.ts`:
+- Extend `PrimitiveType` union with the new primitives in FR1.
+- Extend `parseCommand` validation for `object.add` to accept new primitives.
+
+### Core types (`@core`)
+
+DM2. Update `src/core/types.ts`:
+- Extend `PrimitiveType` union with the new primitives in FR1.
+- Add any mesh/BVH data structures needed for mesh generation and BLAS construction under `@core` (or a new `@core` submodule), exported via `src/core/index.ts`.
+
+### Scene objects and instances
+
+DM3. Scene objects remain “one object → one material” and have a primitive `type` matching FR1.
+
+DM4. Renderer must derive/assign a stable `meshId` for each built-in primitive type. Multiple objects of the same primitive type may reference the same `meshId`.
+
+---
+
+## UI/UX requirements
+
+UI1. Update the “Add Object” panel to include buttons for Cylinder, Cone, Capsule, and Torus.
+
+UI2. Button labels must match the primitive names exactly: `Sphere`, `Cuboid`, `Cylinder`, `Cone`, `Capsule`, `Torus`.
+
+UI3. No new primitive settings UI is introduced (no caps toggles, no segment sliders).
+
+---
+
+## Edge cases & error handling
+
+EC1. Rays parallel to triangles or near-degenerate triangles must not produce NaNs; triangle intersection must safely reject when determinant is near zero.
+
+EC2. BVH traversal must avoid infinite loops; node indexing must be validated in tests.
+
+EC3. Generated meshes must be watertight for “closed” primitives to preserve expected glass behavior:
+- sphere, cuboid, cylinder (capped), cone (capped), capsule, torus
+
+---
+
+## Compatibility / migration notes
+
+CM1. The Cornell box default scene and any existing tests must continue to work after migration.
+
+CM2. Cuboid scale semantics: current code treats cuboid `transform.scale` as **half-extents** (full size is `2 * scale`). This must remain true after cuboid becomes a mesh.
+
+CM3. Selection index semantics in the renderer must remain in terms of visible objects (as currently implemented in `src/renderer/Renderer.ts`).
+
+---
+
+## Acceptance criteria checklist (release-level)
+
+- [ ] Can add all primitives (Sphere, Cuboid, Cylinder, Cone, Capsule, Torus) from UI and they appear in the scene.
+- [ ] All primitives are ray traced via triangle mesh intersections (no analytic `intersectSphere`/`intersectBox` usage).
+- [ ] Glass material refracts as a “solid” closed object for all closed primitives.
+- [ ] CPU picking can select any primitive correctly.
+- [ ] Selection highlight continues to work and is stable.
+- [ ] `npm test -- --run` passes.
+- [ ] `npm run lint` passes.
+- [ ] After Owner approval, `npm run bench` shows no material regression relative to baseline for agreed metrics.
+
+---
+
+## Open questions / assumptions (explicit)
+
+OQ1 (RESOLVED — approved defaults; may be tuned later). Fixed-resolution tessellation defaults for built-in primitive meshes:
+- UV sphere: 32 segments × 16 rings (~1024 tris)
+- Cylinder (capped): 32 radial segments
+- Cone (capped): 32 radial segments
+- Torus: major 32 × minor 16 (~1024 tris)
+- Capsule: 32 radial segments; hemispheres subdivided to match sphere ring density (implementation must be deterministic)
+
+OQ2 (RESOLVED — approved canonical dimensions). Canonical object-space dimensions for built-in primitive meshes:
+- Sphere: radius = 1, centered at origin.
+- Cuboid: half-extents = (1,1,1), centered at origin (spans [-1,+1] on each axis). Cuboid `transform.scale` continues to mean half-extents.
+- Cylinder (capped): radius = 1, half-height = 1, centered at origin, aligned to +Y (spans y ∈ [-1,+1]).
+- Cone (capped): base radius = 1, half-height = 1, centered at origin, aligned to +Y, with apex at y=+1 and base at y=-1.
+- Torus: major radius R = 1, minor radius r = 0.35, centered at origin, aligned to +Y (ring lies in XZ plane).
+- Capsule: radius = 1; half-height = 1 is defined as the cylinder half-length (excluding hemispheres). Concretely: cylinder spans y ∈ [-1,+1], hemisphere centers at y=±1, total capsule spans y ∈ [-2,+2].
+
+ASSUMPTION A1 (explicit): All built-in meshes are generated with consistent winding and outward-facing normals such that `frontFace` detection via `dot(ray.direction, normal) < 0` is stable for glass materials.
 
