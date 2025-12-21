@@ -1,3 +1,11 @@
+# [3.1.0](https://github.com/shivanshkc/lightshow/compare/v3.0.0...v3.1.0) (2025-12-21)
+
+
+### Features
+
+* **ui:** add phone gizmo-mode cycle button (WER) ([34d0943](https://github.com/shivanshkc/lightshow/commit/34d0943a2685e8e47e12c39f286e7387e4b3a311))
+* **ui:** support touch gizmo drag (hit-test wins) ([040000b](https://github.com/shivanshkc/lightshow/commit/040000b6cbbfad74d0ad3f73cbf69029b2946195))
+
 # [3.0.0](https://github.com/shivanshkc/lightshow/compare/v2.0.0...v3.0.0) (2025-12-20)
 
 
