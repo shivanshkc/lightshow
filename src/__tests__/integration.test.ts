@@ -74,6 +74,28 @@ describe('Scene Integration', () => {
     });
   });
 
+  describe('Primitive creation', () => {
+    it('can create one instance of each primitive type', () => {
+      const ids = [
+        useSceneStore.getState().addSphere(),
+        useSceneStore.getState().addCuboid(),
+        useSceneStore.getState().addCylinder(),
+        useSceneStore.getState().addCone(),
+        useSceneStore.getState().addCapsule(),
+        useSceneStore.getState().addTorus(),
+      ];
+      expect(ids.every((id) => typeof id === 'string')).toBe(true);
+      expect(useSceneStore.getState().objects.map((o) => o.type)).toEqual([
+        'sphere',
+        'cuboid',
+        'cylinder',
+        'cone',
+        'capsule',
+        'torus',
+      ]);
+    });
+  });
+
   describe('Object visibility', () => {
     it('new objects are visible by default', () => {
       const id = useSceneStore.getState().addSphere()!;
