@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/shivanshkc/lightshow/compare/v3.1.0...v3.1.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **camera:** ignore tiny touch jitter to avoid spurious accumulation resets ([bfc225d](https://github.com/shivanshkc/lightshow/commit/bfc225d0fe0ee438fe323ae6aa9042c3430c7a97))
+
 # [3.1.0](https://github.com/shivanshkc/lightshow/compare/v3.0.0...v3.1.0) (2025-12-21)
 
 
