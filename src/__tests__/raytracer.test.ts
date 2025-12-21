@@ -25,6 +25,11 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn intersectTriangle');
   });
 
+  it('includes BLAS traversal helpers (Step 08)', () => {
+    expect(raytracerShader).toContain('fn intersectAabb');
+    expect(raytracerShader).toContain('fn intersectMeshBlas');
+  });
+
   it('contains ray generation function', () => {
     expect(raytracerShader).toContain('fn generateRay');
   });

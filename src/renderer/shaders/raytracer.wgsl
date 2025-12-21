@@ -262,6 +262,184 @@ struct HitResult {
 }
 
 // ============================================
+// AABB intersection (for BLAS traversal)
+// ============================================
+
+struct AabbHit {
+  hit: bool,
+  tMin: f32,
+  tMax: f32,
+}
+
+fn intersectAabb(ray: Ray, aabbMin: vec3<f32>, aabbMax: vec3<f32>) -> AabbHit {
+  var out: AabbHit;
+  out.hit = false;
+  out.tMin = 0.0;
+  out.tMax = 0.0;
+
+  let invDir = 1.0 / ray.direction;
+  let t0 = (aabbMin - ray.origin) * invDir;
+  let t1 = (aabbMax - ray.origin) * invDir;
+
+  let tMin3 = min(t0, t1);
+  let tMax3 = max(t0, t1);
+
+  let tMin = max(max(tMin3.x, tMin3.y), tMin3.z);
+  let tMax = min(min(tMax3.x, tMax3.y), tMax3.z);
+
+  if (tMax >= max(tMin, 0.0)) {
+    out.hit = true;
+    out.tMin = tMin;
+    out.tMax = tMax;
+  }
+  return out;
+}
+
+// ============================================
+// BLAS traversal (mesh intersection)
+// ============================================
+
+struct TriHit {
+  hit: bool,
+  t: f32,
+  u: f32,
+  v: f32,
+}
+
+fn intersectTriangleDetailed(ray: Ray, v0: vec3<f32>, v1: vec3<f32>, v2: vec3<f32>) -> TriHit {
+  var out: TriHit;
+  out.hit = false;
+
+  let e1 = v1 - v0;
+  let e2 = v2 - v0;
+  let p = cross(ray.direction, e2);
+  let det = dot(e1, p);
+
+  // Single-sided. For two-sided support later, use abs(det) and adjust invDet sign.
+  if (det < 1e-8) {
+    return out;
+  }
+
+  let invDet = 1.0 / det;
+  let tvec = ray.origin - v0;
+  let u = dot(tvec, p) * invDet;
+  if (u < 0.0 || u > 1.0) {
+    return out;
+  }
+
+  let q = cross(tvec, e1);
+  let v = dot(ray.direction, q) * invDet;
+  if (v < 0.0 || u + v > 1.0) {
+    return out;
+  }
+
+  let t = dot(e2, q) * invDet;
+  if (t < 0.001) {
+    return out;
+  }
+
+  out.hit = true;
+  out.t = t;
+  out.u = u;
+  out.v = v;
+  return out;
+}
+
+fn intersectMeshBlas(rayLocal: Ray, meshId: u32) -> HitRecord {
+  var closest: HitRecord;
+  closest.hit = false;
+  closest.t = 999999.0;
+
+  if (meshId >= meshSceneHeader.meshCount) {
+    return closest;
+  }
+
+  let m = meshMeta[meshId];
+  if (m.nodeCount == 0u) {
+    return closest;
+  }
+
+  // Iterative traversal with an explicit stack.
+  // Root node index is m.nodeOffset + 0.
+  const STACK_MAX: i32 = 64;
+  var stack: array<i32, 64>;
+  var sp: i32 = 0;
+  stack[0] = i32(m.nodeOffset);
+
+  // Track best barycentrics so we can interpolate normal.
+  var bestU: f32 = 0.0;
+  var bestV: f32 = 0.0;
+  var bestI0: u32 = 0u;
+  var bestI1: u32 = 0u;
+  var bestI2: u32 = 0u;
+
+  loop {
+    if (sp < 0) { break; }
+    let nodeIndex = stack[sp];
+    sp -= 1;
+
+    let node = meshBlasNodes[u32(nodeIndex)];
+    let aabbHit = intersectAabb(rayLocal, node.aabbMin, node.aabbMax);
+    if (!aabbHit.hit) {
+      continue;
+    }
+
+    // Leaf
+    if (node.left < 0) {
+      let triCount = node.triCount;
+      let base = node.triIndexOffset;
+      for (var t = 0u; t < triCount; t++) {
+        let i0 = meshIndices[base + t * 3u + 0u];
+        let i1 = meshIndices[base + t * 3u + 1u];
+        let i2 = meshIndices[base + t * 3u + 2u];
+
+        let v0 = meshVertices[i0].position.xyz;
+        let v1 = meshVertices[i1].position.xyz;
+        let v2 = meshVertices[i2].position.xyz;
+
+        let hit = intersectTriangleDetailed(rayLocal, v0, v1, v2);
+        if (hit.hit && hit.t < closest.t) {
+          closest.hit = true;
+          closest.t = hit.t;
+          bestU = hit.u;
+          bestV = hit.v;
+          bestI0 = i0;
+          bestI1 = i1;
+          bestI2 = i2;
+        }
+      }
+      continue;
+    }
+
+    // Interior: push children. For now, no ordering by tMin (can be optimized later).
+    if (sp + 2 >= STACK_MAX) {
+      // Stack overflow: stop traversal and return best-so-far.
+      break;
+    }
+
+    sp += 1;
+    stack[sp] = node.left;
+    sp += 1;
+    stack[sp] = node.right;
+  }
+
+  if (!closest.hit) {
+    return closest;
+  }
+
+  // Fill local-space position/normal for later steps (even if unused now).
+  closest.position = rayLocal.origin + closest.t * rayLocal.direction;
+
+  let w = 1.0 - bestU - bestV;
+  let n0 = meshVertices[bestI0].normal.xyz;
+  let n1 = meshVertices[bestI1].normal.xyz;
+  let n2 = meshVertices[bestI2].normal.xyz;
+  closest.normal = normalize(w * n0 + bestU * n1 + bestV * n2);
+
+  return closest;
+}
+
+// ============================================
 // Rotation Matrix from Euler Angles (ZYX order)
 // ============================================
 
