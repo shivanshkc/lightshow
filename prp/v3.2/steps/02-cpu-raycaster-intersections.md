@@ -2,7 +2,7 @@
 
 ## Step title and goal
 
-Extend CPU-side picking to support Cylinder, Cone, Torus, and Capsule intersections, respecting object transforms and the parameter encoding in `prp/v3.2/base.md`.
+Extend CPU-side picking to support Cylinder, Cone, and Capsule intersections, respecting object transforms and the parameter encoding in `prp/v3.2/base.md`.
 
 ## Scope of changes
 
@@ -21,7 +21,7 @@ Extend CPU-side picking to support Cylinder, Cone, Torus, and Capsule intersecti
   - `intersectRayCylinderCapped(ray, radius, halfHeight)` in object space, axis aligned to local Y
   - `intersectRayConeCapped(ray, baseRadius, halfHeight)` in object space, axis aligned to local Y, using EC4 cone convention
   - `intersectRayCapsule(ray, radius, halfHeightTotal)` in object space, axis aligned to local Y, using `segmentHalf = max(halfHeightTotal - radius, 0)`
-  - `intersectRayTorusQuartic(ray, majorRadius, minorRadius)` in object space, ring around local Y; must use a quartic method (no SDF stepping)
+- Torus CPU picking is implemented in **Step 04** (quartic), to keep this step small and avoid duplicating the torus work that also requires WGSL changes.
 - Extend `Raycaster.pickWithRay` to:
   - Transform the world ray to object space (existing behavior)
   - Dispatch based on `obj.type` to the appropriate intersection
@@ -31,9 +31,9 @@ Extend CPU-side picking to support Cylinder, Cone, Torus, and Capsule intersecti
 ## Unit test plan
 
 - Add or extend `src/__tests__/Raycaster.test.ts` with deterministic rays that:
-  - Hit/miss each new primitive with known parameters
+  - Hit/miss cylinder/cone/capsule with known parameters
   - Confirm closest-hit selection when two objects overlap in the ray direction
-  - Confirm invalid parameters (radius <= 0, height <= 0, torus outer<=inner encoded as r<=0) produce no hit
+  - Confirm invalid parameters (radius <= 0, height <= 0) produce no hit
 
 ## Documentation plan
 
@@ -61,14 +61,14 @@ Extend CPU-side picking to support Cylinder, Cone, Torus, and Capsule intersecti
 
 ## Acceptance criteria for this step (checklist)
 
-- [ ] CPU `Raycaster` selects cylinder/cone/torus/capsule correctly by ray intersection
+- [ ] CPU `Raycaster` selects cylinder/cone/capsule correctly by ray intersection
 - [ ] CPU picking respects position/rotation and the DM2 parameter encoding
 - [ ] Invalid parameters produce “no hit”
 - [ ] Tests and lint are green
 
 ## Risks / edge cases for this step
 
-- Torus quartic intersection is numerically sensitive; tests should avoid near-tangent rays initially.
+- Cone/cylinder edge hits near caps can be numerically sensitive; tests should avoid near-tangent rays initially.
 
 ## Rollback notes
 

@@ -439,3 +439,166 @@ export function intersectRayBox(
   return { hit: true, t };
 }
 
+function isFinitePositive(v: number): boolean {
+  return Number.isFinite(v) && v > 0;
+}
+
+function minPositiveT(a: number, b: number, eps = 0.001): number {
+  let t = Infinity;
+  if (a > eps && a < t) t = a;
+  if (b > eps && b < t) t = b;
+  return t;
+}
+
+/**
+ * Ray-cylinder intersection (finite, capped).
+ * Cylinder is centered at origin, aligned to local +Y axis.
+ * Radius = r, cap planes at y = ±halfHeight.
+ */
+export function intersectRayCylinderCapped(ray: Ray, radius: number, halfHeight: number): { hit: boolean; t: number } {
+  if (!isFinitePositive(radius) || !isFinitePositive(halfHeight)) return { hit: false, t: Infinity };
+
+  const ox = ray.origin[0];
+  const oy = ray.origin[1];
+  const oz = ray.origin[2];
+  const dx = ray.direction[0];
+  const dy = ray.direction[1];
+  const dz = ray.direction[2];
+
+  const r2 = radius * radius;
+  let bestT = Infinity;
+
+  // Side surface: x^2 + z^2 = r^2
+  const a = dx * dx + dz * dz;
+  const b = 2 * (ox * dx + oz * dz);
+  const c = ox * ox + oz * oz - r2;
+
+  if (Math.abs(a) > 1e-12) {
+    const disc = b * b - 4 * a * c;
+    if (disc >= 0) {
+      const s = Math.sqrt(disc);
+      const t0 = (-b - s) / (2 * a);
+      const t1 = (-b + s) / (2 * a);
+      const tSide = minPositiveT(t0, t1);
+      if (tSide !== Infinity) {
+        const y = oy + dy * tSide;
+        if (y >= -halfHeight && y <= halfHeight) bestT = Math.min(bestT, tSide);
+      }
+      // If the nearer root is out of bounds, the farther root may still be in bounds.
+      const tSide2 = tSide === t0 ? t1 : t0;
+      if (tSide2 > 0.001 && tSide2 < bestT) {
+        const y2 = oy + dy * tSide2;
+        if (y2 >= -halfHeight && y2 <= halfHeight) bestT = Math.min(bestT, tSide2);
+      }
+    }
+  }
+
+  // Caps: y = ±halfHeight, radial <= r
+  if (Math.abs(dy) > 1e-12) {
+    for (const yCap of [-halfHeight, halfHeight] as const) {
+      const tCap = (yCap - oy) / dy;
+      if (tCap > 0.001 && tCap < bestT) {
+        const x = ox + dx * tCap;
+        const z = oz + dz * tCap;
+        if (x * x + z * z <= r2) bestT = tCap;
+      }
+    }
+  }
+
+  return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+}
+
+/**
+ * Ray-cone intersection (finite, capped).
+ * Cone is centered at origin, aligned to local +Y axis.
+ * Convention (PRP v3.2 EC4): base cap at y=-halfHeight with radius=baseRadius; apex at y=+halfHeight with radius=0.
+ */
+export function intersectRayConeCapped(ray: Ray, baseRadius: number, halfHeight: number): { hit: boolean; t: number } {
+  if (!isFinitePositive(baseRadius) || !isFinitePositive(halfHeight)) return { hit: false, t: Infinity };
+
+  const ox = ray.origin[0];
+  const oy = ray.origin[1];
+  const oz = ray.origin[2];
+  const dx = ray.direction[0];
+  const dy = ray.direction[1];
+  const dz = ray.direction[2];
+
+  // Radius at y: r(y) = baseRadius * (halfHeight - y) / (2*halfHeight)
+  // Implicit: x^2 + z^2 - k^2 * (halfHeight - y)^2 = 0, where k = baseRadius / (2*halfHeight)
+  const k = baseRadius / (2 * halfHeight);
+  const k2 = k * k;
+
+  // Let q(t) = halfHeight - (oy + dy t) = (halfHeight - oy) - dy t
+  const q0 = halfHeight - oy;
+
+  // Quadratic coefficients for f(t) = (ox+dx t)^2 + (oz+dz t)^2 - k^2 * (q0 - dy t)^2
+  const a = (dx * dx + dz * dz) - k2 * (dy * dy);
+  const b = 2 * (ox * dx + oz * dz) + 2 * k2 * q0 * dy;
+  const c = (ox * ox + oz * oz) - k2 * (q0 * q0);
+
+  let bestT = Infinity;
+
+  if (Math.abs(a) > 1e-12) {
+    const disc = b * b - 4 * a * c;
+    if (disc >= 0) {
+      const s = Math.sqrt(disc);
+      const t0 = (-b - s) / (2 * a);
+      const t1 = (-b + s) / (2 * a);
+      // Check both roots (the nearer may be outside y-range).
+      for (const t of [t0, t1]) {
+        if (t > 0.001 && t < bestT) {
+          const y = oy + dy * t;
+          if (y >= -halfHeight && y <= halfHeight) bestT = t;
+        }
+      }
+    }
+  } else if (Math.abs(b) > 1e-12) {
+    // Degenerate to linear
+    const t = -c / b;
+    if (t > 0.001) {
+      const y = oy + dy * t;
+      if (y >= -halfHeight && y <= halfHeight) bestT = t;
+    }
+  }
+
+  // Base cap at y = -halfHeight with radius = baseRadius
+  if (Math.abs(dy) > 1e-12) {
+    const tCap = (-halfHeight - oy) / dy;
+    if (tCap > 0.001 && tCap < bestT) {
+      const x = ox + dx * tCap;
+      const z = oz + dz * tCap;
+      if (x * x + z * z <= baseRadius * baseRadius) bestT = tCap;
+    }
+  }
+
+  return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+}
+
+/**
+ * Ray-capsule intersection in object space.
+ * Capsule is aligned to local +Y axis.
+ * Encoding: radius = scale.x, halfHeightTotal = scale.y
+ * Segment half-length: segmentHalf = max(halfHeightTotal - radius, 0)
+ */
+export function intersectRayCapsule(ray: Ray, radius: number, halfHeightTotal: number): { hit: boolean; t: number } {
+  if (!isFinitePositive(radius) || !isFinitePositive(halfHeightTotal)) return { hit: false, t: Infinity };
+  const segmentHalf = Math.max(halfHeightTotal - radius, 0);
+
+  let bestT = Infinity;
+
+  // Cylinder part (if any)
+  if (segmentHalf > 0) {
+    const cyl = intersectRayCylinderCapped(ray, radius, segmentHalf);
+    if (cyl.hit) bestT = Math.min(bestT, cyl.t);
+  }
+
+  // Spherical caps
+  const top = intersectRaySphere(ray, [0, segmentHalf, 0], radius);
+  if (top.hit) bestT = Math.min(bestT, top.t);
+
+  const bottom = intersectRaySphere(ray, [0, -segmentHalf, 0], radius);
+  if (bottom.hit) bestT = Math.min(bestT, bottom.t);
+
+  return bestT !== Infinity ? { hit: true, t: bestT } : { hit: false, t: Infinity };
+}
+
