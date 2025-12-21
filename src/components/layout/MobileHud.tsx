@@ -15,6 +15,39 @@ function clampHudMode(mode: string): HudMode {
   return mode === 'rotate' || mode === 'scale' ? mode : 'translate';
 }
 
+function nextHudMode(mode: HudMode): HudMode {
+  switch (mode) {
+    case 'translate':
+      return 'rotate';
+    case 'rotate':
+      return 'scale';
+    case 'scale':
+      return 'translate';
+  }
+}
+
+function hudModeLabel(mode: HudMode): string {
+  switch (mode) {
+    case 'translate':
+      return 'Translate';
+    case 'rotate':
+      return 'Rotate';
+    case 'scale':
+      return 'Scale';
+  }
+}
+
+function hudModeKey(mode: HudMode): string {
+  switch (mode) {
+    case 'translate':
+      return 'W';
+    case 'rotate':
+      return 'E';
+    case 'scale':
+      return 'R';
+  }
+}
+
 /**
  * Mobile HUD (bottom bar).
  * - Visible below lg.
@@ -31,8 +64,8 @@ export const MobileHud = memo(function MobileHud() {
     openMobileSheet: s.openMobileSheet,
   }));
 
-  // Hide W/E/R on phones (< md). Tailwind md breakpoint = 768px.
-  const showWer = useMediaQuery('(min-width: 768px)');
+  // Tailwind md breakpoint = 768px. Use segmented W/E/R on tablets; use a cycle button on phones.
+  const showWerSegmented = useMediaQuery('(min-width: 768px)');
 
   const { mode, setMode } = useUiGizmoMode();
   const hudMode = clampHudMode(mode);
@@ -43,6 +76,10 @@ export const MobileHud = memo(function MobileHud() {
     },
     [setMode]
   );
+
+  const cycleHudMode = useCallback(() => {
+    setMode(nextHudMode(hudMode));
+  }, [hudMode, setMode]);
 
   const dispatchKey = useCallback((key: string) => {
     window.dispatchEvent(
@@ -66,6 +103,8 @@ export const MobileHud = memo(function MobileHud() {
 
   // Sheet covers bar; bar is inaccessible while open.
   if (isMobileSheetOpen) return null;
+
+  const next = nextHudMode(hudMode);
 
   return (
     <div className="fixed bottom-3 left-3 right-3 z-50 lg:hidden">
@@ -95,7 +134,7 @@ export const MobileHud = memo(function MobileHud() {
             />
           </div>
 
-          {showWer ? (
+          {showWerSegmented ? (
             <div className="px-2">
               <SegmentedControl<HudMode>
                 value={hudMode}
@@ -104,7 +143,17 @@ export const MobileHud = memo(function MobileHud() {
                 size="md"
               />
             </div>
-          ) : null}
+          ) : (
+            <div className="px-2">
+              <IconButton
+                aria-label="Cycle Gizmo Mode (W/E/R)"
+                title={`Tap to cycle: ${hudModeLabel(hudMode)} → ${hudModeLabel(next)}`}
+                icon={<span className="text-xs font-semibold">{hudModeKey(hudMode)}</span>}
+                onClick={cycleHudMode}
+                className="!rounded-full"
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-1">
             <IconButton

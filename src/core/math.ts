@@ -102,6 +102,33 @@ export function mat4Perspective(
 }
 
 /**
+ * Convert a vertical screen-space pixel distance (CSS px) into world units at a given depth,
+ * using a perspective camera with vertical field-of-view `fovY` and viewport height.
+ *
+ * This is useful for approximating a world-space tolerance that corresponds to a constant
+ * on-screen size (e.g. touch hit slop).
+ */
+export function pixelsToWorldUnitsAtDepth(
+  pixelsCss: number,
+  depth: number,
+  fovY: number,
+  viewportHeightCss: number
+): number {
+  if (!Number.isFinite(pixelsCss)) return 0;
+  if (!Number.isFinite(depth)) return 0;
+  if (!Number.isFinite(fovY)) return 0;
+  if (!Number.isFinite(viewportHeightCss) || viewportHeightCss <= 0) return 0;
+
+  const d = Math.abs(depth);
+  if (d <= 0) return 0;
+
+  // Visible vertical world height at distance d is: 2 * d * tan(fovY/2)
+  const worldHeightAtDepth = 2 * d * Math.tan(fovY / 2);
+  const worldUnitsPerCssPx = worldHeightAtDepth / viewportHeightCss;
+  return pixelsCss * worldUnitsPerCssPx;
+}
+
+/**
  * Create a look-at view matrix
  * @param eye - Camera position
  * @param target - Look-at target

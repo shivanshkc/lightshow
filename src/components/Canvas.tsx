@@ -9,12 +9,14 @@ import { applyResponsiveHomeDistance } from './layout/responsiveHome';
 import {
   mat4Inverse,
   mat4Perspective,
+  mat4MultiplyVec4,
   screenToWorldRay,
   normalize,
   sub,
   cross,
   Vec3,
   Ray,
+  pixelsToWorldUnitsAtDepth,
 } from '../core/math';
 
 interface CanvasProps {
@@ -164,8 +166,19 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
   const dragStartRay = useRef<Ray | null>(null);
   const dragStartRotation = useRef<[number, number, number] | null>(null);
   const dragStartScale = useRef<Vec3 | null>(null);
+  const activeTouchId = useRef<number | null>(null);
   const DRAG_THRESHOLD = 5;
   const TAP_MAX_MS = 250;
+  const TOUCH_GIZMO_HIT_SLOP_PX = 24;
+
+  const findTouch = useCallback((touches: TouchList | React.TouchList, id: number | null) => {
+    if (id === null) return null;
+    for (let i = 0; i < touches.length; i++) {
+      const t = (touches as any).item ? touches.item(i) : (touches as any)[i];
+      if (t && t.identifier === id) return t;
+    }
+    return null;
+  }, []);
 
   // Helper to get camera vectors
   const getCameraVectors = useCallback(() => {
@@ -414,10 +427,166 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
       return;
     }
     const t = e.touches[0]!;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = t.clientX - rect.left;
+    const y = t.clientY - rect.top;
+
+    const gizmoState = deps.getGizmoState();
+    const sceneState = kernel.queries.getSceneSnapshot();
+
+    // Hit-test wins: if touch starts on a gizmo axis, begin a gizmo drag session.
+    if (sceneState.selectedObjectId && gizmoState.mode !== 'none') {
+      const selectedObject = sceneState.objects.find(
+        (obj) => obj.id === sceneState.selectedObjectId
+      );
+
+      if (selectedObject) {
+        const cameraState = deps.getCameraState();
+        const viewMatrix = cameraState.getViewMatrix();
+        const aspect = rect.width / rect.height;
+        const projMatrix = mat4Perspective(cameraState.fovY, aspect, 0.1, 1000);
+        const inverseView = mat4Inverse(viewMatrix);
+        const inverseProjection = mat4Inverse(projMatrix);
+
+        const ray = screenToWorldRay(
+          x,
+          y,
+          rect.width,
+          rect.height,
+          inverseProjection,
+          inverseView,
+          cameraState.position
+        );
+
+        const gizmoScale = cameraState.distance * 0.12;
+
+        // Approximate depth of gizmo origin in view space, to convert 24px slop into world units.
+        const p = selectedObject.transform.position;
+        const viewP = mat4MultiplyVec4(viewMatrix, [p[0], p[1], p[2], 1]);
+        const depth = Math.abs(viewP[2]);
+        const pickTolerance = pixelsToWorldUnitsAtDepth(
+          TOUCH_GIZMO_HIT_SLOP_PX,
+          depth,
+          cameraState.fovY,
+          rect.height
+        );
+
+        const hitAxis = GizmoRaycaster.pick(
+          ray,
+          selectedObject.transform.position,
+          gizmoScale,
+          gizmoState.mode,
+          pickTolerance
+        );
+
+        gizmoState.setHoveredAxis(hitAxis);
+
+        if (hitAxis) {
+          // Store start values based on mode (mirror mouse path).
+          if (gizmoState.mode === 'translate') {
+            dragStartRay.current = ray;
+          } else if (gizmoState.mode === 'rotate') {
+            dragStartRotation.current = [...selectedObject.transform.rotation] as [number, number, number];
+          } else if (gizmoState.mode === 'scale') {
+            dragStartScale.current = [...selectedObject.transform.scale] as Vec3;
+          }
+
+          activeTouchId.current = t.identifier;
+          gizmoState.startDrag(hitAxis, selectedObject.transform.position, [t.clientX, t.clientY]);
+          kernel.dispatch({ v: 1, type: 'history.group.begin', label: 'transform' });
+
+          // Disable camera controller during gizmo drag.
+          controllerRef.current?.setEnabled(false);
+
+          touchStartPos.current = null;
+          return;
+        }
+      }
+    }
+
+    // Not on gizmo: track as a tap candidate (selection on touchend if no drag).
     touchStartPos.current = { x: t.clientX, y: t.clientY, t: Date.now() };
-  }, []);
+  }, [deps, findTouch, kernel]);
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLCanvasElement>) => {
+      const gizmoState = deps.getGizmoState();
+      if (!gizmoState.isDragging || !gizmoState.activeAxis || !gizmoState.dragStartMousePosition) return;
+
+      const selectedTouch = findTouch(e.touches, activeTouchId.current);
+      if (!selectedTouch) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+
+      const sceneState = kernel.queries.getSceneSnapshot();
+      const selectedObject = sceneState.objects.find(
+        (obj) => obj.id === sceneState.selectedObjectId
+      );
+      if (!selectedObject) return;
+
+      const cameraState = deps.getCameraState();
+      const { forward } = getCameraVectors();
+      const cmd = computeGizmoDragCommand({
+        mode: gizmoState.mode,
+        axis: gizmoState.activeAxis,
+        objectId: sceneState.selectedObjectId!,
+        objectType: selectedObject.type,
+        objectPosition: selectedObject.transform.position,
+        startPosition: gizmoState.dragStartPosition ?? selectedObject.transform.position,
+        startRotation: dragStartRotation.current,
+        startScale: dragStartScale.current,
+        dragStartRay: dragStartRay.current,
+        dragStartMouse: gizmoState.dragStartMousePosition,
+        currentMouse: { x: selectedTouch.clientX, y: selectedTouch.clientY },
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        camera: {
+          position: cameraState.position,
+          fovY: cameraState.fovY,
+          getViewMatrix: cameraState.getViewMatrix,
+        },
+        modifiers: { ctrlOrMeta: false, shift: false },
+        cameraForward: forward,
+      });
+
+      if (cmd) kernel.dispatch(cmd);
+    },
+    [deps, findTouch, getCameraVectors, kernel]
+  );
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const gizmoState = deps.getGizmoState();
+
+    // End gizmo drag only when the active touch ends/cancels.
+    if (gizmoState.isDragging) {
+      const id = activeTouchId.current;
+      let ended = false;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = (e.changedTouches as any).item ? e.changedTouches.item(i) : (e.changedTouches as any)[i];
+        if (t && t.identifier === id) {
+          ended = true;
+          break;
+        }
+      }
+
+      if (ended || e.touches.length === 0) {
+        gizmoState.endDrag();
+        activeTouchId.current = null;
+        dragStartRay.current = null;
+        dragStartRotation.current = null;
+        dragStartScale.current = null;
+        kernel.dispatch({ v: 1, type: 'history.group.end' });
+        controllerRef.current?.setEnabled(true);
+      }
+      touchStartPos.current = null;
+      return;
+    }
+
     const start = touchStartPos.current;
     touchStartPos.current = null;
     if (!start) return;
@@ -458,6 +627,20 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
     );
 
     kernel.dispatch({ v: 1, type: 'selection.pick', ray: ray as any });
+  }, [deps, kernel]);
+
+  const handleTouchCancel = useCallback(() => {
+    const gizmoState = deps.getGizmoState();
+    if (gizmoState.isDragging) {
+      gizmoState.endDrag();
+      activeTouchId.current = null;
+      dragStartRay.current = null;
+      dragStartRotation.current = null;
+      dragStartScale.current = null;
+      kernel.dispatch({ v: 1, type: 'history.group.end' });
+      controllerRef.current?.setEnabled(true);
+    }
+    touchStartPos.current = null;
   }, [deps, kernel]);
 
   // Handle mouse leave to clear hover
@@ -511,7 +694,9 @@ export function Canvas({ className, onRendererReady }: CanvasProps) {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       />
       {status === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-base z-10">
