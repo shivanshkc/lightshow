@@ -285,6 +285,47 @@ fn rotationMatrix(euler: vec3<f32>) -> mat3x3<f32> {
 // Primitive Intersection Functions
 // ============================================
 
+// Triangle intersection (Möller–Trumbore).
+// Returns a HitRecord with position/normal unset by default; caller can fill if needed.
+// Assumes triangles are single-sided with consistent winding for closed meshes.
+fn intersectTriangle(ray: Ray, v0: vec3<f32>, v1: vec3<f32>, v2: vec3<f32>) -> HitRecord {
+  var result: HitRecord;
+  result.hit = false;
+
+  let e1 = v1 - v0;
+  let e2 = v2 - v0;
+  let p = cross(ray.direction, e2);
+  let det = dot(e1, p);
+
+  // Reject near-parallel rays (and implicitly backfaces for single-sided triangles).
+  // Note: for future two-sided support, we can use abs(det) and handle sign.
+  if (det < 1e-8) {
+    return result;
+  }
+
+  let invDet = 1.0 / det;
+  let tvec = ray.origin - v0;
+  let u = dot(tvec, p) * invDet;
+  if (u < 0.0 || u > 1.0) {
+    return result;
+  }
+
+  let q = cross(tvec, e1);
+  let v = dot(ray.direction, q) * invDet;
+  if (v < 0.0 || u + v > 1.0) {
+    return result;
+  }
+
+  let t = dot(e2, q) * invDet;
+  if (t < 0.001) {
+    return result;
+  }
+
+  result.hit = true;
+  result.t = t;
+  return result;
+}
+
 // Sphere intersection (in object space, radius = 1)
 fn intersectSphere(ray: Ray, center: vec3<f32>, radius: f32) -> HitRecord {
   var result: HitRecord;

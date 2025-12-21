@@ -21,6 +21,10 @@ describe('Raytracer Shader', () => {
     expect(raytracerShader).toContain('fn intersectBox');
   });
 
+  it('contains triangle intersection function (Möller–Trumbore)', () => {
+    expect(raytracerShader).toContain('fn intersectTriangle');
+  });
+
   it('contains ray generation function', () => {
     expect(raytracerShader).toContain('fn generateRay');
   });
