@@ -174,7 +174,7 @@ describe('cameraStore', () => {
       
       const state = useCameraStore.getState();
       expect(state.target).toEqual([0, 0, 0]);
-      expect(state.distance).toBe(5); // Default distance
+      expect(state.distance).toBe(8.5);
     });
   });
 

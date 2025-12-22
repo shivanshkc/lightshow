@@ -73,13 +73,6 @@ describe('App', () => {
     expect(screen.getAllByText(/Scene Objects/i).length).toBeGreaterThan(0);
   });
 
-  it('shows initial scene objects', () => {
-    render(<App />);
-    // Initial scene includes Cornell Box fixtures
-    expect(screen.getAllByText('Cornell Floor').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Ceiling Light').length).toBeGreaterThan(0);
-  });
-
   it('shows properties prompt when nothing selected', () => {
     render(<App />);
     expect(

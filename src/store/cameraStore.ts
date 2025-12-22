@@ -45,7 +45,7 @@ interface CameraState {
 // Default camera configuration
 // For the Cornell Box landing scene, we want the initial view to be centered
 // and looking straight into the box opening (front face centered at the origin).
-const DEFAULT_DISTANCE = 5;
+const DEFAULT_DISTANCE = 8.5;
 const DEFAULT_AZIMUTH = 0; // head-on along +Z -> -Z
 const DEFAULT_ELEVATION = 0; // level (no tilt up/down)
 const DEFAULT_TARGET: Vec3 = [0, 0, 0];
