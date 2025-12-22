@@ -2,10 +2,10 @@ import { useCameraStore } from '@store';
 
 // Cornell Box extents (half extents) from the default scene construction.
 // See `src/store/sceneStore.ts`:
-// - interior halfX = 3.0, wallT = 0.06, walls extend to ±(halfX + 2*wallT) = 3.12
-// - interior halfY = 1.5, wallT = 0.06, slabs extend to ±(halfY + 2*wallT) = 1.62
-const CORNELL_HALF_WIDTH = 3.12;
-const CORNELL_HALF_HEIGHT = 1.62;
+// - interior halfX = 5.1, wallT = 0.05, walls extend to ±(halfX + 2*wallT) = 5.2
+// - interior halfY = 2.6, wallT = 0.05, slabs extend to ±(halfY + 2*wallT) = 2.7
+const CORNELL_HALF_WIDTH = 5.2;
+const CORNELL_HALF_HEIGHT = 2.7;
 
 // Desired horizontal padding as a fraction of the viewport width.
 // Example: 0.06 => 6% padding on each side, box occupies ~88% width.
