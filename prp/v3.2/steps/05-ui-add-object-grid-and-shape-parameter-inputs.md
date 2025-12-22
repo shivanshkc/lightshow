@@ -30,9 +30,7 @@ Expose the new primitives in the UI with a 2×3 Add Object button grid and imple
   - Row 3: Torus | Capsule
 - Each button dispatches `object.add` with the corresponding primitive.
 - Preserve max object limit behavior (disable all buttons when at limit).
-- Buttons MUST include an icon + text label (per `prp/v3.2/base.md` UI5):
-  - Use `lucide-react` icons.
-  - If no dedicated icon is used for a new primitive, use `Circle` as the fallback icon.
+- Buttons MUST be **text-only** (per `prp/v3.2/base.md` UI5).
 
 ### Transform panel (FR5)
 

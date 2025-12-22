@@ -279,11 +279,7 @@ UI3. Inputs must enforce minimums and invariants:
 
 UI4. When invalid values are attempted, the UI MUST resolve deterministically (clamp or reject) and MUST NOT dispatch NaN/Infinity values.
 
-UI5. Add Object buttons MUST include an icon and text label (matching the current Sphere/Cuboid pattern):
-
-- The icon MUST be a `lucide-react` icon component rendered inside the button.
-- For the 4 new primitives, the implementation MUST render an icon even if no shape-specific icon exists.
-  - If the project does not use a dedicated icon for a new primitive, use the existing `Circle` icon as the fallback for that button (still with the correct text label).
+UI5. Add Object buttons MUST be **text-only** (no icons), showing the primitive name label only.
 
 ---
 

@@ -1,4 +1,3 @@
-import { Circle, Box } from 'lucide-react';
 import { useKernel, useKernelSceneSnapshot } from '@adapters';
 import { Button } from '../ui/Button';
 import { LIMITS } from '../../utils/limits';
@@ -48,7 +47,6 @@ export function AddObjectSection() {
           variant="secondary"
           disabled={atLimit}
         >
-          <Circle className="w-4 h-4 mr-2" />
           Sphere
         </Button>
         <Button
@@ -56,28 +54,19 @@ export function AddObjectSection() {
           variant="secondary"
           disabled={atLimit}
         >
-          <Box className="w-4 h-4 mr-2" />
           Cuboid
         </Button>
 
         <Button onClick={handleAddCylinder} variant="secondary" disabled={atLimit}>
-          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
-          <Circle className="w-4 h-4 mr-2" />
           Cylinder
         </Button>
         <Button onClick={handleAddCone} variant="secondary" disabled={atLimit}>
-          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
-          <Circle className="w-4 h-4 mr-2" />
           Cone
         </Button>
         <Button onClick={handleAddTorus} variant="secondary" disabled={atLimit}>
-          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
-          <Circle className="w-4 h-4 mr-2" />
           Torus
         </Button>
         <Button onClick={handleAddCapsule} variant="secondary" disabled={atLimit}>
-          {/* No dedicated icon selected yet; use Circle fallback per PRP */}
-          <Circle className="w-4 h-4 mr-2" />
           Capsule
         </Button>
       </div>
