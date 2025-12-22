@@ -115,9 +115,9 @@ FR2.1. Default object names (on creation) MUST be:
 
 FR2.2. Default dimensions (in UI terms) MUST be:
 
-- Cylinder: radius = **1**, height = **1**
-- Cone: radius = **1**, height = **1**
-- Capsule: radius = **1**, height = **3**
+- Cylinder: radius = **1**, height = **2**
+- Cone: radius = **1**, height = **2**
+- Capsule: radius = **0.5**, height = **2**
 - Torus: inner radius = **0.5**, outer radius = **1**
 
 FR2.3. Default transforms MUST use:
