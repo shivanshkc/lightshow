@@ -6,6 +6,10 @@ import {
   screenToWorldRay,
   intersectRaySphere,
   intersectRayBox,
+  intersectRayCylinderCapped,
+  intersectRayConeCapped,
+  intersectRayCapsule,
+  intersectRayTorusQuartic,
   mat3FromRotation,
   mat3Transpose,
   mat3MultiplyVec3,
@@ -67,12 +71,33 @@ export class Raycaster {
 
       let result: { hit: boolean; t: number };
 
-      if (obj.type === 'sphere') {
-        // For sphere, scale.x is radius
-        result = intersectRaySphere(localRay, [0, 0, 0], obj.transform.scale[0]);
-      } else {
-        // For cuboid, scale is half-extents
-        result = intersectRayBox(localRay, [0, 0, 0], obj.transform.scale);
+      switch (obj.type) {
+        case 'sphere': {
+          // For sphere, scale.x is radius
+          result = intersectRaySphere(localRay, [0, 0, 0], obj.transform.scale[0]);
+          break;
+        }
+        case 'cuboid': {
+          // For cuboid, scale is half-extents
+          result = intersectRayBox(localRay, [0, 0, 0], obj.transform.scale);
+          break;
+        }
+        case 'cylinder': {
+          result = intersectRayCylinderCapped(localRay, obj.transform.scale[0], obj.transform.scale[1]);
+          break;
+        }
+        case 'cone': {
+          result = intersectRayConeCapped(localRay, obj.transform.scale[0], obj.transform.scale[1]);
+          break;
+        }
+        case 'capsule': {
+          result = intersectRayCapsule(localRay, obj.transform.scale[0], obj.transform.scale[1]);
+          break;
+        }
+        case 'torus': {
+          result = intersectRayTorusQuartic(localRay, obj.transform.scale[0], obj.transform.scale[1]);
+          break;
+        }
       }
 
       if (result.hit && result.t < closestHit.distance) {

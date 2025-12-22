@@ -1,4 +1,4 @@
-import { Circle, Box, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Box, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useKernel, useKernelSceneSnapshot } from '@adapters';
 import type { SceneObjectSnapshot } from '@ports';
@@ -62,7 +62,6 @@ function ObjectListItem({
   onToggleVisibility,
   onDelete,
 }: ObjectListItemProps) {
-  const Icon = object.type === 'sphere' ? Circle : Box;
   const kernel = useKernel();
   const [isRenaming, setIsRenaming] = useState(false);
   const [editName, setEditName] = useState(object.name);
@@ -107,7 +106,7 @@ function ObjectListItem({
       onClick={onSelect}
       onDoubleClick={handleDoubleClick}
     >
-      <Icon className="w-4 h-4 text-text-secondary flex-shrink-0" />
+      <Box className="w-4 h-4 text-text-secondary flex-shrink-0" />
 
       {isRenaming ? (
         <input

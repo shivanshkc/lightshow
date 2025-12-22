@@ -1,4 +1,4 @@
-import { SceneObject, MaterialType } from './types';
+import { SceneObject, MaterialType, PrimitiveType } from './types';
 
 /**
  * GPU buffer layout constants
@@ -17,6 +17,22 @@ const MATERIAL_TYPE_MAP: Record<MaterialType, number> = {
   metal: 1,
   glass: 2,
   light: 3,
+};
+
+/**
+ * Primitive type to GPU objectType discriminator mapping.
+ *
+ * IMPORTANT:
+ * - Must stay stable and must match `src/renderer/shaders/raytracer.wgsl`.
+ * - Buffer layout remains unchanged; only the discriminator values are extended.
+ */
+const OBJECT_TYPE_MAP: Record<PrimitiveType, number> = {
+  sphere: 0,
+  cuboid: 1,
+  cylinder: 2,
+  cone: 3,
+  capsule: 4,
+  torus: 5,
 };
 
 /**
@@ -79,7 +95,7 @@ export class SceneBuffer {
    * 
    * Transform section (64 bytes = 16 floats):
    *   [0-2]   position (vec3)
-   *   [3]     objectType (u32: 0=sphere, 1=cuboid)
+   *   [3]     objectType (u32: see OBJECT_TYPE_MAP)
    *   [4-6]   scale (vec3)
    *   [7]     padding
    *   [8-10]  rotation (vec3)
@@ -105,8 +121,8 @@ export class SceneBuffer {
     buf[offset + 1] = obj.transform.position[1];
     buf[offset + 2] = obj.transform.position[2];
 
-    // Object type (u32): 0 = sphere, 1 = cuboid
-    uint32View[offset + 3] = obj.type === 'sphere' ? 0 : 1;
+    // Object type (u32): see OBJECT_TYPE_MAP (must match WGSL)
+    uint32View[offset + 3] = OBJECT_TYPE_MAP[obj.type];
 
     // Scale (vec3)
     buf[offset + 4] = obj.transform.scale[0];
@@ -174,4 +190,4 @@ export class SceneBuffer {
 }
 
 // Export constants for testing
-export { OBJECT_SIZE_BYTES, MAX_OBJECTS, HEADER_SIZE_BYTES, MATERIAL_TYPE_MAP };
+export { OBJECT_SIZE_BYTES, MAX_OBJECTS, HEADER_SIZE_BYTES, MATERIAL_TYPE_MAP, OBJECT_TYPE_MAP };

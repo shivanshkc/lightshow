@@ -6,7 +6,7 @@
 export type ObjectId = string;
 
 // Supported primitive types
-export type PrimitiveType = 'sphere' | 'cuboid';
+export type PrimitiveType = 'sphere' | 'cuboid' | 'cylinder' | 'cone' | 'torus' | 'capsule';
 
 // Material type enum
 export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
@@ -17,8 +17,7 @@ export type MaterialType = 'plastic' | 'metal' | 'glass' | 'light';
 export interface Transform {
   position: [number, number, number];
   rotation: [number, number, number]; // Euler angles in radians
-  scale: [number, number, number];    // For cuboid: width, height, depth
-                                      // For sphere: [radius, radius, radius] (uniform)
+  scale: [number, number, number]; // Encodes primitive parameters. See PRPs for conventions.
 }
 
 /**
@@ -100,6 +99,66 @@ export function createDefaultCuboid(): Omit<SceneObject, 'id'> {
   };
 }
 
+/**
+ * Create a default cylinder object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [radius, halfHeight, radius]
+ * Default: radius=1, height=2 => halfHeight=1 => [1, 1, 1]
+ */
+export function createDefaultCylinder(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cylinder',
+    type: 'cylinder',
+    transform: { ...createDefaultTransform(), scale: [1, 1, 1] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default cone object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [baseRadius, halfHeight, baseRadius]
+ * Default: radius=1, height=2 => halfHeight=1 => [1, 1, 1]
+ */
+export function createDefaultCone(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Cone',
+    type: 'cone',
+    transform: { ...createDefaultTransform(), scale: [1, 1, 1] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default torus object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [R, r, r]
+ * Default: inner=0.5, outer=1 => R=0.75, r=0.25 => [0.75, 0.25, 0.25]
+ */
+export function createDefaultTorus(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Torus',
+    type: 'torus',
+    transform: { ...createDefaultTransform(), scale: [0.75, 0.25, 0.25] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
+/**
+ * Create a default capsule object (without id)
+ * Parameter encoding (per PRP v3.2): scale = [radius, halfHeightTotal, radius]
+ * Default: radius=0.5, height=2 => halfHeightTotal=1 => [0.5, 1, 0.5]
+ */
+export function createDefaultCapsule(): Omit<SceneObject, 'id'> {
+  return {
+    name: 'Capsule',
+    type: 'capsule',
+    transform: { ...createDefaultTransform(), scale: [0.5, 1, 0.5] },
+    material: createDefaultMaterial(),
+    visible: true,
+  };
+}
+
 // ============================================
 // Material Types and Presets
 // ============================================
@@ -113,98 +172,3 @@ export const MATERIAL_TYPES: { value: MaterialType; label: string }[] = [
   { value: 'glass', label: 'Glass' },
   { value: 'light', label: 'Light' },
 ];
-
-/**
- * Preset materials for quick selection
- */
-export const MATERIAL_PRESETS = {
-  redPlastic: {
-    type: 'plastic' as const,
-    color: [0.8, 0.2, 0.2] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  bluePlastic: {
-    type: 'plastic' as const,
-    color: [0.2, 0.4, 0.8] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  gold: {
-    type: 'metal' as const,
-    color: [1.0, 0.84, 0.0] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  silver: {
-    type: 'metal' as const,
-    color: [0.95, 0.95, 0.95] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  copper: {
-    type: 'metal' as const,
-    color: [0.72, 0.45, 0.2] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  glass: {
-    type: 'glass' as const,
-    color: [1.0, 1.0, 1.0] as [number, number, number],
-    ior: 1.5,
-    intensity: 5.0,
-  },
-  diamond: {
-    type: 'glass' as const,
-    color: [1.0, 1.0, 1.0] as [number, number, number],
-    ior: 2.4,
-    intensity: 5.0,
-  },
-  warmLight: {
-    type: 'light' as const,
-    color: [1.0, 0.95, 0.8] as [number, number, number],
-    ior: 1.5,
-    intensity: 10.0,
-  },
-  coolLight: {
-    type: 'light' as const,
-    color: [0.8, 0.9, 1.0] as [number, number, number],
-    ior: 1.5,
-    intensity: 10.0,
-  },
-};
-
-// ============================================
-// Validation
-// ============================================
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
-
-/**
- * Validate and clamp material properties
- */
-export function validateMaterial(mat: Partial<Material>): Material {
-  const def = createDefaultMaterial();
-  return {
-    type: mat.type ?? def.type,
-    color: mat.color ?? def.color,
-    ior: clamp(mat.ior ?? def.ior, 1.0, 2.5),
-    intensity: clamp(mat.intensity ?? def.intensity, 0.1, 20.0),
-  };
-}
-
-// ============================================
-// Render Settings
-// ============================================
-
-/**
- * Settings for path tracing renderer
- */
-export interface RenderSettings {
-  frameIndex: number;       // Increments each frame (reset on scene change)
-  samplesPerPixel: number;  // Samples per frame (usually 1 for interactive)
-  maxBounces: number;       // Maximum ray bounces
-  accumulate: boolean;      // Whether to accumulate or reset
-}

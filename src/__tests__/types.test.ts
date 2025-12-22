@@ -4,9 +4,11 @@ import {
   createDefaultMaterial,
   createDefaultSphere,
   createDefaultCuboid,
-  validateMaterial,
+  createDefaultCylinder,
+  createDefaultCone,
+  createDefaultTorus,
+  createDefaultCapsule,
   MATERIAL_TYPES,
-  MATERIAL_PRESETS,
   type SceneObject,
   type PrimitiveType,
   type MaterialType,
@@ -94,69 +96,6 @@ describe('Material Types', () => {
   });
 });
 
-describe('Material Presets', () => {
-  it('gold preset is metal type', () => {
-    expect(MATERIAL_PRESETS.gold.type).toBe('metal');
-  });
-
-  it('silver preset is metal type', () => {
-    expect(MATERIAL_PRESETS.silver.type).toBe('metal');
-  });
-
-  it('glass preset has IOR 1.5', () => {
-    expect(MATERIAL_PRESETS.glass.ior).toBe(1.5);
-  });
-
-  it('diamond preset has high IOR', () => {
-    expect(MATERIAL_PRESETS.diamond.ior).toBe(2.4);
-  });
-
-  it('warmLight preset is light type', () => {
-    expect(MATERIAL_PRESETS.warmLight.type).toBe('light');
-  });
-
-  it('warmLight preset has intensity > 0', () => {
-    expect(MATERIAL_PRESETS.warmLight.intensity).toBeGreaterThan(0);
-  });
-
-  it('redPlastic preset is plastic type', () => {
-    expect(MATERIAL_PRESETS.redPlastic.type).toBe('plastic');
-  });
-});
-
-describe('validateMaterial', () => {
-  it('clamps IOR to 1.0-2.5', () => {
-    expect(validateMaterial({ ior: 0.5 }).ior).toBe(1.0);
-    expect(validateMaterial({ ior: 3.0 }).ior).toBe(2.5);
-  });
-
-  it('clamps intensity to 0.1-20', () => {
-    expect(validateMaterial({ intensity: 0 }).intensity).toBe(0.1);
-    expect(validateMaterial({ intensity: 50 }).intensity).toBe(20);
-  });
-
-  it('uses defaults for missing properties', () => {
-    const mat = validateMaterial({});
-    expect(mat.type).toBe('plastic');
-    expect(mat.color).toBeDefined();
-    expect(mat.ior).toBeDefined();
-    expect(mat.intensity).toBeDefined();
-  });
-
-  it('preserves valid values', () => {
-    const mat = validateMaterial({
-      type: 'glass',
-      color: [1, 0, 0],
-      ior: 1.8,
-      intensity: 10,
-    });
-    expect(mat.type).toBe('glass');
-    expect(mat.color).toEqual([1, 0, 0]);
-    expect(mat.ior).toBe(1.8);
-    expect(mat.intensity).toBe(10);
-  });
-});
-
 describe('SceneObject', () => {
   describe('createDefaultSphere', () => {
     it('has type sphere', () => {
@@ -213,15 +152,91 @@ describe('SceneObject', () => {
       expect(cuboid.material).toBeDefined();
     });
   });
+
+  describe('createDefaultCylinder', () => {
+    it('has type cylinder', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.type).toBe('cylinder');
+    });
+
+    it('has default name', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.name).toBe('Cylinder');
+    });
+
+    it('has default encoded scale', () => {
+      const cylinder = createDefaultCylinder();
+      expect(cylinder.transform.scale).toEqual([1, 1, 1]);
+    });
+  });
+
+  describe('createDefaultCone', () => {
+    it('has type cone', () => {
+      const cone = createDefaultCone();
+      expect(cone.type).toBe('cone');
+    });
+
+    it('has default name', () => {
+      const cone = createDefaultCone();
+      expect(cone.name).toBe('Cone');
+    });
+
+    it('has default encoded scale', () => {
+      const cone = createDefaultCone();
+      expect(cone.transform.scale).toEqual([1, 1, 1]);
+    });
+  });
+
+  describe('createDefaultTorus', () => {
+    it('has type torus', () => {
+      const torus = createDefaultTorus();
+      expect(torus.type).toBe('torus');
+    });
+
+    it('has default name', () => {
+      const torus = createDefaultTorus();
+      expect(torus.name).toBe('Torus');
+    });
+
+    it('has default encoded scale', () => {
+      const torus = createDefaultTorus();
+      expect(torus.transform.scale).toEqual([0.75, 0.25, 0.25]);
+    });
+  });
+
+  describe('createDefaultCapsule', () => {
+    it('has type capsule', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.type).toBe('capsule');
+    });
+
+    it('has default name', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.name).toBe('Capsule');
+    });
+
+    it('has default encoded scale', () => {
+      const capsule = createDefaultCapsule();
+      expect(capsule.transform.scale).toEqual([0.5, 1, 0.5]);
+    });
+  });
 });
 
 describe('Type Safety', () => {
-  it('PrimitiveType is union of sphere and cuboid', () => {
+  it('PrimitiveType includes all supported primitives', () => {
     const sphere: PrimitiveType = 'sphere';
     const cuboid: PrimitiveType = 'cuboid';
+    const cylinder: PrimitiveType = 'cylinder';
+    const cone: PrimitiveType = 'cone';
+    const torus: PrimitiveType = 'torus';
+    const capsule: PrimitiveType = 'capsule';
     
     expect(sphere).toBe('sphere');
     expect(cuboid).toBe('cuboid');
+    expect(cylinder).toBe('cylinder');
+    expect(cone).toBe('cone');
+    expect(torus).toBe('torus');
+    expect(capsule).toBe('capsule');
   });
 
   it('MaterialType is union of four types', () => {

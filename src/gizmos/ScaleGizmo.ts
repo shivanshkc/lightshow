@@ -1,4 +1,5 @@
 import { Vec3 } from '../core/math';
+import type { PrimitiveType } from '@ports';
 
 /**
  * Scale gizmo drag logic
@@ -14,7 +15,7 @@ export class ScaleGizmo {
     startScale: Vec3,
     startMousePos: [number, number],
     currentMousePos: [number, number],
-    objectType: 'sphere' | 'cuboid',
+    objectType: PrimitiveType,
     sensitivity: number = 0.01
   ): Vec3 {
     const dx = currentMousePos[0] - startMousePos[0];
@@ -25,13 +26,35 @@ export class ScaleGizmo {
     const delta = (dx - dy) * sensitivity;
     const scaleFactor = Math.max(0.1, 1 + delta);
 
-    // Spheres always scale uniformly
-    if (axis === 'uniform' || objectType === 'sphere') {
+    // Spheres and torus should scale uniformly to preserve invariants / avoid unexpected parameter drift.
+    if (axis === 'uniform' || objectType === 'sphere' || objectType === 'torus') {
       return [
         startScale[0] * scaleFactor,
         startScale[1] * scaleFactor,
         startScale[2] * scaleFactor,
       ];
+    }
+
+    // Cylinder / cone / capsule: allow independent "radius" (x=z) and "height" (y) scaling.
+    if (objectType === 'cylinder' || objectType === 'cone' || objectType === 'capsule') {
+      const result: Vec3 = [startScale[0], startScale[1], startScale[2]];
+
+      // Treat x and z as "radius" and enforce x=z.
+      const startRadius = (startScale[0] + startScale[2]) / 2;
+      const newRadius = Math.max(0.1, startRadius * scaleFactor);
+
+      switch (axis) {
+        case 'x':
+        case 'z':
+          result[0] = newRadius;
+          result[2] = newRadius;
+          break;
+        case 'y':
+          result[1] = Math.max(0.1, startScale[1] * scaleFactor);
+          break;
+      }
+
+      return result;
     }
 
     // Single axis scale for cuboids
