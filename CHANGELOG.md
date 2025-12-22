@@ -1,3 +1,21 @@
+# [3.2.0](https://github.com/shivanshkc/lightshow/compare/v3.1.1...v3.2.0) (2025-12-22)
+
+
+### Bug Fixes
+
+* **ui:** all object list items use box icon ([9149255](https://github.com/shivanshkc/lightshow/commit/91492558084ffc370de461fac268d5ffe58b0101))
+* **ui:** correct initial camera zoom on all screens ([af636d7](https://github.com/shivanshkc/lightshow/commit/af636d7790ebdf732453dd1e18349c89cb1056f3))
+
+
+### Features
+
+* **picking:** add cpu ray intersections for cylinder/cone/capsule ([2d8c1d7](https://github.com/shivanshkc/lightshow/commit/2d8c1d717e40692a79960270f5266b96030dccd6))
+* **primitives:** add contracts and defaults for cylinder/cone/torus/capsule ([80d0767](https://github.com/shivanshkc/lightshow/commit/80d07677a6faac36a6d48377f70cb4cbfb26918d))
+* **primitives:** add UI + controls for cylinder/cone/torus/capsule ([8d64d79](https://github.com/shivanshkc/lightshow/commit/8d64d79abca6b86af3cd575f0ae429e35c2539ed))
+* **renderer:** add objectType mapping and WGSL intersections for cylinder/cone/capsule ([7babe61](https://github.com/shivanshkc/lightshow/commit/7babe61e2f0f0ff1417ae692b10fe5865c477213))
+* **torus:** add quartic torus intersection for cpu picking and WGSL ([88e1b0a](https://github.com/shivanshkc/lightshow/commit/88e1b0ad49e7f61b91ef1a2ead23b2f4c18c4f9f))
+* **ui:** update cornell scene with new primtives ([f3f71e1](https://github.com/shivanshkc/lightshow/commit/f3f71e1933ae371e8a6d8a52b53e4d405e3bd8bf))
+
 ## [3.1.1](https://github.com/shivanshkc/lightshow/compare/v3.1.0...v3.1.1) (2025-12-21)
 
 
